@@ -14,7 +14,8 @@ import {
   Plug,
   LogOut,
   User,
-  Wrench
+  Wrench,
+  MessageCircle
 } from "lucide-react";
 
 const navigationItems = [
@@ -41,6 +42,12 @@ const navigationItems = [
     href: "/agent-designer",
     icon: Wrench,
     description: "Create custom agents",
+  },
+  {
+    name: "Message Builder",
+    href: "/message-builder",
+    icon: MessageCircle,
+    description: "Create MT 700 messages",
   },
   {
     name: "Discrepancy Analysis",
