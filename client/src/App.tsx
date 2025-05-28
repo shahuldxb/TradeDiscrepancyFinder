@@ -9,6 +9,7 @@ import Dashboard from "@/pages/Dashboard";
 import DocumentUpload from "@/pages/DocumentUpload";
 import DiscrepancyAnalysis from "@/pages/DiscrepancyAnalysis";
 import AgentMonitor from "@/pages/AgentMonitor";
+import AgentDesigner from "@/pages/AgentDesigner";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -24,6 +25,7 @@ function Router() {
           <Route path="/documents" component={DocumentUpload} />
           <Route path="/analysis" component={DiscrepancyAnalysis} />
           <Route path="/agents" component={AgentMonitor} />
+          <Route path="/agent-designer" component={AgentDesigner} />
         </>
       )}
       <Route component={NotFound} />

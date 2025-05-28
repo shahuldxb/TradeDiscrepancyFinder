@@ -262,6 +262,164 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Agent Designer Routes
+
+  // Custom Agents
+  app.get("/api/agents", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const agents = await storage.getCustomAgentsByUser(userId);
+      res.json(agents);
+    } catch (error) {
+      console.error("Error fetching custom agents:", error);
+      res.status(500).json({ message: "Failed to fetch custom agents" });
+    }
+  });
+
+  app.post("/api/agents", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const validatedData = insertCustomAgentSchema.parse(req.body);
+      const agent = await storage.createCustomAgent({ ...validatedData, userId });
+      res.json(agent);
+    } catch (error) {
+      console.error("Error creating custom agent:", error);
+      res.status(500).json({ message: "Failed to create custom agent" });
+    }
+  });
+
+  app.patch("/api/agents/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const agentId = req.params.id;
+      
+      // Verify agent belongs to user
+      const existingAgent = await storage.getCustomAgent(agentId, userId);
+      if (!existingAgent) {
+        return res.status(404).json({ message: "Agent not found" });
+      }
+
+      await storage.updateCustomAgent(agentId, req.body);
+      res.json({ message: "Agent updated successfully" });
+    } catch (error) {
+      console.error("Error updating custom agent:", error);
+      res.status(500).json({ message: "Failed to update custom agent" });
+    }
+  });
+
+  app.delete("/api/agents/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const agentId = req.params.id;
+      await storage.deleteCustomAgent(agentId, userId);
+      res.json({ message: "Agent deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting custom agent:", error);
+      res.status(500).json({ message: "Failed to delete custom agent" });
+    }
+  });
+
+  // Custom Tasks
+  app.get("/api/tasks", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const tasks = await storage.getCustomTasksByUser(userId);
+      res.json(tasks);
+    } catch (error) {
+      console.error("Error fetching custom tasks:", error);
+      res.status(500).json({ message: "Failed to fetch custom tasks" });
+    }
+  });
+
+  app.post("/api/tasks", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const validatedData = insertCustomTaskSchema.parse(req.body);
+      const task = await storage.createCustomTask({ ...validatedData, userId });
+      res.json(task);
+    } catch (error) {
+      console.error("Error creating custom task:", error);
+      res.status(500).json({ message: "Failed to create custom task" });
+    }
+  });
+
+  // Custom Crews
+  app.get("/api/crews", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const crews = await storage.getCustomCrewsByUser(userId);
+      res.json(crews);
+    } catch (error) {
+      console.error("Error fetching custom crews:", error);
+      res.status(500).json({ message: "Failed to fetch custom crews" });
+    }
+  });
+
+  app.post("/api/crews", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const validatedData = insertCustomCrewSchema.parse(req.body);
+      const crew = await storage.createCustomCrew({ ...validatedData, userId });
+      res.json(crew);
+    } catch (error) {
+      console.error("Error creating custom crew:", error);
+      res.status(500).json({ message: "Failed to create custom crew" });
+    }
+  });
+
+  app.post("/api/crews/:id/execute", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const crewId = req.params.id;
+      
+      // Verify crew belongs to user
+      const crew = await storage.getCustomCrew(crewId, userId);
+      if (!crew) {
+        return res.status(404).json({ message: "Crew not found" });
+      }
+
+      // Create crew execution record
+      const execution = await storage.createCrewExecution({
+        crewId,
+        userId,
+        inputData: req.body || {}
+      });
+
+      // Update execution status to processing
+      await storage.updateCrewExecution(execution.id, { 
+        status: "processing",
+        startedAt: new Date()
+      });
+
+      // Simulate crew execution (in a real implementation, this would trigger the actual crew)
+      setTimeout(async () => {
+        try {
+          await storage.updateCrewExecution(execution.id, {
+            status: "completed",
+            completedAt: new Date(),
+            outputData: { result: "Crew execution completed successfully" },
+            executionTime: 5000
+          });
+        } catch (error) {
+          await storage.updateCrewExecution(execution.id, {
+            status: "failed",
+            completedAt: new Date(),
+            errorMessage: "Execution failed",
+            executionTime: 5000
+          });
+        }
+      }, 5000);
+
+      res.json({ 
+        message: "Crew execution started", 
+        executionId: execution.id 
+      });
+    } catch (error) {
+      console.error("Error executing crew:", error);
+      res.status(500).json({ message: "Failed to execute crew" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

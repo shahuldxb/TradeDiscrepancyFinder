@@ -11,7 +11,9 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Plus, Edit, Trash2, Users, Bot, Briefcase, Play, Pause, RotateCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
+import AgentDesignerNav from "@/components/AgentDesignerNav";
+import type { CustomAgent, CustomTask, CustomCrew } from "@shared/schema";
 
 interface Agent {
   id?: string;
@@ -99,7 +101,15 @@ export default function AgentDesigner() {
 
   // Mutations
   const createAgentMutation = useMutation({
-    mutationFn: (agent: Agent) => apiRequest('/api/agents', { method: 'POST', body: agent }),
+    mutationFn: async (agent: Agent) => {
+      const response = await fetch('/api/agents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(agent),
+      });
+      if (!response.ok) throw new Error('Failed to create agent');
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/agents'] });
       toast({ title: "Agent created successfully!" });
@@ -109,8 +119,15 @@ export default function AgentDesigner() {
   });
 
   const updateAgentMutation = useMutation({
-    mutationFn: ({ id, ...agent }: Agent & { id: string }) => 
-      apiRequest(`/api/agents/${id}`, { method: 'PATCH', body: agent }),
+    mutationFn: async ({ id, ...agent }: Agent & { id: string }) => {
+      const response = await fetch(`/api/agents/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(agent),
+      });
+      if (!response.ok) throw new Error('Failed to update agent');
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/agents'] });
       toast({ title: "Agent updated successfully!" });
@@ -119,7 +136,11 @@ export default function AgentDesigner() {
   });
 
   const deleteAgentMutation = useMutation({
-    mutationFn: (id: string) => apiRequest(`/api/agents/${id}`, { method: 'DELETE' }),
+    mutationFn: async (id: string) => {
+      const response = await fetch(`/api/agents/${id}`, { method: 'DELETE' });
+      if (!response.ok) throw new Error('Failed to delete agent');
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/agents'] });
       toast({ title: "Agent deleted successfully!" });
@@ -128,7 +149,15 @@ export default function AgentDesigner() {
   });
 
   const createTaskMutation = useMutation({
-    mutationFn: (task: Task) => apiRequest('/api/tasks', { method: 'POST', body: task }),
+    mutationFn: async (task: Task) => {
+      const response = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(task),
+      });
+      if (!response.ok) throw new Error('Failed to create task');
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
       toast({ title: "Task created successfully!" });
@@ -138,7 +167,15 @@ export default function AgentDesigner() {
   });
 
   const createCrewMutation = useMutation({
-    mutationFn: (crew: Crew) => apiRequest('/api/crews', { method: 'POST', body: crew }),
+    mutationFn: async (crew: Crew) => {
+      const response = await fetch('/api/crews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(crew),
+      });
+      if (!response.ok) throw new Error('Failed to create crew');
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/crews'] });
       toast({ title: "Crew created successfully!" });
@@ -148,7 +185,11 @@ export default function AgentDesigner() {
   });
 
   const executeCrewMutation = useMutation({
-    mutationFn: (crewId: string) => apiRequest(`/api/crews/${crewId}/execute`, { method: 'POST' }),
+    mutationFn: async (crewId: string) => {
+      const response = await fetch(`/api/crews/${crewId}/execute`, { method: 'POST' });
+      if (!response.ok) throw new Error('Failed to execute crew');
+      return response.json();
+    },
     onSuccess: () => {
       toast({ title: "Crew execution started!" });
     },
@@ -588,13 +629,17 @@ export default function AgentDesigner() {
   };
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Agent Designer</h1>
-        <p className="text-gray-600 dark:text-gray-300 mt-2">
-          Design custom agents, create specialized tasks, and orchestrate powerful crews for trade finance operations
-        </p>
-      </div>
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+      <AgentDesignerNav />
+      <div className="flex-1 overflow-hidden">
+        <div className="h-full overflow-y-auto">
+          <div className="container mx-auto p-6">
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Agent Designer</h1>
+              <p className="text-gray-600 dark:text-gray-300 mt-2">
+                Design custom agents, create specialized tasks, and orchestrate powerful crews for trade finance operations
+              </p>
+            </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-3">
@@ -848,6 +893,9 @@ export default function AgentDesigner() {
           </div>
         </TabsContent>
       </Tabs>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
