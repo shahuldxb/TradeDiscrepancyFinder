@@ -332,6 +332,152 @@ export class DatabaseStorage implements IStorage {
       .insert(auditLogs)
       .values(auditLog as any);
   }
+
+  // Custom Agent operations
+  async createCustomAgent(agent: InsertCustomAgent & { userId: string }): Promise<CustomAgent> {
+    const [newAgent] = await db
+      .insert(customAgents)
+      .values(agent)
+      .returning();
+    return newAgent;
+  }
+
+  async getCustomAgent(id: string, userId: string): Promise<CustomAgent | undefined> {
+    const [agent] = await db
+      .select()
+      .from(customAgents)
+      .where(and(eq(customAgents.id, id), eq(customAgents.userId, userId)));
+    return agent;
+  }
+
+  async getCustomAgentsByUser(userId: string): Promise<CustomAgent[]> {
+    return await db
+      .select()
+      .from(customAgents)
+      .where(eq(customAgents.userId, userId))
+      .orderBy(desc(customAgents.createdAt));
+  }
+
+  async updateCustomAgent(id: string, agent: Partial<CustomAgent>): Promise<void> {
+    await db
+      .update(customAgents)
+      .set({ ...agent, updatedAt: new Date() })
+      .where(eq(customAgents.id, id));
+  }
+
+  async deleteCustomAgent(id: string, userId: string): Promise<void> {
+    await db
+      .delete(customAgents)
+      .where(and(eq(customAgents.id, id), eq(customAgents.userId, userId)));
+  }
+
+  // Custom Task operations
+  async createCustomTask(task: InsertCustomTask & { userId: string }): Promise<CustomTask> {
+    const [newTask] = await db
+      .insert(customTasks)
+      .values(task)
+      .returning();
+    return newTask;
+  }
+
+  async getCustomTask(id: string, userId: string): Promise<CustomTask | undefined> {
+    const [task] = await db
+      .select()
+      .from(customTasks)
+      .where(and(eq(customTasks.id, id), eq(customTasks.userId, userId)));
+    return task;
+  }
+
+  async getCustomTasksByUser(userId: string): Promise<CustomTask[]> {
+    return await db
+      .select()
+      .from(customTasks)
+      .where(eq(customTasks.userId, userId))
+      .orderBy(desc(customTasks.createdAt));
+  }
+
+  async updateCustomTask(id: string, task: Partial<CustomTask>): Promise<void> {
+    await db
+      .update(customTasks)
+      .set({ ...task, updatedAt: new Date() })
+      .where(eq(customTasks.id, id));
+  }
+
+  async deleteCustomTask(id: string, userId: string): Promise<void> {
+    await db
+      .delete(customTasks)
+      .where(and(eq(customTasks.id, id), eq(customTasks.userId, userId)));
+  }
+
+  // Custom Crew operations
+  async createCustomCrew(crew: InsertCustomCrew & { userId: string }): Promise<CustomCrew> {
+    const [newCrew] = await db
+      .insert(customCrews)
+      .values(crew)
+      .returning();
+    return newCrew;
+  }
+
+  async getCustomCrew(id: string, userId: string): Promise<CustomCrew | undefined> {
+    const [crew] = await db
+      .select()
+      .from(customCrews)
+      .where(and(eq(customCrews.id, id), eq(customCrews.userId, userId)));
+    return crew;
+  }
+
+  async getCustomCrewsByUser(userId: string): Promise<CustomCrew[]> {
+    return await db
+      .select()
+      .from(customCrews)
+      .where(eq(customCrews.userId, userId))
+      .orderBy(desc(customCrews.createdAt));
+  }
+
+  async updateCustomCrew(id: string, crew: Partial<CustomCrew>): Promise<void> {
+    await db
+      .update(customCrews)
+      .set({ ...crew, updatedAt: new Date() })
+      .where(eq(customCrews.id, id));
+  }
+
+  async deleteCustomCrew(id: string, userId: string): Promise<void> {
+    await db
+      .delete(customCrews)
+      .where(and(eq(customCrews.id, id), eq(customCrews.userId, userId)));
+  }
+
+  // Crew Execution operations
+  async createCrewExecution(execution: InsertCrewExecution & { userId: string }): Promise<CrewExecution> {
+    const [newExecution] = await db
+      .insert(crewExecutions)
+      .values(execution)
+      .returning();
+    return newExecution;
+  }
+
+  async getCrewExecution(id: string, userId: string): Promise<CrewExecution | undefined> {
+    const [execution] = await db
+      .select()
+      .from(crewExecutions)
+      .where(and(eq(crewExecutions.id, id), eq(crewExecutions.userId, userId)));
+    return execution;
+  }
+
+  async getCrewExecutionsByUser(userId: string): Promise<CrewExecution[]> {
+    return await db
+      .select()
+      .from(crewExecutions)
+      .where(eq(crewExecutions.userId, userId))
+      .orderBy(desc(crewExecutions.startedAt));
+  }
+
+  async updateCrewExecution(id: string, execution: Partial<CrewExecution>): Promise<void> {
+    await db
+      .update(crewExecutions)
+      .set(execution)
+      .where(eq(crewExecutions.id, id));
+  }
 }
 
 export const storage = new DatabaseStorage();

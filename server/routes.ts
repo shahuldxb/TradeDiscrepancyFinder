@@ -8,7 +8,14 @@ import { getAgentStatus, getAgentTasks } from "./crewai";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import { insertDocumentSetSchema, insertDocumentSchema } from "@shared/schema";
+import { 
+  insertDocumentSetSchema, 
+  insertDocumentSchema,
+  insertCustomAgentSchema,
+  insertCustomTaskSchema,
+  insertCustomCrewSchema,
+  insertCrewExecutionSchema,
+} from "@shared/schema";
 
 // Configure multer for file uploads
 const upload = multer({
