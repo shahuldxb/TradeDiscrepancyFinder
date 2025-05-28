@@ -6,6 +6,10 @@ import {
   agentTasks,
   auditLogs,
   processingQueue,
+  customAgents,
+  customTasks,
+  customCrews,
+  crewExecutions,
   type User,
   type UpsertUser,
   type DocumentSet,
@@ -18,6 +22,14 @@ import {
   type InsertAgentTask,
   type AuditLog,
   type ProcessingQueueItem,
+  type CustomAgent,
+  type InsertCustomAgent,
+  type CustomTask,
+  type InsertCustomTask,
+  type CustomCrew,
+  type InsertCustomCrew,
+  type CrewExecution,
+  type InsertCrewExecution,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql } from "drizzle-orm";
@@ -58,6 +70,33 @@ export interface IStorage {
 
   // Audit operations
   createAuditLog(auditLog: Partial<AuditLog>): Promise<void>;
+
+  // Custom Agent operations
+  createCustomAgent(agent: InsertCustomAgent & { userId: string }): Promise<CustomAgent>;
+  getCustomAgent(id: string, userId: string): Promise<CustomAgent | undefined>;
+  getCustomAgentsByUser(userId: string): Promise<CustomAgent[]>;
+  updateCustomAgent(id: string, agent: Partial<CustomAgent>): Promise<void>;
+  deleteCustomAgent(id: string, userId: string): Promise<void>;
+
+  // Custom Task operations
+  createCustomTask(task: InsertCustomTask & { userId: string }): Promise<CustomTask>;
+  getCustomTask(id: string, userId: string): Promise<CustomTask | undefined>;
+  getCustomTasksByUser(userId: string): Promise<CustomTask[]>;
+  updateCustomTask(id: string, task: Partial<CustomTask>): Promise<void>;
+  deleteCustomTask(id: string, userId: string): Promise<void>;
+
+  // Custom Crew operations
+  createCustomCrew(crew: InsertCustomCrew & { userId: string }): Promise<CustomCrew>;
+  getCustomCrew(id: string, userId: string): Promise<CustomCrew | undefined>;
+  getCustomCrewsByUser(userId: string): Promise<CustomCrew[]>;
+  updateCustomCrew(id: string, crew: Partial<CustomCrew>): Promise<void>;
+  deleteCustomCrew(id: string, userId: string): Promise<void>;
+
+  // Crew Execution operations
+  createCrewExecution(execution: InsertCrewExecution & { userId: string }): Promise<CrewExecution>;
+  getCrewExecution(id: string, userId: string): Promise<CrewExecution | undefined>;
+  getCrewExecutionsByUser(userId: string): Promise<CrewExecution[]>;
+  updateCrewExecution(id: string, execution: Partial<CrewExecution>): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {

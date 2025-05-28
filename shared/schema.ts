@@ -127,6 +127,66 @@ export const processingQueue = pgTable("processing_queue", {
   processedAt: timestamp("processed_at"),
 });
 
+// Agent Designer Tables
+export const customAgents = pgTable("custom_agents", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  name: varchar("name").notNull(),
+  role: varchar("role").notNull(),
+  goal: text("goal").notNull(),
+  backstory: text("backstory").notNull(),
+  skills: text("skills").array().default([]),
+  tools: text("tools").array().default([]),
+  status: varchar("status").default("idle"),
+  isActive: boolean("is_active").default(true),
+  maxExecutionTime: integer("max_execution_time").default(300),
+  temperature: decimal("temperature", { precision: 3, scale: 2 }).default("0.70"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const customTasks = pgTable("custom_tasks", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  title: varchar("title").notNull(),
+  description: text("description").notNull(),
+  expectedOutput: text("expected_output").notNull(),
+  agentId: uuid("agent_id").references(() => customAgents.id),
+  priority: varchar("priority").default("medium"),
+  dependencies: text("dependencies").array().default([]),
+  tools: text("tools").array().default([]),
+  context: text("context"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const customCrews = pgTable("custom_crews", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  name: varchar("name").notNull(),
+  description: text("description").notNull(),
+  agentIds: text("agent_ids").array().default([]),
+  taskIds: text("task_ids").array().default([]),
+  process: varchar("process").default("sequential"),
+  isActive: boolean("is_active").default(true),
+  maxExecutionTime: integer("max_execution_time").default(1800),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const crewExecutions = pgTable("crew_executions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  crewId: uuid("crew_id").references(() => customCrews.id).notNull(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  status: varchar("status").default("pending"),
+  inputData: jsonb("input_data"),
+  outputData: jsonb("output_data"),
+  errorMessage: text("error_message"),
+  startedAt: timestamp("started_at").defaultNow(),
+  completedAt: timestamp("completed_at"),
+  executionTime: integer("execution_time"),
+});
+
 // Create insert schemas
 export const insertUserSchema = createInsertSchema(users).pick({
   email: true,
@@ -173,6 +233,45 @@ export const insertAgentTaskSchema = createInsertSchema(agentTasks).pick({
   inputData: true,
 });
 
+export const insertCustomAgentSchema = createInsertSchema(customAgents).pick({
+  name: true,
+  role: true,
+  goal: true,
+  backstory: true,
+  skills: true,
+  tools: true,
+  status: true,
+  isActive: true,
+  maxExecutionTime: true,
+  temperature: true,
+});
+
+export const insertCustomTaskSchema = createInsertSchema(customTasks).pick({
+  title: true,
+  description: true,
+  expectedOutput: true,
+  agentId: true,
+  priority: true,
+  dependencies: true,
+  tools: true,
+  context: true,
+});
+
+export const insertCustomCrewSchema = createInsertSchema(customCrews).pick({
+  name: true,
+  description: true,
+  agentIds: true,
+  taskIds: true,
+  process: true,
+  isActive: true,
+  maxExecutionTime: true,
+});
+
+export const insertCrewExecutionSchema = createInsertSchema(crewExecutions).pick({
+  crewId: true,
+  inputData: true,
+});
+
 // Export types
 export type UpsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -186,3 +285,13 @@ export type AgentTask = typeof agentTasks.$inferSelect;
 export type InsertAgentTask = z.infer<typeof insertAgentTaskSchema>;
 export type AuditLog = typeof auditLogs.$inferSelect;
 export type ProcessingQueueItem = typeof processingQueue.$inferSelect;
+
+// Agent Designer Types
+export type CustomAgent = typeof customAgents.$inferSelect;
+export type InsertCustomAgent = z.infer<typeof insertCustomAgentSchema>;
+export type CustomTask = typeof customTasks.$inferSelect;
+export type InsertCustomTask = z.infer<typeof insertCustomTaskSchema>;
+export type CustomCrew = typeof customCrews.$inferSelect;
+export type InsertCustomCrew = z.infer<typeof insertCustomCrewSchema>;
+export type CrewExecution = typeof crewExecutions.$inferSelect;
+export type InsertCrewExecution = z.infer<typeof insertCrewExecutionSchema>;
