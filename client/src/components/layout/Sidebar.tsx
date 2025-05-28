@@ -13,7 +13,8 @@ import {
   Database,
   Plug,
   LogOut,
-  User
+  User,
+  Wrench
 } from "lucide-react";
 
 const navigationItems = [
@@ -34,6 +35,12 @@ const navigationItems = [
     href: "/agents",
     icon: Bot,
     description: "Agent monitoring",
+  },
+  {
+    name: "Agent Designer",
+    href: "/agent-designer",
+    icon: Wrench,
+    description: "Create custom agents",
   },
   {
     name: "Discrepancy Analysis",
