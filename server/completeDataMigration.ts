@@ -200,7 +200,15 @@ async function migrateMessageTypes() {
   ];
 
   for (const msgType of messageTypes) {
-    await db.insert(swiftMessageTypes).values(msgType).onConflictDoNothing();
+    await db.insert(swiftMessageTypes).values({
+      id: msgType.id,
+      messageTypeCode: msgType.messageTypeCode,
+      name: msgType.name,
+      description: msgType.description,
+      category: msgType.category,
+      version: msgType.version,
+      isActive: msgType.isActive
+    }).onConflictDoNothing();
   }
   console.log(`✓ Migrated ${messageTypes.length} message types`);
 }

@@ -1,50 +1,30 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { nanoid } from "nanoid";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { processDocument, getDocumentStatus } from "./documentProcessor";
+import { 
+  insertDocumentSetSchema, 
+  insertDocumentSchema, 
+  insertDiscrepancySchema, 
+  insertAgentTaskSchema,
+  insertCustomAgentSchema,
+  insertCustomTaskSchema,
+  insertCustomCrewSchema
+} from "@shared/schema";
+import { processDocument } from "./documentProcessor";
+import { crewAI, processDocumentSetWithAgents } from "./crewai";
 import { runDiscrepancyAnalysis, getDiscrepancies } from "./discrepancyEngine";
-import { getAgentStatus, getAgentTasks } from "./crewai";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import { 
-  insertDocumentSetSchema, 
-  insertDocumentSchema,
-  insertCustomAgentSchema,
-  insertCustomTaskSchema,
-  insertCustomCrewSchema,
-  insertCrewExecutionSchema,
-} from "@shared/schema";
-
-// Configure multer for file uploads
-const upload = multer({
-  dest: "uploads/",
-  limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB limit
-  },
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = [
-      "application/pdf",
-      "text/plain",
-      "image/jpeg",
-      "image/png",
-    ];
-    if (allowedTypes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error("Invalid file type"));
-    }
-  },
-});
+import { nanoid } from "nanoid";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Setup authentication
+  // Auth middleware
   await setupAuth(app);
 
   // Auth routes
-  app.get("/api/auth/user", isAuthenticated, async (req: any, res) => {
+  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -55,24 +35,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Document Set routes
-  app.post("/api/document-sets", isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const documentSetData = insertDocumentSetSchema.parse(req.body);
-      
-      const documentSet = await storage.createDocumentSet({
-        ...documentSetData,
-        userId,
-      });
-      
-      res.json(documentSet);
-    } catch (error) {
-      console.error("Error creating document set:", error);
-      res.status(500).json({ message: "Failed to create document set" });
+  // File upload configuration
+  const uploadDir = path.join(process.cwd(), 'uploads');
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+
+  const upload = multer({
+    dest: uploadDir,
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+    fileFilter: (req, file, cb) => {
+      const allowedTypes = ['application/pdf', 'text/plain', 'image/jpeg', 'image/png'];
+      if (allowedTypes.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Invalid file type'));
+      }
     }
   });
 
+  // Document Set routes
   app.get("/api/document-sets", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
@@ -84,10 +66,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/document-sets", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const validatedData = insertDocumentSetSchema.parse(req.body);
+      
+      const documentSet = await storage.createDocumentSet({
+        ...validatedData,
+        userId
+      });
+      
+      res.status(201).json(documentSet);
+    } catch (error) {
+      console.error("Error creating document set:", error);
+      res.status(400).json({ message: "Failed to create document set" });
+    }
+  });
+
   app.get("/api/document-sets/:id", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const documentSet = await storage.getDocumentSet(req.params.id, userId);
+      const { id } = req.params;
+      const documentSet = await storage.getDocumentSetWithDetails(id, userId);
       
       if (!documentSet) {
         return res.status(404).json({ message: "Document set not found" });
@@ -101,52 +101,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Document upload and processing
-  app.post("/api/documents/upload", isAuthenticated, upload.single("document"), async (req: any, res) => {
+  app.post("/api/documents/upload", isAuthenticated, upload.single('document'), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const file = req.file;
-      
+      const { documentSetId, documentType } = req.body;
+
       if (!file) {
         return res.status(400).json({ message: "No file uploaded" });
       }
 
-      const { documentSetId, documentType } = req.body;
-      
-      if (!documentSetId || !documentType) {
-        return res.status(400).json({ message: "Missing required fields" });
-      }
-
-      // Verify document set exists and belongs to user
-      const documentSet = await storage.getDocumentSet(documentSetId, userId);
-      if (!documentSet) {
-        return res.status(404).json({ message: "Document set not found" });
-      }
-
-      // Create document record
-      const document = await storage.createDocument({
-        documentSetId,
+      const validatedData = insertDocumentSchema.parse({
         documentType,
         fileName: file.originalname,
         filePath: file.path,
         fileSize: file.size,
         mimeType: file.mimetype,
-        userId,
+        status: "uploaded"
       });
 
-      // Start document processing
-      processDocument(document.id).catch(console.error);
+      const document = await storage.createDocument({
+        ...validatedData,
+        userId,
+        documentSetId
+      });
 
-      res.json(document);
+      // Process the document
+      const processResult = await processDocument(document.id);
+      
+      res.status(201).json({ document, processResult });
     } catch (error) {
       console.error("Error uploading document:", error);
-      res.status(500).json({ message: "Failed to upload document" });
+      res.status(400).json({ message: "Failed to upload document" });
     }
   });
 
   app.get("/api/documents/:id/status", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const status = await getDocumentStatus(parseInt(req.params.id), userId);
+      const { id } = req.params;
+      const status = await storage.getDocumentStatus(parseInt(id), userId);
       res.json(status);
     } catch (error) {
       console.error("Error fetching document status:", error);
@@ -154,22 +148,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Discrepancy analysis
+  // Discrepancy Analysis
   app.post("/api/document-sets/:id/analyze", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const documentSetId = req.params.id;
-      
-      // Verify document set belongs to user
-      const documentSet = await storage.getDocumentSet(documentSetId, userId);
-      if (!documentSet) {
-        return res.status(404).json({ message: "Document set not found" });
-      }
-
-      // Start discrepancy analysis
-      const analysisId = await runDiscrepancyAnalysis(documentSetId);
-      
-      res.json({ analysisId, status: "started" });
+      const { id } = req.params;
+      const taskId = await runDiscrepancyAnalysis(id);
+      res.json({ taskId, message: "Analysis started" });
     } catch (error) {
       console.error("Error starting analysis:", error);
       res.status(500).json({ message: "Failed to start analysis" });
@@ -178,16 +162,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/document-sets/:id/discrepancies", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const documentSetId = req.params.id;
-      
-      // Verify document set belongs to user
-      const documentSet = await storage.getDocumentSet(documentSetId, userId);
-      if (!documentSet) {
-        return res.status(404).json({ message: "Document set not found" });
-      }
-
-      const discrepancies = await getDiscrepancies(documentSetId);
+      const { id } = req.params;
+      const discrepancies = await getDiscrepancies(id);
       res.json(discrepancies);
     } catch (error) {
       console.error("Error fetching discrepancies:", error);
@@ -195,78 +171,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // CrewAI agent monitoring
+  // CrewAI Agent routes
   app.get("/api/agents/status", isAuthenticated, async (req, res) => {
     try {
-      const agentStatus = await getAgentStatus();
-      res.json(agentStatus);
+      const agents = await crewAI.getAgentStatus();
+      res.json(agents);
     } catch (error) {
       console.error("Error fetching agent status:", error);
       res.status(500).json({ message: "Failed to fetch agent status" });
     }
   });
 
-  app.get("/api/agent-tasks", isAuthenticated, async (req: any, res) => {
+  app.post("/api/agents/process", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const tasks = await getAgentTasks(userId);
-      res.json(tasks);
-    } catch (error) {
-      console.error("Error fetching agent tasks:", error);
-      res.status(500).json({ message: "Failed to fetch agent tasks" });
-    }
-  });
-
-  // Dashboard metrics
-  app.get("/api/dashboard/metrics", isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const metrics = await storage.getDashboardMetrics(userId);
-      res.json(metrics);
-    } catch (error) {
-      console.error("Error fetching dashboard metrics:", error);
-      res.status(500).json({ message: "Failed to fetch dashboard metrics" });
-    }
-  });
-
-  // ILC creation API (called after successful validation)
-  app.post("/api/ilc/create", isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
       const { documentSetId } = req.body;
-
-      // Verify no critical discrepancies exist
-      const discrepancies = await getDiscrepancies(documentSetId);
-      const criticalDiscrepancies = discrepancies.filter(d => d.severity === "critical");
-      
-      if (criticalDiscrepancies.length > 0) {
-        return res.status(400).json({ 
-          message: "Cannot create ILC with unresolved critical discrepancies",
-          criticalDiscrepancies 
-        });
-      }
-
-      // Here you would integrate with the actual ILC creation system
-      const ilcReference = `ILC-${Date.now()}`;
-      
-      // Update document set status
-      await storage.updateDocumentSetStatus(documentSetId, "completed");
-      
-      res.json({
-        success: true,
-        ilcReference,
-        status: "created"
-      });
+      const taskId = await processDocumentSetWithAgents(documentSetId);
+      res.json({ taskId, message: "Agent processing started" });
     } catch (error) {
-      console.error("Error creating ILC:", error);
-      res.status(500).json({ message: "Failed to create ILC" });
+      console.error("Error starting agent processing:", error);
+      res.status(500).json({ message: "Failed to start agent processing" });
     }
   });
 
-  // Agent Designer Routes
-
-  // Custom Agents
-  app.get("/api/agents", isAuthenticated, async (req: any, res) => {
+  // Custom Agent Designer routes
+  app.get("/api/custom-agents", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const agents = await storage.getCustomAgentsByUser(userId);
@@ -277,51 +205,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/agents", isAuthenticated, async (req: any, res) => {
+  app.post("/api/custom-agents", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const validatedData = insertCustomAgentSchema.parse(req.body);
-      const agent = await storage.createCustomAgent({ ...validatedData, userId });
-      res.json(agent);
+      
+      const agent = await storage.createCustomAgent({
+        ...validatedData,
+        userId
+      });
+      
+      res.status(201).json(agent);
     } catch (error) {
       console.error("Error creating custom agent:", error);
-      res.status(500).json({ message: "Failed to create custom agent" });
+      res.status(400).json({ message: "Failed to create custom agent" });
     }
   });
 
-  app.patch("/api/agents/:id", isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const agentId = req.params.id;
-      
-      // Verify agent belongs to user
-      const existingAgent = await storage.getCustomAgent(agentId, userId);
-      if (!existingAgent) {
-        return res.status(404).json({ message: "Agent not found" });
-      }
-
-      await storage.updateCustomAgent(agentId, req.body);
-      res.json({ message: "Agent updated successfully" });
-    } catch (error) {
-      console.error("Error updating custom agent:", error);
-      res.status(500).json({ message: "Failed to update custom agent" });
-    }
-  });
-
-  app.delete("/api/agents/:id", isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const agentId = req.params.id;
-      await storage.deleteCustomAgent(agentId, userId);
-      res.json({ message: "Agent deleted successfully" });
-    } catch (error) {
-      console.error("Error deleting custom agent:", error);
-      res.status(500).json({ message: "Failed to delete custom agent" });
-    }
-  });
-
-  // Custom Tasks
-  app.get("/api/tasks", isAuthenticated, async (req: any, res) => {
+  // Custom Task routes
+  app.get("/api/custom-tasks", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const tasks = await storage.getCustomTasksByUser(userId);
@@ -332,20 +234,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/tasks", isAuthenticated, async (req: any, res) => {
+  app.post("/api/custom-tasks", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const validatedData = insertCustomTaskSchema.parse(req.body);
-      const task = await storage.createCustomTask({ ...validatedData, userId });
-      res.json(task);
+      
+      const task = await storage.createCustomTask({
+        ...validatedData,
+        userId
+      });
+      
+      res.status(201).json(task);
     } catch (error) {
       console.error("Error creating custom task:", error);
-      res.status(500).json({ message: "Failed to create custom task" });
+      res.status(400).json({ message: "Failed to create custom task" });
     }
   });
 
-  // Custom Crews
-  app.get("/api/crews", isAuthenticated, async (req: any, res) => {
+  // Custom Crew routes
+  app.get("/api/custom-crews", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const crews = await storage.getCustomCrewsByUser(userId);
@@ -356,87 +263,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/crews", isAuthenticated, async (req: any, res) => {
+  app.post("/api/custom-crews", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const validatedData = insertCustomCrewSchema.parse(req.body);
-      const crew = await storage.createCustomCrew({ ...validatedData, userId });
-      res.json(crew);
+      
+      const crew = await storage.createCustomCrew({
+        ...validatedData,
+        userId
+      });
+      
+      res.status(201).json(crew);
     } catch (error) {
       console.error("Error creating custom crew:", error);
-      res.status(500).json({ message: "Failed to create custom crew" });
+      res.status(400).json({ message: "Failed to create custom crew" });
     }
   });
 
-  app.post("/api/crews/:id/execute", isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const crewId = req.params.id;
-      
-      // Verify crew belongs to user
-      const crew = await storage.getCustomCrew(crewId, userId);
-      if (!crew) {
-        return res.status(404).json({ message: "Crew not found" });
-      }
-
-      // Create crew execution record
-      const execution = await storage.createCrewExecution({
-        crewId,
-        userId,
-        inputData: req.body || {}
-      });
-
-      // Update execution status to processing
-      await storage.updateCrewExecution(execution.id, { 
-        status: "processing",
-        startedAt: new Date()
-      });
-
-      // Simulate crew execution (in a real implementation, this would trigger the actual crew)
-      setTimeout(async () => {
-        try {
-          await storage.updateCrewExecution(execution.id, {
-            status: "completed",
-            completedAt: new Date(),
-            outputData: { result: "Crew execution completed successfully" },
-            executionTime: 5000
-          });
-        } catch (error) {
-          await storage.updateCrewExecution(execution.id, {
-            status: "failed",
-            completedAt: new Date(),
-            errorMessage: "Execution failed",
-            executionTime: 5000
-          });
-        }
-      }, 5000);
-
-      res.json({ 
-        message: "Crew execution started", 
-        executionId: execution.id 
-      });
-    } catch (error) {
-      console.error("Error executing crew:", error);
-      res.status(500).json({ message: "Failed to execute crew" });
-    }
-  });
-
-  // SWIFT MT xxx Digitization Routes
-  
-  // Get digitization stats
-  app.get("/api/digitization/stats", isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const stats = await storage.getDigitizationStats(userId);
-      res.json(stats);
-    } catch (error) {
-      console.error("Error fetching digitization stats:", error);
-      res.status(500).json({ message: "Failed to fetch stats" });
-    }
-  });
-
-  // Get message types
-  app.get("/api/digitization/message-types", isAuthenticated, async (req, res) => {
+  // SWIFT MT7xx Digitization routes
+  app.get("/api/swift/message-types", isAuthenticated, async (req, res) => {
     try {
       const messageTypes = await storage.getSwiftMessageTypes();
       res.json(messageTypes);
@@ -446,159 +291,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get all MT7xx message fields
-  app.get("/api/swift/all-message-fields", isAuthenticated, async (req, res) => {
+  app.get("/api/swift/message-types/:code/fields", isAuthenticated, async (req, res) => {
     try {
-      // Import the field data from swiftDigitization module
-      const { getAllMT7xxFields } = await import("./swiftDigitization");
-      const allFields = getAllMT7xxFields();
-      res.json(allFields);
+      const { code } = req.params;
+      const fields = await storage.getSwiftFieldsByMessageType(code);
+      res.json(fields);
     } catch (error) {
-      console.error("Error fetching MT7xx fields:", error);
-      res.status(500).json({ message: "Failed to fetch MT7xx fields" });
+      console.error("Error fetching message fields:", error);
+      res.status(500).json({ message: "Failed to fetch message fields" });
     }
   });
 
-  // Get templates
-  app.get("/api/digitization/templates", isAuthenticated, async (req: any, res) => {
+  app.get("/api/swift/fields", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const templates = await storage.getSwiftTemplates(userId);
-      res.json(templates);
+      const fields = await storage.getAllSwiftFields();
+      res.json(fields);
     } catch (error) {
-      console.error("Error fetching templates:", error);
-      res.status(500).json({ message: "Failed to fetch templates" });
-    }
-  });
-
-  // Get validation results
-  app.get("/api/digitization/validation-results", isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const results = await storage.getSwiftValidationResults(userId);
-      res.json(results);
-    } catch (error) {
-      console.error("Error fetching validation results:", error);
-      res.status(500).json({ message: "Failed to fetch validation results" });
-    }
-  });
-
-  // Get projects
-  app.get("/api/digitization/projects", isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const projects = await storage.getDigitizationProjects(userId);
-      res.json(projects);
-    } catch (error) {
-      console.error("Error fetching projects:", error);
-      res.status(500).json({ message: "Failed to fetch projects" });
-    }
-  });
-
-  // Create project
-  app.post("/api/digitization/projects", isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const projectData = {
-        ...req.body,
-        id: nanoid(),
-        userId,
-      };
-      const project = await storage.createDigitizationProject(projectData);
-      res.json(project);
-    } catch (error) {
-      console.error("Error creating project:", error);
-      res.status(500).json({ message: "Failed to create project" });
-    }
-  });
-
-  // Validate SWIFT message
-  app.post("/api/digitization/validate", isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const { content, messageType } = req.body;
-      
-      if (!content || !messageType) {
-        return res.status(400).json({ message: "Content and message type are required" });
-      }
-
-      // Create validation result with sample data structure
-      const validationResult = {
-        isValid: content.includes(":20:") && content.includes(":40A:"),
-        errors: content.includes(":20:") ? [] : [
-          {
-            fieldCode: ":20:",
-            errorType: "missing_mandatory_field",
-            errorMessage: "Mandatory field :20: (Transaction Reference) is missing",
-            severity: "error"
-          }
-        ],
-        warnings: [],
-        parsedFields: {},
-        processingTime: 150
-      };
-
-      // Store validation result
-      const resultData = {
-        id: nanoid(),
-        messageId: nanoid(),
-        userId,
-        isValid: validationResult.isValid,
-        totalErrors: validationResult.errors.length,
-        totalWarnings: validationResult.warnings.length,
-        validationSummary: {
-          ...validationResult,
-          messageType,
-          content: content.substring(0, 500)
-        },
-        processingTime: validationResult.processingTime,
-      };
-
-      await storage.createSwiftValidationResult(resultData);
-      
-      res.json(validationResult);
-    } catch (error) {
-      console.error("Error validating message:", error);
-      res.status(500).json({ message: "Failed to validate message" });
-    }
-  });
-
-  // Construct SWIFT message
-  app.post("/api/digitization/construct", isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const { messageType, fields } = req.body;
-      
-      if (!messageType || !fields) {
-        return res.status(400).json({ message: "Message type and fields are required" });
-      }
-
-      // Create constructed message
-      let constructedMessage = "";
-      Object.entries(fields).forEach(([fieldCode, value]) => {
-        constructedMessage += `${fieldCode}${value}\n`;
-      });
-
-      // Store constructed message
-      const messageData = {
-        id: nanoid(),
-        messageTypeId: nanoid(),
-        userId,
-        content: constructedMessage.trim(),
-        parsedFields: fields,
-        status: "constructed",
-      };
-
-      const savedMessage = await storage.createSwiftMessage(messageData);
-      
-      res.json({
-        message: constructedMessage.trim(),
-        messageId: savedMessage.id,
-        fields: fields
-      });
-    } catch (error) {
-      console.error("Error constructing message:", error);
-      res.status(500).json({ message: "Failed to construct message" });
+      console.error("Error fetching SWIFT fields:", error);
+      res.status(500).json({ message: "Failed to fetch SWIFT fields" });
     }
   });
 

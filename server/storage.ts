@@ -1,21 +1,15 @@
-import {
-  users,
-  documentSets,
-  documents,
-  discrepancies,
+import { 
+  users, 
+  documentSets, 
+  documents, 
+  discrepancies, 
   agentTasks,
-  auditLogs,
-  processingQueue,
   customAgents,
-  customTasks,
+  customTasks, 
   customCrews,
-  crewExecutions,
   swiftMessageTypes,
   swiftFields,
-  swiftMessages,
-  swiftValidationResults,
-  swiftTemplates,
-  digitizationProjects,
+  messageTypeFields,
   type User,
   type UpsertUser,
   type DocumentSet,
@@ -26,29 +20,18 @@ import {
   type InsertDiscrepancy,
   type AgentTask,
   type InsertAgentTask,
-  type AuditLog,
-  type ProcessingQueueItem,
   type CustomAgent,
   type InsertCustomAgent,
   type CustomTask,
   type InsertCustomTask,
   type CustomCrew,
   type InsertCustomCrew,
-  type CrewExecution,
-  type InsertCrewExecution,
   type SwiftMessageType,
-  type InsertSwiftMessageType,
   type SwiftField,
-  type InsertSwiftField,
-  type SwiftMessage,
-  type InsertSwiftMessage,
-  type SwiftTemplate,
-  type InsertSwiftTemplate,
-  type DigitizationProject,
-  type InsertDigitizationProject,
+  type MessageTypeField
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 // Interface for storage operations
 export interface IStorage {
@@ -57,87 +40,33 @@ export interface IStorage {
   upsertUser(user: UpsertUser): Promise<User>;
 
   // Document Set operations
-  createDocumentSet(documentSet: InsertDocumentSet & { userId: string }): Promise<DocumentSet>;
-  getDocumentSet(id: string, userId?: string): Promise<DocumentSet | undefined>;
   getDocumentSetsByUser(userId: string): Promise<DocumentSet[]>;
-  updateDocumentSetStatus(id: string, status: string): Promise<void>;
+  createDocumentSet(data: InsertDocumentSet & { userId: string }): Promise<DocumentSet>;
+  getDocumentSetWithDetails(id: string, userId: string): Promise<any>;
 
   // Document operations
-  createDocument(document: InsertDocument & { userId: string }): Promise<Document>;
-  getDocument(id: number): Promise<Document | undefined>;
-  getDocumentWithUser(id: number, userId: string): Promise<Document | undefined>;
-  getDocumentsBySet(documentSetId: string): Promise<Document[]>;
-  getDocumentsByTypeAndSet(documentSetId: string, documentType: string): Promise<Document[]>;
-  updateDocumentStatus(id: number, status: string): Promise<void>;
-  updateDocumentExtractedData(id: number, extractedData: any): Promise<void>;
+  createDocument(data: InsertDocument & { userId: string; documentSetId?: string }): Promise<Document>;
+  getDocumentStatus(documentId: number, userId: string): Promise<any>;
 
   // Discrepancy operations
-  createDiscrepancy(discrepancy: InsertDiscrepancy): Promise<Discrepancy>;
-  getDiscrepanciesBySet(documentSetId: string): Promise<Discrepancy[]>;
-  updateDiscrepancy(id: number, updates: Partial<Discrepancy>): Promise<void>;
+  createDiscrepancy(data: InsertDiscrepancy & { documentSetId: string }): Promise<Discrepancy>;
+  getDiscrepanciesByDocumentSet(documentSetId: string): Promise<Discrepancy[]>;
 
   // Agent Task operations
-  createAgentTask(agentTask: InsertAgentTask): Promise<number>;
-  updateAgentTask(id: number, status: string, outputData?: any, errorMessage?: string): Promise<void>;
-  getAgentTasksByUser(userId: string): Promise<AgentTask[]>;
+  createAgentTask(data: InsertAgentTask & { documentSetId?: string; documentId?: number }): Promise<AgentTask>;
 
-  // Dashboard metrics
-  getDashboardMetrics(userId: string): Promise<any>;
-
-  // Audit operations
-  createAuditLog(auditLog: Partial<AuditLog>): Promise<void>;
-
-  // Custom Agent operations
-  createCustomAgent(agent: InsertCustomAgent & { userId: string }): Promise<CustomAgent>;
-  getCustomAgent(id: string, userId: string): Promise<CustomAgent | undefined>;
+  // Custom Agent Designer operations
   getCustomAgentsByUser(userId: string): Promise<CustomAgent[]>;
-  updateCustomAgent(id: string, agent: Partial<CustomAgent>): Promise<void>;
-  deleteCustomAgent(id: string, userId: string): Promise<void>;
-
-  // Custom Task operations
-  createCustomTask(task: InsertCustomTask & { userId: string }): Promise<CustomTask>;
-  getCustomTask(id: string, userId: string): Promise<CustomTask | undefined>;
+  createCustomAgent(data: InsertCustomAgent & { userId: string }): Promise<CustomAgent>;
   getCustomTasksByUser(userId: string): Promise<CustomTask[]>;
-  updateCustomTask(id: string, task: Partial<CustomTask>): Promise<void>;
-  deleteCustomTask(id: string, userId: string): Promise<void>;
-
-  // Custom Crew operations
-  createCustomCrew(crew: InsertCustomCrew & { userId: string }): Promise<CustomCrew>;
-  getCustomCrew(id: string, userId: string): Promise<CustomCrew | undefined>;
+  createCustomTask(data: InsertCustomTask & { userId: string }): Promise<CustomTask>;
   getCustomCrewsByUser(userId: string): Promise<CustomCrew[]>;
-  updateCustomCrew(id: string, crew: Partial<CustomCrew>): Promise<void>;
-  deleteCustomCrew(id: string, userId: string): Promise<void>;
+  createCustomCrew(data: InsertCustomCrew & { userId: string }): Promise<CustomCrew>;
 
-  // Crew Execution operations
-  createCrewExecution(execution: InsertCrewExecution & { userId: string }): Promise<CrewExecution>;
-  getCrewExecution(id: string, userId: string): Promise<CrewExecution | undefined>;
-  getCrewExecutionsByUser(userId: string): Promise<CrewExecution[]>;
-  updateCrewExecution(id: string, execution: Partial<CrewExecution>): Promise<void>;
-
-  // SWIFT Digitization operations
-  createSwiftMessageType(messageType: InsertSwiftMessageType & { id: string }): Promise<SwiftMessageType>;
+  // SWIFT MT7xx operations
   getSwiftMessageTypes(): Promise<SwiftMessageType[]>;
-  getSwiftMessageType(id: string): Promise<SwiftMessageType | undefined>;
-  
-  createSwiftField(field: InsertSwiftField & { id: string }): Promise<SwiftField>;
-  getSwiftFields(): Promise<SwiftField[]>;
-  getSwiftField(id: string): Promise<SwiftField | undefined>;
-  
-  createSwiftMessage(message: InsertSwiftMessage & { userId: string, id: string }): Promise<SwiftMessage>;
-  getSwiftMessages(userId: string): Promise<SwiftMessage[]>;
-  getSwiftMessage(id: string, userId: string): Promise<SwiftMessage | undefined>;
-  
-  createSwiftValidationResult(result: any): Promise<any>;
-  getSwiftValidationResults(userId: string): Promise<any[]>;
-  
-  createSwiftTemplate(template: InsertSwiftTemplate & { userId: string, id: string }): Promise<SwiftTemplate>;
-  getSwiftTemplates(userId?: string): Promise<SwiftTemplate[]>;
-  
-  createDigitizationProject(project: InsertDigitizationProject & { userId: string, id: string }): Promise<DigitizationProject>;
-  getDigitizationProjects(userId: string): Promise<DigitizationProject[]>;
-  getDigitizationProject(id: string, userId: string): Promise<DigitizationProject | undefined>;
-  
-  getDigitizationStats(userId: string): Promise<any>;
+  getSwiftFieldsByMessageType(messageTypeCode: string): Promise<any[]>;
+  getAllSwiftFields(): Promise<SwiftField[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -150,7 +79,7 @@ export class DatabaseStorage implements IStorage {
   async upsertUser(userData: UpsertUser): Promise<User> {
     const [user] = await db
       .insert(users)
-      .values(userData)
+      .values({ id: userData.id || '', ...userData })
       .onConflictDoUpdate({
         target: users.id,
         set: {
@@ -163,483 +92,156 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Document Set operations
-  async createDocumentSet(documentSet: InsertDocumentSet & { userId: string }): Promise<DocumentSet> {
-    const [created] = await db
-      .insert(documentSets)
-      .values(documentSet)
-      .returning();
-    return created;
+  async getDocumentSetsByUser(userId: string): Promise<DocumentSet[]> {
+    return await db.select().from(documentSets).where(eq(documentSets.userId, userId));
   }
 
-  async getDocumentSet(id: string, userId?: string): Promise<DocumentSet | undefined> {
-    const conditions = userId 
-      ? and(eq(documentSets.id, id), eq(documentSets.userId, userId))
-      : eq(documentSets.id, id);
-    
+  async createDocumentSet(data: InsertDocumentSet & { userId: string }): Promise<DocumentSet> {
     const [documentSet] = await db
-      .select()
-      .from(documentSets)
-      .where(conditions);
-    
+      .insert(documentSets)
+      .values(data)
+      .returning();
     return documentSet;
   }
 
-  async getDocumentSetsByUser(userId: string): Promise<DocumentSet[]> {
-    return await db
+  async getDocumentSetWithDetails(id: string, userId: string): Promise<any> {
+    const documentSet = await db
       .select()
       .from(documentSets)
-      .where(eq(documentSets.userId, userId))
-      .orderBy(desc(documentSets.createdAt));
-  }
+      .where(eq(documentSets.id, id) && eq(documentSets.userId, userId));
 
-  async updateDocumentSetStatus(id: string, status: string): Promise<void> {
-    await db
-      .update(documentSets)
-      .set({ 
-        status,
-        ...(status === 'completed' ? { completedAt: new Date() } : {})
-      })
-      .where(eq(documentSets.id, id));
+    if (!documentSet.length) return null;
+
+    const relatedDocuments = await db
+      .select()
+      .from(documents)
+      .where(eq(documents.documentSetId, id));
+
+    const relatedTasks = await db
+      .select()
+      .from(agentTasks)
+      .where(eq(agentTasks.documentSetId, id));
+
+    return {
+      ...documentSet[0],
+      documents: relatedDocuments,
+      agentTasks: relatedTasks
+    };
   }
 
   // Document operations
-  async createDocument(document: InsertDocument & { userId: string }): Promise<Document> {
-    const [created] = await db
+  async createDocument(data: InsertDocument & { userId: string; documentSetId?: string }): Promise<Document> {
+    const [document] = await db
       .insert(documents)
-      .values(document)
+      .values(data)
       .returning();
-    return created;
-  }
-
-  async getDocument(id: number): Promise<Document | undefined> {
-    const [document] = await db
-      .select()
-      .from(documents)
-      .where(eq(documents.id, id));
     return document;
   }
 
-  async getDocumentWithUser(id: number, userId: string): Promise<Document | undefined> {
+  async getDocumentStatus(documentId: number, userId: string): Promise<any> {
     const [document] = await db
       .select()
       .from(documents)
-      .where(and(eq(documents.id, id), eq(documents.userId, userId)));
-    return document;
-  }
+      .where(eq(documents.id, documentId) && eq(documents.userId, userId));
 
-  async getDocumentsBySet(documentSetId: string): Promise<Document[]> {
-    return await db
-      .select()
-      .from(documents)
-      .where(eq(documents.documentSetId, documentSetId))
-      .orderBy(desc(documents.uploadedAt));
-  }
-
-  async getDocumentsByTypeAndSet(documentSetId: string, documentType: string): Promise<Document[]> {
-    return await db
-      .select()
-      .from(documents)
-      .where(and(
-        eq(documents.documentSetId, documentSetId),
-        eq(documents.documentType, documentType)
-      ));
-  }
-
-  async updateDocumentStatus(id: number, status: string): Promise<void> {
-    await db
-      .update(documents)
-      .set({ 
-        status,
-        ...(status === 'processed' ? { processedAt: new Date() } : {})
-      })
-      .where(eq(documents.id, id));
-  }
-
-  async updateDocumentExtractedData(id: number, extractedData: any): Promise<void> {
-    await db
-      .update(documents)
-      .set({ extractedData })
-      .where(eq(documents.id, id));
+    return document || null;
   }
 
   // Discrepancy operations
-  async createDiscrepancy(discrepancy: InsertDiscrepancy): Promise<Discrepancy> {
-    const [created] = await db
+  async createDiscrepancy(data: InsertDiscrepancy & { documentSetId: string }): Promise<Discrepancy> {
+    const [discrepancy] = await db
       .insert(discrepancies)
-      .values(discrepancy)
+      .values(data)
       .returning();
-    return created;
+    return discrepancy;
   }
 
-  async getDiscrepanciesBySet(documentSetId: string): Promise<Discrepancy[]> {
+  async getDiscrepanciesByDocumentSet(documentSetId: string): Promise<Discrepancy[]> {
     return await db
       .select()
       .from(discrepancies)
-      .where(eq(discrepancies.documentSetId, documentSetId))
-      .orderBy(desc(discrepancies.detectedAt));
-  }
-
-  async updateDiscrepancy(id: number, updates: Partial<Discrepancy>): Promise<void> {
-    await db
-      .update(discrepancies)
-      .set(updates)
-      .where(eq(discrepancies.id, id));
+      .where(eq(discrepancies.documentSetId, documentSetId));
   }
 
   // Agent Task operations
-  async createAgentTask(agentTask: InsertAgentTask): Promise<number> {
-    const [created] = await db
-      .insert(agentTasks)
-      .values({
-        ...agentTask,
-        startedAt: new Date(),
-      })
-      .returning();
-    return created.id;
-  }
-
-  async updateAgentTask(id: number, status: string, outputData?: any, errorMessage?: string): Promise<void> {
-    await db
-      .update(agentTasks)
-      .set({
-        status,
-        outputData,
-        errorMessage,
-        ...(status === 'completed' || status === 'failed' ? { completedAt: new Date() } : {}),
-      })
-      .where(eq(agentTasks.id, id));
-  }
-
-  async getAgentTasksByUser(userId: string): Promise<AgentTask[]> {
-    return await db
-      .select()
-      .from(agentTasks)
-      .innerJoin(documentSets, eq(agentTasks.documentSetId, documentSets.id))
-      .where(eq(documentSets.userId, userId))
-      .orderBy(desc(agentTasks.startedAt));
-  }
-
-  // Dashboard metrics
-  async getDashboardMetrics(userId: string): Promise<any> {
-    // Get total documents processed
-    const documentsResult = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(documents)
-      .where(eq(documents.userId, userId));
-
-    // Get total discrepancies
-    const discrepanciesResult = await db
-      .select({ 
-        total: sql<number>`count(*)`,
-        critical: sql<number>`count(*) filter (where severity = 'critical')`,
-        high: sql<number>`count(*) filter (where severity = 'high')`,
-      })
-      .from(discrepancies)
-      .innerJoin(documentSets, eq(discrepancies.documentSetId, documentSets.id))
-      .where(eq(documentSets.userId, userId));
-
-    // Get active document sets
-    const activeSetsResult = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(documentSets)
-      .where(and(
-        eq(documentSets.userId, userId),
-        eq(documentSets.status, 'processing')
-      ));
-
-    // Get completed ILCs (completed document sets)
-    const completedResult = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(documentSets)
-      .where(and(
-        eq(documentSets.userId, userId),
-        eq(documentSets.status, 'completed')
-      ));
-
-    return {
-      documentsProcessed: documentsResult[0]?.count || 0,
-      totalDiscrepancies: discrepanciesResult[0]?.total || 0,
-      criticalDiscrepancies: discrepanciesResult[0]?.critical || 0,
-      highDiscrepancies: discrepanciesResult[0]?.high || 0,
-      activeAnalyses: activeSetsResult[0]?.count || 0,
-      ilcCreated: completedResult[0]?.count || 0,
-      successRate: 94.2, // Calculate based on completed vs failed sets
-    };
-  }
-
-  // Audit operations
-  async createAuditLog(auditLog: Partial<AuditLog>): Promise<void> {
-    await db
-      .insert(auditLogs)
-      .values(auditLog as any);
-  }
-
-  // Custom Agent operations
-  async createCustomAgent(agent: InsertCustomAgent & { userId: string }): Promise<CustomAgent> {
-    const [newAgent] = await db
-      .insert(customAgents)
-      .values(agent)
-      .returning();
-    return newAgent;
-  }
-
-  async getCustomAgent(id: string, userId: string): Promise<CustomAgent | undefined> {
-    const [agent] = await db
-      .select()
-      .from(customAgents)
-      .where(and(eq(customAgents.id, id), eq(customAgents.userId, userId)));
-    return agent;
-  }
-
-  async getCustomAgentsByUser(userId: string): Promise<CustomAgent[]> {
-    return await db
-      .select()
-      .from(customAgents)
-      .where(eq(customAgents.userId, userId))
-      .orderBy(desc(customAgents.createdAt));
-  }
-
-  async updateCustomAgent(id: string, agent: Partial<CustomAgent>): Promise<void> {
-    await db
-      .update(customAgents)
-      .set({ ...agent, updatedAt: new Date() })
-      .where(eq(customAgents.id, id));
-  }
-
-  async deleteCustomAgent(id: string, userId: string): Promise<void> {
-    await db
-      .delete(customAgents)
-      .where(and(eq(customAgents.id, id), eq(customAgents.userId, userId)));
-  }
-
-  // Custom Task operations
-  async createCustomTask(task: InsertCustomTask & { userId: string }): Promise<CustomTask> {
-    const [newTask] = await db
-      .insert(customTasks)
-      .values(task)
-      .returning();
-    return newTask;
-  }
-
-  async getCustomTask(id: string, userId: string): Promise<CustomTask | undefined> {
+  async createAgentTask(data: InsertAgentTask & { documentSetId?: string; documentId?: number }): Promise<AgentTask> {
     const [task] = await db
-      .select()
-      .from(customTasks)
-      .where(and(eq(customTasks.id, id), eq(customTasks.userId, userId)));
+      .insert(agentTasks)
+      .values(data)
+      .returning();
     return task;
   }
 
-  async getCustomTasksByUser(userId: string): Promise<CustomTask[]> {
-    return await db
-      .select()
-      .from(customTasks)
-      .where(eq(customTasks.userId, userId))
-      .orderBy(desc(customTasks.createdAt));
+  // Custom Agent Designer operations
+  async getCustomAgentsByUser(userId: string): Promise<CustomAgent[]> {
+    return await db.select().from(customAgents).where(eq(customAgents.userId, userId));
   }
 
-  async updateCustomTask(id: string, task: Partial<CustomTask>): Promise<void> {
-    await db
-      .update(customTasks)
-      .set({ ...task, updatedAt: new Date() })
-      .where(eq(customTasks.id, id));
-  }
-
-  async deleteCustomTask(id: string, userId: string): Promise<void> {
-    await db
-      .delete(customTasks)
-      .where(and(eq(customTasks.id, id), eq(customTasks.userId, userId)));
-  }
-
-  // Custom Crew operations
-  async createCustomCrew(crew: InsertCustomCrew & { userId: string }): Promise<CustomCrew> {
-    const [newCrew] = await db
-      .insert(customCrews)
-      .values(crew)
+  async createCustomAgent(data: InsertCustomAgent & { userId: string }): Promise<CustomAgent> {
+    const [agent] = await db
+      .insert(customAgents)
+      .values(data)
       .returning();
-    return newCrew;
+    return agent;
   }
 
-  async getCustomCrew(id: string, userId: string): Promise<CustomCrew | undefined> {
-    const [crew] = await db
-      .select()
-      .from(customCrews)
-      .where(and(eq(customCrews.id, id), eq(customCrews.userId, userId)));
-    return crew;
+  async getCustomTasksByUser(userId: string): Promise<CustomTask[]> {
+    return await db.select().from(customTasks).where(eq(customTasks.userId, userId));
+  }
+
+  async createCustomTask(data: InsertCustomTask & { userId: string }): Promise<CustomTask> {
+    const [task] = await db
+      .insert(customTasks)
+      .values(data)
+      .returning();
+    return task;
   }
 
   async getCustomCrewsByUser(userId: string): Promise<CustomCrew[]> {
-    return await db
-      .select()
-      .from(customCrews)
-      .where(eq(customCrews.userId, userId))
-      .orderBy(desc(customCrews.createdAt));
+    return await db.select().from(customCrews).where(eq(customCrews.userId, userId));
   }
 
-  async updateCustomCrew(id: string, crew: Partial<CustomCrew>): Promise<void> {
-    await db
-      .update(customCrews)
-      .set({ ...crew, updatedAt: new Date() })
-      .where(eq(customCrews.id, id));
-  }
-
-  async deleteCustomCrew(id: string, userId: string): Promise<void> {
-    await db
-      .delete(customCrews)
-      .where(and(eq(customCrews.id, id), eq(customCrews.userId, userId)));
-  }
-
-  // Crew Execution operations
-  async createCrewExecution(execution: InsertCrewExecution & { userId: string }): Promise<CrewExecution> {
-    const [newExecution] = await db
-      .insert(crewExecutions)
-      .values(execution)
+  async createCustomCrew(data: InsertCustomCrew & { userId: string }): Promise<CustomCrew> {
+    const [crew] = await db
+      .insert(customCrews)
+      .values(data)
       .returning();
-    return newExecution;
+    return crew;
   }
 
-  async getCrewExecution(id: string, userId: string): Promise<CrewExecution | undefined> {
-    const [execution] = await db
-      .select()
-      .from(crewExecutions)
-      .where(and(eq(crewExecutions.id, id), eq(crewExecutions.userId, userId)));
-    return execution;
-  }
-
-  async getCrewExecutionsByUser(userId: string): Promise<CrewExecution[]> {
-    return await db
-      .select()
-      .from(crewExecutions)
-      .where(eq(crewExecutions.userId, userId))
-      .orderBy(desc(crewExecutions.startedAt));
-  }
-
-  async updateCrewExecution(id: string, execution: Partial<CrewExecution>): Promise<void> {
-    await db
-      .update(crewExecutions)
-      .set(execution)
-      .where(eq(crewExecutions.id, id));
-  }
-
-  // SWIFT Digitization implementations
-  async createSwiftMessageType(messageType: InsertSwiftMessageType & { id: string }): Promise<SwiftMessageType> {
-    const [created] = await db
-      .insert(swiftMessageTypes)
-      .values(messageType)
-      .returning();
-    return created;
-  }
-
+  // SWIFT MT7xx operations
   async getSwiftMessageTypes(): Promise<SwiftMessageType[]> {
-    return await db.select().from(swiftMessageTypes).where(eq(swiftMessageTypes.isActive, true));
-  }
-
-  async getSwiftMessageType(id: string): Promise<SwiftMessageType | undefined> {
-    const [messageType] = await db.select().from(swiftMessageTypes).where(eq(swiftMessageTypes.id, id));
-    return messageType;
-  }
-
-  async createSwiftField(field: InsertSwiftField & { id: string }): Promise<SwiftField> {
-    const [created] = await db
-      .insert(swiftFields)
-      .values(field)
-      .returning();
-    return created;
-  }
-
-  async getSwiftFields(): Promise<SwiftField[]> {
-    return await db.select().from(swiftFields).where(eq(swiftFields.isActive, true));
-  }
-
-  async getSwiftField(id: string): Promise<SwiftField | undefined> {
-    const [field] = await db.select().from(swiftFields).where(eq(swiftFields.id, id));
-    return field;
-  }
-
-  async createSwiftMessage(message: InsertSwiftMessage & { userId: string, id: string }): Promise<SwiftMessage> {
-    const [created] = await db
-      .insert(swiftMessages)
-      .values(message)
-      .returning();
-    return created;
-  }
-
-  async getSwiftMessages(userId: string): Promise<SwiftMessage[]> {
-    return await db.select().from(swiftMessages).where(eq(swiftMessages.userId, userId));
-  }
-
-  async getSwiftMessage(id: string, userId: string): Promise<SwiftMessage | undefined> {
-    const [message] = await db
+    return await db
       .select()
-      .from(swiftMessages)
-      .where(and(eq(swiftMessages.id, id), eq(swiftMessages.userId, userId)));
-    return message;
+      .from(swiftMessageTypes)
+      .where(eq(swiftMessageTypes.isActive, true));
   }
 
-  async createSwiftValidationResult(result: any): Promise<any> {
-    const [created] = await db
-      .insert(swiftValidationResults)
-      .values(result)
-      .returning();
-    return created;
+  async getSwiftFieldsByMessageType(messageTypeCode: string): Promise<any[]> {
+    const fields = await db
+      .select({
+        field: swiftFields,
+        relationship: messageTypeFields
+      })
+      .from(messageTypeFields)
+      .innerJoin(swiftFields, eq(messageTypeFields.fieldId, swiftFields.fieldCode))
+      .where(eq(messageTypeFields.messageTypeId, messageTypeCode) && eq(messageTypeFields.isActive, true))
+      .orderBy(messageTypeFields.sequence);
+
+    return fields.map(({ field, relationship }) => ({
+      ...field,
+      sequence: relationship.sequence,
+      isMandatory: relationship.isMandatory,
+      isConditional: relationship.isConditional,
+      maxOccurrences: relationship.maxOccurrences
+    }));
   }
 
-  async getSwiftValidationResults(userId: string): Promise<any[]> {
-    return await db.select().from(swiftValidationResults).where(eq(swiftValidationResults.userId, userId));
-  }
-
-  async createSwiftTemplate(template: InsertSwiftTemplate & { userId: string, id: string }): Promise<SwiftTemplate> {
-    const [created] = await db
-      .insert(swiftTemplates)
-      .values(template)
-      .returning();
-    return created;
-  }
-
-  async getSwiftTemplates(userId?: string): Promise<SwiftTemplate[]> {
-    if (userId) {
-      return await db
-        .select()
-        .from(swiftTemplates)
-        .where(
-          and(
-            eq(swiftTemplates.isActive, true),
-            sql`(${swiftTemplates.userId} = ${userId} OR ${swiftTemplates.isPublic} = true)`
-          )
-        );
-    }
-    return await db.select().from(swiftTemplates).where(eq(swiftTemplates.isActive, true));
-  }
-
-  async createDigitizationProject(project: InsertDigitizationProject & { userId: string, id: string }): Promise<DigitizationProject> {
-    const [created] = await db
-      .insert(digitizationProjects)
-      .values(project)
-      .returning();
-    return created;
-  }
-
-  async getDigitizationProjects(userId: string): Promise<DigitizationProject[]> {
-    return await db.select().from(digitizationProjects).where(eq(digitizationProjects.userId, userId));
-  }
-
-  async getDigitizationProject(id: string, userId: string): Promise<DigitizationProject | undefined> {
-    const [project] = await db
+  async getAllSwiftFields(): Promise<SwiftField[]> {
+    return await db
       .select()
-      .from(digitizationProjects)
-      .where(and(eq(digitizationProjects.id, id), eq(digitizationProjects.userId, userId)));
-    return project;
-  }
-
-  async getDigitizationStats(userId: string): Promise<any> {
-    const projects = await this.getDigitizationProjects(userId);
-    const validationResults = await this.getSwiftValidationResults(userId);
-    
-    return {
-      activeProjects: projects.filter(p => p.status === 'active').length,
-      totalProjects: projects.length,
-      validatedMessages: validationResults.length,
-      successfulValidations: validationResults.filter(r => r.isValid).length,
-    };
+      .from(swiftFields)
+      .where(eq(swiftFields.isActive, true));
   }
 }
 
