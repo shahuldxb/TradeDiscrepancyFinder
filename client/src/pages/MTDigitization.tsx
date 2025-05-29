@@ -745,6 +745,15 @@ export default function MTDigitization() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Message Type Details Modal */}
+      {selectedMessageForDetails && (
+        <MessageTypeDetails
+          messageType={selectedMessageForDetails}
+          isOpen={!!selectedMessageForDetails}
+          onClose={() => setSelectedMessageForDetails(null)}
+        />
+      )}
     </div>
   );
 }
