@@ -22,8 +22,9 @@ export default function MTIntelligence() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  const [activeTab, setActiveTab] = useState("validate");
+  const [activeTab, setActiveTab] = useState("messages");
   const [selectedMessageType, setSelectedMessageType] = useState("");
+  const [selectedMessageForDetails, setSelectedMessageForDetails] = useState("");
   const [messageContent, setMessageContent] = useState("");
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
 
@@ -37,6 +38,12 @@ export default function MTIntelligence() {
   const { data: messageTypeFields = [], isLoading: isLoadingFields } = useQuery({
     queryKey: ["/api/mt-intelligence/message-types", selectedMessageType, "fields"],
     enabled: !!selectedMessageType
+  });
+
+  // Fetch fields for detailed view
+  const { data: detailFields = [], isLoading: isLoadingDetails } = useQuery({
+    queryKey: ["/api/mt-intelligence/message-types", selectedMessageForDetails, "fields"],
+    enabled: !!selectedMessageForDetails
   });
 
   // Fetch validation history
@@ -182,7 +189,11 @@ export default function MTIntelligence() {
               </div>
 
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-4">
+                  <TabsTrigger value="messages" className="flex items-center gap-2">
+                    <Database className="h-4 w-4" />
+                    Message Types
+                  </TabsTrigger>
                   <TabsTrigger value="validate" className="flex items-center gap-2">
                     <Search className="h-4 w-4" />
                     Validate Message
@@ -196,6 +207,180 @@ export default function MTIntelligence() {
                     Validation History
                   </TabsTrigger>
                 </TabsList>
+
+                {/* Message Types Grid Tab */}
+                <TabsContent value="messages" className="space-y-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Message Types Grid */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Available Message Types</CardTitle>
+                        <CardDescription>
+                          Click on any message type to view its field details
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <ScrollArea className="h-96 w-full">
+                          {isLoadingTypes ? (
+                            <div className="text-center py-8 text-gray-600">Loading message types...</div>
+                          ) : messageTypes.length === 0 ? (
+                            <div className="text-center py-8 text-gray-600">No message types available</div>
+                          ) : (
+                            <div className="grid grid-cols-1 gap-2">
+                              {(messageTypes as any[]).map((messageType: any) => (
+                                <Card 
+                                  key={messageType.id} 
+                                  className={`cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${
+                                    selectedMessageForDetails === messageType.messageTypeCode 
+                                      ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20' 
+                                      : ''
+                                  }`}
+                                  onClick={() => setSelectedMessageForDetails(messageType.messageTypeCode)}
+                                >
+                                  <CardContent className="p-4">
+                                    <div className="flex items-center justify-between">
+                                      <div>
+                                        <div className="font-semibold text-lg">
+                                          {messageType.messageTypeCode}
+                                        </div>
+                                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                                          {messageType.name}
+                                        </div>
+                                        <div className="text-xs text-gray-500 mt-1">
+                                          {messageType.description}
+                                        </div>
+                                      </div>
+                                      <div className="text-right">
+                                        <Badge variant="secondary">{messageType.category}</Badge>
+                                        <div className="text-xs text-gray-500 mt-1">
+                                          v{messageType.version}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              ))}
+                            </div>
+                          )}
+                        </ScrollArea>
+                      </CardContent>
+                    </Card>
+
+                    {/* Message Field Details */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>
+                          {selectedMessageForDetails ? `${selectedMessageForDetails} Fields` : 'Message Field Details'}
+                        </CardTitle>
+                        <CardDescription>
+                          {selectedMessageForDetails 
+                            ? 'Mandatory and optional fields for the selected message type'
+                            : 'Select a message type to view its field details'
+                          }
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <ScrollArea className="h-96 w-full">
+                          {!selectedMessageForDetails ? (
+                            <div className="text-center py-8 text-gray-600">
+                              Select a message type from the grid to view field details
+                            </div>
+                          ) : isLoadingDetails ? (
+                            <div className="text-center py-8 text-gray-600">Loading field details...</div>
+                          ) : detailFields.length === 0 ? (
+                            <div className="text-center py-8 text-gray-600">No fields found for this message type</div>
+                          ) : (
+                            <div className="space-y-4">
+                              {/* Mandatory Fields Section */}
+                              <div>
+                                <h4 className="font-semibold text-red-600 mb-2 flex items-center gap-2">
+                                  <AlertTriangle className="h-4 w-4" />
+                                  Mandatory Fields
+                                </h4>
+                                <div className="space-y-2">
+                                  {(detailFields as any[])
+                                    .filter((item: any) => item.messageTypeField.isMandatory)
+                                    .map((item: any) => {
+                                      const field = item.field;
+                                      return (
+                                        <Card key={field.id} className="border-l-4 border-l-red-500">
+                                          <CardContent className="p-3">
+                                            <div className="flex items-start justify-between">
+                                              <div className="flex-1">
+                                                <div className="flex items-center gap-2">
+                                                  <span className="font-mono font-semibold text-sm">
+                                                    {field.fieldCode}
+                                                  </span>
+                                                  <Badge variant="destructive" className="text-xs">
+                                                    Required
+                                                  </Badge>
+                                                </div>
+                                                <div className="text-sm font-medium mt-1">
+                                                  {field.name}
+                                                </div>
+                                                <div className="text-xs text-gray-600 mt-1">
+                                                  {field.description}
+                                                </div>
+                                                <div className="text-xs text-gray-500 mt-1">
+                                                  Format: {field.format} | Max Length: {field.maxLength}
+                                                </div>
+                                              </div>
+                                            </div>
+                                          </CardContent>
+                                        </Card>
+                                      );
+                                    })}
+                                </div>
+                              </div>
+
+                              {/* Optional Fields Section */}
+                              <div>
+                                <h4 className="font-semibold text-blue-600 mb-2 flex items-center gap-2">
+                                  <FileText className="h-4 w-4" />
+                                  Optional Fields
+                                </h4>
+                                <div className="space-y-2">
+                                  {(detailFields as any[])
+                                    .filter((item: any) => !item.messageTypeField.isMandatory)
+                                    .map((item: any) => {
+                                      const field = item.field;
+                                      return (
+                                        <Card key={field.id} className="border-l-4 border-l-blue-500">
+                                          <CardContent className="p-3">
+                                            <div className="flex items-start justify-between">
+                                              <div className="flex-1">
+                                                <div className="flex items-center gap-2">
+                                                  <span className="font-mono font-semibold text-sm">
+                                                    {field.fieldCode}
+                                                  </span>
+                                                  <Badge variant="secondary" className="text-xs">
+                                                    Optional
+                                                  </Badge>
+                                                </div>
+                                                <div className="text-sm font-medium mt-1">
+                                                  {field.name}
+                                                </div>
+                                                <div className="text-xs text-gray-600 mt-1">
+                                                  {field.description}
+                                                </div>
+                                                <div className="text-xs text-gray-500 mt-1">
+                                                  Format: {field.format} | Max Length: {field.maxLength}
+                                                </div>
+                                              </div>
+                                            </div>
+                                          </CardContent>
+                                        </Card>
+                                      );
+                                    })}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </ScrollArea>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </TabsContent>
 
                 {/* Message Validation Tab */}
                 <TabsContent value="validate" className="space-y-6">
