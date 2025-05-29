@@ -23,9 +23,10 @@ import { Link } from "wouter";
 
 export default function TradeFinanceDocuments() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedView, setSelectedView] = useState("overview");
+  const [selectedView, setSelectedView] = useState("documents");
   const [selectedCredit, setSelectedCredit] = useState("");
   const [selectedSwift, setSelectedSwift] = useState("");
+  const [selectedDocument, setSelectedDocument] = useState("");
 
   // Fetch trade finance statistics
   const { data: statistics } = useQuery({
@@ -208,23 +209,105 @@ export default function TradeFinanceDocuments() {
 
         {/* Main Content Tabs */}
         <Tabs value={selectedView} onValueChange={setSelectedView} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="credits">Documentary Credits</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="documents">Master Documents</TabsTrigger>
+            <TabsTrigger value="credits">Documentary Credits</TabsTrigger>
             <TabsTrigger value="swift">SWIFT Messages</TabsTrigger>
             <TabsTrigger value="relationships">Relationships</TabsTrigger>
           </TabsList>
 
-          {/* Overview Tab */}
-          <TabsContent value="overview">
+          {/* Master Documents Tab - First Tab */}
+          <TabsContent value="documents">
             <div className="space-y-6">
-              {/* Credit Document Summary */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Documentary Credit Summary</CardTitle>
+                  <CardTitle>Master Documents ({documents?.length || 0})</CardTitle>
                   <CardDescription>
-                    Document requirements for each credit type
+                    Click on any document to see which credits and SWIFT messages use it
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Document Code</TableHead>
+                        <TableHead>Document Name</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredDocuments
+                        .sort((a: any, b: any) => a.documentCode.localeCompare(b.documentCode))
+                        .map((document: any) => (
+                        <TableRow 
+                          key={document.documentId}
+                          className="cursor-pointer hover:bg-gray-50"
+                          onClick={() => setSelectedDocument(document.documentCode)}
+                        >
+                          <TableCell className="font-mono font-medium">{document.documentCode}</TableCell>
+                          <TableCell className="font-semibold">{document.documentName}</TableCell>
+                          <TableCell className="text-sm text-gray-600">{document.description}</TableCell>
+                          <TableCell>
+                            <Badge variant={document.isActive ? "default" : "secondary"}>
+                              {document.isActive ? "Active" : "Inactive"}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+
+              {/* Show document relationships when document is selected */}
+              {selectedDocument && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>SWIFT Messages Using Document: {selectedDocument}</CardTitle>
+                    <CardDescription>
+                      All SWIFT message types that require this document
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>SWIFT Code</TableHead>
+                          <TableHead>Description</TableHead>
+                          <TableHead>Credit Types</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {documentRelationships?.filter((rel: any) => 
+                          rel.documentCode === selectedDocument
+                        )
+                        .sort((a: any, b: any) => a.swiftCode.localeCompare(b.swiftCode))
+                        .map((rel: any, index: number) => (
+                          <TableRow key={index}>
+                            <TableCell className="font-mono font-medium">{rel.swiftCode}</TableCell>
+                            <TableCell>{rel.swiftDescription}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline">{rel.numberOfCreditTypes} credits</Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </TabsContent>
+
+          {/* Documentary Credits Tab - Second Tab */}
+          <TabsContent value="credits">
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Documentary Credit Summary ({creditSummary?.length || 0})</CardTitle>
+                  <CardDescription>
+                    Click on any credit to see required documents with details. Ordered by credit code.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -235,14 +318,19 @@ export default function TradeFinanceDocuments() {
                         <TableHead>Credit Name</TableHead>
                         <TableHead>Mandatory Documents</TableHead>
                         <TableHead>Optional Documents</TableHead>
-                        <TableHead>Total</TableHead>
+                        <TableHead>Total Documents</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {creditSummary?.map((summary: any, index: number) => (
-                        <TableRow key={index}>
-                          <TableCell className="font-mono">{summary.creditCode}</TableCell>
-                          <TableCell className="font-medium">{summary.creditName}</TableCell>
+                      {creditSummary?.sort((a: any, b: any) => a.creditCode.localeCompare(b.creditCode))
+                        .map((summary: any, index: number) => (
+                        <TableRow 
+                          key={index}
+                          className="cursor-pointer hover:bg-gray-50"
+                          onClick={() => setSelectedCredit(summary.creditCode)}
+                        >
+                          <TableCell className="font-mono font-medium">{summary.creditCode}</TableCell>
+                          <TableCell className="font-semibold">{summary.creditName}</TableCell>
                           <TableCell>
                             <Badge variant="destructive">{summary.mandatoryDocumentCount}</Badge>
                           </TableCell>
@@ -260,82 +348,39 @@ export default function TradeFinanceDocuments() {
                   </Table>
                 </CardContent>
               </Card>
-            </div>
-          </TabsContent>
 
-          {/* Documentary Credits Tab */}
-          <TabsContent value="credits">
-            <Card>
-              <CardHeader>
-                <CardTitle>Documentary Credits ({credits?.length || 0})</CardTitle>
-                <CardDescription>
-                  All 18 documentary credit types in the system
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Select value={selectedCredit} onValueChange={setSelectedCredit}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a credit type to view documents" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {credits?.map((credit: any) => (
-                          <SelectItem key={credit.creditId} value={credit.creditCode}>
-                            {credit.creditCode} - {credit.creditName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filteredCredits.map((credit: any) => (
-                      <Card key={credit.creditId} className="border-l-4 border-l-blue-500">
-                        <CardContent className="p-4">
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <Badge variant="secondary" className="font-mono">
-                                {credit.creditCode}
-                              </Badge>
-                              <Badge variant="outline">
-                                {credit.isActive ? "Active" : "Inactive"}
-                              </Badge>
-                            </div>
-                            <h3 className="font-semibold text-sm">{credit.creditName}</h3>
-                            <p className="text-xs text-gray-600">{credit.description}</p>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-
-                  {/* Selected Credit Documents */}
-                  {selectedCredit && creditDocuments && (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Documents for {selectedCredit}</CardTitle>
-                      </CardHeader>
-                      <CardContent>
+              {/* Selected Credit Documents */}
+              {selectedCredit && creditDocuments && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Master Documents Required for {selectedCredit}</CardTitle>
+                    <CardDescription>
+                      Detailed document requirements grouped by mandatory/optional status
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-6">
+                      {/* Mandatory Documents */}
+                      <div>
+                        <h4 className="font-semibold mb-3 text-red-700">Mandatory Documents</h4>
                         <Table>
                           <TableHeader>
                             <TableRow>
                               <TableHead>Document Code</TableHead>
                               <TableHead>Document Name</TableHead>
-                              <TableHead>Status</TableHead>
+                              <TableHead>Description</TableHead>
                               <TableHead>Conditional</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {creditDocuments.map((doc: any, index: number) => (
+                            {creditDocuments
+                              .filter((doc: any) => doc.status === 'Mandatory')
+                              .sort((a: any, b: any) => a.documentCode.localeCompare(b.documentCode))
+                              .map((doc: any, index: number) => (
                               <TableRow key={index}>
-                                <TableCell className="font-mono">{doc.documentCode}</TableCell>
-                                <TableCell>{doc.documentName}</TableCell>
-                                <TableCell>
-                                  <Badge variant={doc.status === 'Mandatory' ? 'destructive' : 'secondary'}>
-                                    {doc.status}
-                                  </Badge>
-                                </TableCell>
+                                <TableCell className="font-mono font-medium">{doc.documentCode}</TableCell>
+                                <TableCell className="font-semibold">{doc.documentName}</TableCell>
+                                <TableCell className="text-sm text-gray-600">{doc.description}</TableCell>
                                 <TableCell>
                                   {doc.isConditional ? (
                                     <Badge variant="outline">Conditional</Badge>
@@ -347,12 +392,46 @@ export default function TradeFinanceDocuments() {
                             ))}
                           </TableBody>
                         </Table>
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                      </div>
+
+                      {/* Optional Documents */}
+                      <div>
+                        <h4 className="font-semibold mb-3 text-blue-700">Optional Documents</h4>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Document Code</TableHead>
+                              <TableHead>Document Name</TableHead>
+                              <TableHead>Description</TableHead>
+                              <TableHead>Conditional</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {creditDocuments
+                              .filter((doc: any) => doc.status === 'Optional')
+                              .sort((a: any, b: any) => a.documentCode.localeCompare(b.documentCode))
+                              .map((doc: any, index: number) => (
+                              <TableRow key={index}>
+                                <TableCell className="font-mono font-medium">{doc.documentCode}</TableCell>
+                                <TableCell className="font-semibold">{doc.documentName}</TableCell>
+                                <TableCell className="text-sm text-gray-600">{doc.description}</TableCell>
+                                <TableCell>
+                                  {doc.isConditional ? (
+                                    <Badge variant="outline">Conditional</Badge>
+                                  ) : (
+                                    <span className="text-gray-400">-</span>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
           </TabsContent>
 
           {/* Master Documents Tab */}
@@ -389,87 +468,123 @@ export default function TradeFinanceDocuments() {
             </Card>
           </TabsContent>
 
-          {/* SWIFT Messages Tab */}
+          {/* SWIFT Messages Tab - Third Tab */}
           <TabsContent value="swift">
-            <Card>
-              <CardHeader>
-                <CardTitle>SWIFT Message Codes ({swiftCodes?.length || 0})</CardTitle>
-                <CardDescription>
-                  All 38 SWIFT Category 7 message types
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Select value={selectedSwift} onValueChange={setSelectedSwift}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a SWIFT message to view documents" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {swiftCodes?.map((swift: any) => (
-                          <SelectItem key={swift.swiftCodeId} value={swift.swiftCode}>
-                            {swift.swiftCode} - {swift.description}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>SWIFT Message Codes ({swiftCodes?.length || 0})</CardTitle>
+                  <CardDescription>
+                    Click on any SWIFT message to see all relevant documents. Ordered by SWIFT code.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>SWIFT Code</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredSwiftCodes
+                        .sort((a: any, b: any) => a.swiftCode.localeCompare(b.swiftCode))
+                        .map((swift: any) => (
+                        <TableRow 
+                          key={swift.swiftCodeId}
+                          className="cursor-pointer hover:bg-gray-50"
+                          onClick={() => setSelectedSwift(swift.swiftCode)}
+                        >
+                          <TableCell className="font-mono font-medium">{swift.swiftCode}</TableCell>
+                          <TableCell className="font-semibold">{swift.description}</TableCell>
+                          <TableCell>
+                            <Badge variant={swift.isActive ? "default" : "secondary"}>
+                              {swift.isActive ? "Active" : "Inactive"}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {filteredSwiftCodes.map((swift: any) => (
-                      <Card key={swift.swiftCodeId} className="border-l-4 border-l-purple-500">
-                        <CardContent className="p-4">
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <Badge variant="secondary" className="font-mono">
-                                {swift.swiftCode}
-                              </Badge>
-                              <Badge variant="outline">
-                                {swift.isActive ? "Active" : "Inactive"}
-                              </Badge>
-                            </div>
-                            <p className="text-sm font-medium">{swift.description}</p>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-
-                  {/* Selected SWIFT Message Documents */}
-                  {selectedSwift && swiftDocuments && (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Documents Required for {selectedSwift}</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Document Code</TableHead>
-                              <TableHead>Document Name</TableHead>
-                              <TableHead>Status</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {swiftDocuments.map((doc: any, index: number) => (
-                              <TableRow key={index}>
-                                <TableCell className="font-mono">{doc.documentCode}</TableCell>
-                                <TableCell>{doc.documentName}</TableCell>
-                                <TableCell>
-                                  <Badge variant={doc.status === 'Mandatory' ? 'destructive' : 'secondary'}>
-                                    {doc.status}
-                                  </Badge>
-                                </TableCell>
+              {/* Selected SWIFT Message Documents */}
+              {selectedSwift && swiftDocuments && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Master Documents Required for {selectedSwift}</CardTitle>
+                    <CardDescription>
+                      All documents needed for this SWIFT message type grouped by mandatory/optional status
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-6">
+                      {/* Mandatory Documents */}
+                      {swiftDocuments.filter((doc: any) => doc.status === 'Mandatory').length > 0 && (
+                        <div>
+                          <h4 className="font-semibold mb-3 text-red-700">
+                            Mandatory Documents ({swiftDocuments.filter((doc: any) => doc.status === 'Mandatory').length})
+                          </h4>
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Document Code</TableHead>
+                                <TableHead>Document Name</TableHead>
+                                <TableHead>Description</TableHead>
                               </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                            </TableHeader>
+                            <TableBody>
+                              {swiftDocuments
+                                .filter((doc: any) => doc.status === 'Mandatory')
+                                .sort((a: any, b: any) => a.documentCode.localeCompare(b.documentCode))
+                                .map((doc: any, index: number) => (
+                                <TableRow key={index}>
+                                  <TableCell className="font-mono font-medium">{doc.documentCode}</TableCell>
+                                  <TableCell className="font-semibold">{doc.documentName}</TableCell>
+                                  <TableCell className="text-sm text-gray-600">{doc.description}</TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      )}
+
+                      {/* Optional Documents */}
+                      {swiftDocuments.filter((doc: any) => doc.status === 'Optional').length > 0 && (
+                        <div>
+                          <h4 className="font-semibold mb-3 text-blue-700">
+                            Optional Documents ({swiftDocuments.filter((doc: any) => doc.status === 'Optional').length})
+                          </h4>
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Document Code</TableHead>
+                                <TableHead>Document Name</TableHead>
+                                <TableHead>Description</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {swiftDocuments
+                                .filter((doc: any) => doc.status === 'Optional')
+                                .sort((a: any, b: any) => a.documentCode.localeCompare(b.documentCode))
+                                .map((doc: any, index: number) => (
+                                <TableRow key={index}>
+                                  <TableCell className="font-mono font-medium">{doc.documentCode}</TableCell>
+                                  <TableCell className="font-semibold">{doc.documentName}</TableCell>
+                                  <TableCell className="text-sm text-gray-600">{doc.description}</TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
           </TabsContent>
 
           {/* Relationships Tab */}
