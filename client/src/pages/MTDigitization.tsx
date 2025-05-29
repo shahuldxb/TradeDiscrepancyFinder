@@ -38,7 +38,7 @@ import {
 export default function MTDigitization() {
   const { isAuthenticated, user } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
-  const [selectedMessageType, setSelectedMessageType] = useState("MT700");
+  const [selectedMessageType, setSelectedMessageType] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterMandatory, setFilterMandatory] = useState("all");
 
@@ -269,16 +269,17 @@ export default function MTDigitization() {
                     </CardContent>
                   </Card>
 
-                  {/* All Fields Grid */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <FileText className="h-5 w-5" />
-                        All MT7xx Fields
-                      </CardTitle>
-                      <CardDescription>
-                        Complete field reference for all SWIFT MT7xx message types
-                      </CardDescription>
+                  {/* Selected Message Type Fields */}
+                  {selectedMessageType && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <FileText className="h-5 w-5" />
+                          {selectedMessageType} Message Fields
+                        </CardTitle>
+                        <CardDescription>
+                          Field specifications for {selectedMessageType} message type
+                        </CardDescription>
                       
                       {/* Search and Filter Controls */}
                       <div className="flex gap-4 pt-4">
@@ -369,7 +370,8 @@ export default function MTDigitization() {
                         </div>
                       )}
                     </CardContent>
-                  </Card>
+                    </Card>
+                  )}
                 </TabsContent>
 
                 {/* Other tabs content - placeholder for now */}
