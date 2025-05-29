@@ -295,3 +295,221 @@ export type CustomCrew = typeof customCrews.$inferSelect;
 export type InsertCustomCrew = z.infer<typeof insertCustomCrewSchema>;
 export type CrewExecution = typeof crewExecutions.$inferSelect;
 export type InsertCrewExecution = z.infer<typeof insertCrewExecutionSchema>;
+
+// MT xxx Digitization Tables
+export const swiftMessageTypes = pgTable("swift_message_types", {
+  id: varchar("id").primaryKey().notNull(),
+  messageTypeCode: varchar("message_type_code", { length: 10 }).notNull().unique(),
+  description: text("description").notNull(),
+  category: varchar("category", { length: 50 }).notNull(),
+  version: varchar("version", { length: 20 }).notNull().default("2019"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const swiftFields = pgTable("swift_fields", {
+  id: varchar("id").primaryKey().notNull(),
+  fieldCode: varchar("field_code", { length: 10 }).notNull(),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  format: varchar("format", { length: 50 }).notNull(),
+  maxLength: integer("max_length"),
+  validationRegex: text("validation_regex"),
+  allowedValues: jsonb("allowed_values"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const messageTypeFields = pgTable("message_type_fields", {
+  id: varchar("id").primaryKey().notNull(),
+  messageTypeId: varchar("message_type_id").notNull().references(() => swiftMessageTypes.id),
+  fieldId: varchar("field_id").notNull().references(() => swiftFields.id),
+  sequence: integer("sequence").notNull(),
+  isMandatory: boolean("is_mandatory").notNull().default(false),
+  isConditional: boolean("is_conditional").notNull().default(false),
+  conditionExpression: text("condition_expression"),
+  maxOccurrences: integer("max_occurrences").default(1),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const fieldDependencies = pgTable("field_dependencies_swift", {
+  id: varchar("id").primaryKey().notNull(),
+  sourceFieldId: varchar("source_field_id").notNull().references(() => swiftFields.id),
+  targetFieldId: varchar("target_field_id").notNull().references(() => swiftFields.id),
+  messageTypeId: varchar("message_type_id").references(() => swiftMessageTypes.id),
+  dependencyType: varchar("dependency_type", { length: 50 }).notNull(),
+  conditionExpression: text("condition_expression"),
+  description: text("description"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const swiftValidationRules = pgTable("swift_validation_rules", {
+  id: varchar("id").primaryKey().notNull(),
+  fieldId: varchar("field_id").notNull().references(() => swiftFields.id),
+  messageTypeId: varchar("message_type_id").references(() => swiftMessageTypes.id),
+  ruleType: varchar("rule_type", { length: 50 }).notNull(),
+  ruleExpression: text("rule_expression").notNull(),
+  errorMessage: text("error_message").notNull(),
+  severity: varchar("severity", { length: 20 }).notNull().default("error"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const swiftMessages = pgTable("swift_messages", {
+  id: varchar("id").primaryKey().notNull(),
+  messageTypeId: varchar("message_type_id").notNull().references(() => swiftMessageTypes.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  referenceNumber: varchar("reference_number", { length: 100 }),
+  content: text("content").notNull(),
+  parsedFields: jsonb("parsed_fields"),
+  status: varchar("status", { length: 50 }).notNull().default("draft"),
+  isTemplate: boolean("is_template").notNull().default(false),
+  templateName: varchar("template_name", { length: 255 }),
+  version: integer("version").notNull().default(1),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const swiftValidationResults = pgTable("swift_validation_results", {
+  id: varchar("id").primaryKey().notNull(),
+  messageId: varchar("message_id").notNull().references(() => swiftMessages.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  isValid: boolean("is_valid").notNull(),
+  totalErrors: integer("total_errors").notNull().default(0),
+  totalWarnings: integer("total_warnings").notNull().default(0),
+  validationSummary: jsonb("validation_summary"),
+  processingTime: integer("processing_time"),
+  validatedAt: timestamp("validated_at").defaultNow(),
+});
+
+export const swiftValidationErrors = pgTable("swift_validation_errors", {
+  id: varchar("id").primaryKey().notNull(),
+  validationResultId: varchar("validation_result_id").notNull().references(() => swiftValidationResults.id),
+  fieldId: varchar("field_id").references(() => swiftFields.id),
+  ruleId: varchar("rule_id").references(() => swiftValidationRules.id),
+  errorType: varchar("error_type", { length: 50 }).notNull(),
+  errorMessage: text("error_message").notNull(),
+  severity: varchar("severity", { length: 20 }).notNull(),
+  fieldValue: text("field_value"),
+  expectedValue: text("expected_value"),
+  position: integer("position"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const swiftTemplates = pgTable("swift_templates", {
+  id: varchar("id").primaryKey().notNull(),
+  messageTypeId: varchar("message_type_id").notNull().references(() => swiftMessageTypes.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  templateContent: text("template_content").notNull(),
+  defaultValues: jsonb("default_values"),
+  isPublic: boolean("is_public").notNull().default(false),
+  usageCount: integer("usage_count").notNull().default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const messageInteractions = pgTable("message_interactions", {
+  id: varchar("id").primaryKey().notNull(),
+  parentMessageId: varchar("parent_message_id").notNull().references(() => swiftMessages.id),
+  childMessageId: varchar("child_message_id").notNull().references(() => swiftMessages.id),
+  interactionType: varchar("interaction_type", { length: 50 }).notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const digitizationProjects = pgTable("digitization_projects", {
+  id: varchar("id").primaryKey().notNull(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  messageTypes: jsonb("message_types"),
+  status: varchar("status", { length: 50 }).notNull().default("active"),
+  totalMessages: integer("total_messages").notNull().default(0),
+  completedMessages: integer("completed_messages").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Insert schemas for SWIFT digitization
+export const insertSwiftMessageTypeSchema = createInsertSchema(swiftMessageTypes).pick({
+  messageTypeCode: true,
+  description: true,
+  category: true,
+  version: true,
+  isActive: true,
+});
+
+export const insertSwiftFieldSchema = createInsertSchema(swiftFields).pick({
+  fieldCode: true,
+  name: true,
+  description: true,
+  format: true,
+  maxLength: true,
+  validationRegex: true,
+  allowedValues: true,
+  isActive: true,
+});
+
+export const insertMessageTypeFieldSchema = createInsertSchema(messageTypeFields).pick({
+  messageTypeId: true,
+  fieldId: true,
+  sequence: true,
+  isMandatory: true,
+  isConditional: true,
+  conditionExpression: true,
+  maxOccurrences: true,
+  isActive: true,
+});
+
+export const insertSwiftMessageSchema = createInsertSchema(swiftMessages).pick({
+  messageTypeId: true,
+  referenceNumber: true,
+  content: true,
+  parsedFields: true,
+  status: true,
+  isTemplate: true,
+  templateName: true,
+});
+
+export const insertSwiftTemplateSchema = createInsertSchema(swiftTemplates).pick({
+  messageTypeId: true,
+  name: true,
+  description: true,
+  templateContent: true,
+  defaultValues: true,
+  isPublic: true,
+  isActive: true,
+});
+
+export const insertDigitizationProjectSchema = createInsertSchema(digitizationProjects).pick({
+  name: true,
+  description: true,
+  messageTypes: true,
+  status: true,
+});
+
+// SWIFT Digitization Types
+export type SwiftMessageType = typeof swiftMessageTypes.$inferSelect;
+export type InsertSwiftMessageType = z.infer<typeof insertSwiftMessageTypeSchema>;
+export type SwiftField = typeof swiftFields.$inferSelect;
+export type InsertSwiftField = z.infer<typeof insertSwiftFieldSchema>;
+export type MessageTypeField = typeof messageTypeFields.$inferSelect;
+export type InsertMessageTypeField = z.infer<typeof insertMessageTypeFieldSchema>;
+export type FieldDependency = typeof fieldDependencies.$inferSelect;
+export type SwiftValidationRule = typeof swiftValidationRules.$inferSelect;
+export type SwiftMessage = typeof swiftMessages.$inferSelect;
+export type InsertSwiftMessage = z.infer<typeof insertSwiftMessageSchema>;
+export type SwiftValidationResult = typeof swiftValidationResults.$inferSelect;
+export type SwiftValidationError = typeof swiftValidationErrors.$inferSelect;
+export type SwiftTemplate = typeof swiftTemplates.$inferSelect;
+export type InsertSwiftTemplate = z.infer<typeof insertSwiftTemplateSchema>;
+export type MessageInteraction = typeof messageInteractions.$inferSelect;
+export type DigitizationProject = typeof digitizationProjects.$inferSelect;
+export type InsertDigitizationProject = z.infer<typeof insertDigitizationProjectSchema>;
