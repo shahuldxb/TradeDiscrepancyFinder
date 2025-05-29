@@ -51,6 +51,7 @@ import {
   MessageSquare,
   History,
   Settings,
+  FileText as Template,
   Zap,
   Database,
   BookOpen,
@@ -58,7 +59,8 @@ import {
   Plus,
   ExternalLink,
   Target,
-  GitBranch
+  GitBranch,
+  Settings as Workflow
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -148,7 +150,7 @@ export default function MTGenie() {
 
   // Seed MT Genie data mutation
   const seedDataMutation = useMutation({
-    mutationFn: () => apiRequest("/api/mt-genie/seed", { method: "POST" }),
+    mutationFn: () => fetch("/api/mt-genie/seed", { method: "POST" }).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/mt-genie/message-types"] });
     },
@@ -157,10 +159,11 @@ export default function MTGenie() {
   // Validate message mutation
   const validateMutation = useMutation({
     mutationFn: (data: { messageTypeId: string; fieldValues: Record<string, string> }) =>
-      apiRequest("/api/mt-genie/validate", {
+      fetch("/api/mt-genie/validate", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
-      }),
+      }).then(res => res.json()),
     onSuccess: (result) => {
       setValidationResults(result);
     },
@@ -169,10 +172,11 @@ export default function MTGenie() {
   // Construct message mutation
   const constructMutation = useMutation({
     mutationFn: (data: { messageTypeId: string; fieldValues: Record<string, string> }) =>
-      apiRequest("/api/mt-genie/construct", {
+      fetch("/api/mt-genie/construct", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
-      }),
+      }).then(res => res.json()),
     onSuccess: (result) => {
       setConstructedMessage(result);
     },
