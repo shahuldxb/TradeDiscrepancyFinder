@@ -11,7 +11,7 @@ import DiscrepancyAnalysis from "@/pages/DiscrepancyAnalysis";
 import AgentMonitor from "@/pages/AgentMonitor";
 import AgentDesigner from "@/pages/AgentDesigner";
 import MessageBuilder from "@/pages/MessageBuilder";
-
+import MTIntelligence from "@/pages/MTIntelligence";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -29,7 +29,7 @@ function Router() {
           <Route path="/agents" component={AgentMonitor} />
           <Route path="/agent-designer" component={AgentDesigner} />
           <Route path="/message-builder" component={MessageBuilder} />
-
+          <Route path="/mt-intelligence" component={MTIntelligence} />
         </>
       )}
       <Route component={NotFound} />

@@ -280,6 +280,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // MT Intelligence routes
+  app.get("/api/mt-intelligence/message-types", isAuthenticated, async (req, res) => {
+    try {
+      const { mtIntelligenceService } = await import("./mtIntelligenceService");
+      const messageTypes = await mtIntelligenceService.getMessageTypes();
+      res.json(messageTypes);
+    } catch (error) {
+      console.error("Error fetching MT Intelligence message types:", error);
+      res.status(500).json({ message: "Failed to fetch message types" });
+    }
+  });
+
+  app.get("/api/mt-intelligence/message-types/:id", isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { mtIntelligenceService } = await import("./mtIntelligenceService");
+      const messageType = await mtIntelligenceService.getMessageTypeWithFields(id);
+      res.json(messageType);
+    } catch (error) {
+      console.error("Error fetching message type details:", error);
+      res.status(500).json({ message: "Failed to fetch message type details" });
+    }
+  });
+
+  app.get("/api/mt-intelligence/message-types/:code/fields", isAuthenticated, async (req, res) => {
+    try {
+      const { code } = req.params;
+      const { mtIntelligenceService } = await import("./mtIntelligenceService");
+      const fields = await mtIntelligenceService.getFieldsByMessageType(code);
+      res.json(fields);
+    } catch (error) {
+      console.error("Error fetching message type fields:", error);
+      res.status(500).json({ message: "Failed to fetch message type fields" });
+    }
+  });
+
+  app.post("/api/mt-intelligence/validate", isAuthenticated, async (req: any, res) => {
+    try {
+      const { messageTypeCode, messageContent } = req.body;
+      const userId = req.user.claims.sub;
+      const { mtIntelligenceService } = await import("./mtIntelligenceService");
+      const result = await mtIntelligenceService.validateMessage(messageTypeCode, messageContent, userId);
+      res.json(result);
+    } catch (error) {
+      console.error("Error validating message:", error);
+      res.status(500).json({ message: "Failed to validate message" });
+    }
+  });
+
+  app.post("/api/mt-intelligence/construct", isAuthenticated, async (req: any, res) => {
+    try {
+      const { messageTypeCode, fieldValues } = req.body;
+      const userId = req.user.claims.sub;
+      const { mtIntelligenceService } = await import("./mtIntelligenceService");
+      const result = await mtIntelligenceService.constructMessage(messageTypeCode, fieldValues, userId);
+      res.json(result);
+    } catch (error) {
+      console.error("Error constructing message:", error);
+      res.status(500).json({ message: "Failed to construct message" });
+    }
+  });
+
+  app.get("/api/mt-intelligence/validation-history", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { mtIntelligenceService } = await import("./mtIntelligenceService");
+      const history = await mtIntelligenceService.getValidationHistory(userId);
+      res.json(history);
+    } catch (error) {
+      console.error("Error fetching validation history:", error);
+      res.status(500).json({ message: "Failed to fetch validation history" });
+    }
+  });
+
   // SWIFT MT7xx Digitization routes
   app.get("/api/swift/message-types", isAuthenticated, async (req, res) => {
     try {
