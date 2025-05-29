@@ -16,7 +16,8 @@ import {
   User,
   Wrench,
   MessageCircle,
-  Zap
+  Zap,
+  Wand2
 } from "lucide-react";
 
 const navigationItems = [
@@ -49,6 +50,12 @@ const navigationItems = [
     href: "/message-builder",
     icon: MessageCircle,
     description: "Create MT 700 messages",
+  },
+  {
+    name: "MT Magic",
+    href: "/mt-magic",
+    icon: Wand2,
+    description: "SWIFT MT7xx automation system",
   },
 
   {

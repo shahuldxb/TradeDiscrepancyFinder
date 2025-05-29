@@ -314,6 +314,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // MT Magic API Routes
+  app.get("/api/mt-magic/templates", isAuthenticated, async (req, res) => {
+    try {
+      const { getMTTemplates } = await import("./mtMagicService");
+      const templates = await getMTTemplates();
+      res.json(templates);
+    } catch (error) {
+      console.error("Error fetching MT templates:", error);
+      res.status(500).json({ message: "Failed to fetch message templates" });
+    }
+  });
+
+  app.post("/api/mt-magic/validate", isAuthenticated, async (req: any, res) => {
+    try {
+      const { messageType, content } = req.body;
+      const userId = req.user.claims.sub;
+      const { validateMTMessage } = await import("./mtMagicService");
+      const result = await validateMTMessage(messageType, content, userId);
+      res.json(result);
+    } catch (error) {
+      console.error("Error validating MT message:", error);
+      res.status(500).json({ message: "Failed to validate message" });
+    }
+  });
+
+  app.post("/api/mt-magic/construct", isAuthenticated, async (req: any, res) => {
+    try {
+      const { messageType, fields } = req.body;
+      const userId = req.user.claims.sub;
+      const { constructMTMessage } = await import("./mtMagicService");
+      const result = await constructMTMessage(messageType, fields, userId);
+      res.json(result);
+    } catch (error) {
+      console.error("Error constructing MT message:", error);
+      res.status(500).json({ message: "Failed to construct message" });
+    }
+  });
+
+  app.post("/api/mt-magic/messages", isAuthenticated, async (req: any, res) => {
+    try {
+      const { messageType, content, fields } = req.body;
+      const userId = req.user.claims.sub;
+      const { saveMTMessage } = await import("./mtMagicService");
+      const message = await saveMTMessage(userId, messageType, content, fields);
+      res.json(message);
+    } catch (error) {
+      console.error("Error saving MT message:", error);
+      res.status(500).json({ message: "Failed to save message" });
+    }
+  });
+
+  app.get("/api/mt-magic/messages", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { getUserMTMessages } = await import("./mtMagicService");
+      const messages = await getUserMTMessages(userId);
+      res.json(messages);
+    } catch (error) {
+      console.error("Error fetching user messages:", error);
+      res.status(500).json({ message: "Failed to fetch messages" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
