@@ -4,6 +4,8 @@ import { useAuth } from "@/hooks/useAuth";
 import Sidebar from "@/components/layout/Sidebar";
 import TopHeader from "@/components/layout/TopHeader";
 import MessageTypeDetails from "@/components/swift/MessageTypeDetails";
+import MT7FieldsGrid from "@/components/swift/MT7FieldsGrid";
+import MessageFieldsGrid from "@/components/swift/MessageFieldsGrid";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
