@@ -314,6 +314,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Azure SQL SWIFT Intelligence routes
+  app.get("/api/swift/statistics", async (req, res) => {
+    try {
+      const { getSwiftStatistics } = await import('./swiftService');
+      const stats = await getSwiftStatistics();
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching statistics:", error);
+      res.status(500).json({ error: "Failed to fetch statistics" });
+    }
+  });
+
+  app.post("/api/swift/validate", async (req, res) => {
+    try {
+      const { messageText, messageType } = req.body;
+      const { validateSwiftMessage } = await import('./swiftService');
+      const result = await validateSwiftMessage(messageText, messageType);
+      res.json(result);
+    } catch (error) {
+      console.error("Error validating message:", error);
+      res.status(500).json({ error: "Failed to validate message" });
+    }
+  });
+
+  app.get("/api/swift/table-data/:tableName", async (req, res) => {
+    try {
+      const { tableName } = req.params;
+      const { getTableData } = await import('./swiftService');
+      const data = await getTableData(tableName);
+      res.json(data);
+    } catch (error) {
+      console.error("Error fetching table data:", error);
+      res.status(500).json({ error: "Failed to fetch table data" });
+    }
+  });
+
+  app.get("/api/swift/message-types-azure", async (req, res) => {
+    try {
+      const { getAllMessageTypes } = await import('./swiftService');
+      const messageTypes = await getAllMessageTypes();
+      res.json(messageTypes);
+    } catch (error) {
+      console.error("Error fetching message types:", error);
+      res.status(500).json({ error: "Failed to fetch message types" });
+    }
+  });
+
 
 
   const httpServer = createServer(app);
