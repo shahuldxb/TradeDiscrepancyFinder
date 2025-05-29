@@ -445,6 +445,108 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Trade Finance Documentation Management endpoints
+  app.get("/api/trade-finance/documentary-credits", async (req, res) => {
+    try {
+      const { getAllDocumentaryCredits } = await import('./tradeFinanceService');
+      const credits = await getAllDocumentaryCredits();
+      res.json(credits);
+    } catch (error) {
+      console.error("Error fetching documentary credits:", error);
+      res.status(500).json({ error: "Failed to fetch documentary credits" });
+    }
+  });
+
+  app.get("/api/trade-finance/master-documents", async (req, res) => {
+    try {
+      const { getAllMasterDocuments } = await import('./tradeFinanceService');
+      const documents = await getAllMasterDocuments();
+      res.json(documents);
+    } catch (error) {
+      console.error("Error fetching master documents:", error);
+      res.status(500).json({ error: "Failed to fetch master documents" });
+    }
+  });
+
+  app.get("/api/trade-finance/swift-message-codes", async (req, res) => {
+    try {
+      const { getAllSwiftMessageCodes } = await import('./tradeFinanceService');
+      const codes = await getAllSwiftMessageCodes();
+      res.json(codes);
+    } catch (error) {
+      console.error("Error fetching SWIFT message codes:", error);
+      res.status(500).json({ error: "Failed to fetch SWIFT message codes" });
+    }
+  });
+
+  app.get("/api/trade-finance/credit-document-summary", async (req, res) => {
+    try {
+      const { getCreditDocumentSummary } = await import('./tradeFinanceService');
+      const summary = await getCreditDocumentSummary();
+      res.json(summary);
+    } catch (error) {
+      console.error("Error fetching credit document summary:", error);
+      res.status(500).json({ error: "Failed to fetch credit document summary" });
+    }
+  });
+
+  app.get("/api/trade-finance/swift-documents/:swiftCode", async (req, res) => {
+    try {
+      const { swiftCode } = req.params;
+      const { getDocumentsForSwiftMessage } = await import('./tradeFinanceService');
+      const documents = await getDocumentsForSwiftMessage(swiftCode);
+      res.json(documents);
+    } catch (error) {
+      console.error("Error fetching documents for SWIFT message:", error);
+      res.status(500).json({ error: "Failed to fetch documents for SWIFT message" });
+    }
+  });
+
+  app.get("/api/trade-finance/credit-documents/:creditCode", async (req, res) => {
+    try {
+      const { creditCode } = req.params;
+      const { getDocumentsForCredit } = await import('./tradeFinanceService');
+      const documents = await getDocumentsForCredit(creditCode);
+      res.json(documents);
+    } catch (error) {
+      console.error("Error fetching documents for credit:", error);
+      res.status(500).json({ error: "Failed to fetch documents for credit" });
+    }
+  });
+
+  app.get("/api/trade-finance/swift-credit-mappings", async (req, res) => {
+    try {
+      const { getSwiftCreditMappings } = await import('./tradeFinanceService');
+      const mappings = await getSwiftCreditMappings();
+      res.json(mappings);
+    } catch (error) {
+      console.error("Error fetching SWIFT credit mappings:", error);
+      res.status(500).json({ error: "Failed to fetch SWIFT credit mappings" });
+    }
+  });
+
+  app.get("/api/trade-finance/document-swift-relationships", async (req, res) => {
+    try {
+      const { getDocumentSwiftRelationships } = await import('./tradeFinanceService');
+      const relationships = await getDocumentSwiftRelationships();
+      res.json(relationships);
+    } catch (error) {
+      console.error("Error fetching document SWIFT relationships:", error);
+      res.status(500).json({ error: "Failed to fetch document SWIFT relationships" });
+    }
+  });
+
+  app.get("/api/trade-finance/statistics", async (req, res) => {
+    try {
+      const { getTradeFinanceStatistics } = await import('./tradeFinanceService');
+      const stats = await getTradeFinanceStatistics();
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching trade finance statistics:", error);
+      res.status(500).json({ error: "Failed to fetch trade finance statistics" });
+    }
+  });
+
 
 
   const httpServer = createServer(app);

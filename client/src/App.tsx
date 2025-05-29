@@ -13,6 +13,7 @@ import AgentDesigner from "@/pages/AgentDesigner";
 import MessageBuilder from "@/pages/MessageBuilder";
 import MTIntelligence from "@/pages/MTIntelligenceSimple";
 import SwiftMessageDetails from "@/pages/SwiftMessageDetails";
+import TradeFinanceDocuments from "@/pages/TradeFinanceDocuments";
 
 import NotFound from "@/pages/not-found";
 
@@ -33,6 +34,7 @@ function Router() {
           <Route path="/message-builder" component={MessageBuilder} />
           <Route path="/mt-intelligence" component={MTIntelligence} />
           <Route path="/swift-message/:messageType" component={SwiftMessageDetails} />
+          <Route path="/trade-finance-documents" component={TradeFinanceDocuments} />
         </>
       )}
       <Route component={NotFound} />
