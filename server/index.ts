@@ -37,14 +37,7 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Initialize complete SWIFT MT7xx database migration
-  try {
-    const { initializeMT7xxDatabase } = await import("./completeDataMigration");
-    await initializeMT7xxDatabase();
-    console.log("Complete MT7xx database migration successful");
-  } catch (error) {
-    console.error("Failed to migrate MT7xx data to PostgreSQL:", error);
-  }
+  // Database migration completed - data already populated
 
   const server = await registerRoutes(app);
 
