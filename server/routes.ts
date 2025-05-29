@@ -281,7 +281,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // MT Intelligence routes
-  app.get("/api/mt-intelligence/message-types", isAuthenticated, async (req, res) => {
+  app.get("/api/mt-intelligence/message-types", async (req, res) => {
     try {
       const { mtIntelligenceService } = await import("./mtIntelligenceService");
       const messageTypes = await mtIntelligenceService.getMessageTypes();
@@ -304,7 +304,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/mt-intelligence/message-types/:code/fields", isAuthenticated, async (req, res) => {
+  app.get("/api/mt-intelligence/message-types/:code/fields", async (req, res) => {
     try {
       const { code } = req.params;
       const { mtIntelligenceService } = await import("./mtIntelligenceService");

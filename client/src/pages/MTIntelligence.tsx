@@ -31,7 +31,7 @@ export default function MTIntelligence() {
   // Fetch available message types
   const { data: messageTypes = [], isLoading: isLoadingTypes } = useQuery({
     queryKey: ["/api/mt-intelligence/message-types"],
-    enabled: isAuthenticated
+    enabled: true
   });
 
   // Fetch fields for selected message type
@@ -220,13 +220,13 @@ export default function MTIntelligence() {
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
-                        <ScrollArea className="h-96 w-full">
+                        <ScrollArea className="h-96 w-full pr-4">
                           {isLoadingTypes ? (
                             <div className="text-center py-8 text-gray-600">Loading message types...</div>
                           ) : messageTypes.length === 0 ? (
                             <div className="text-center py-8 text-gray-600">No message types available</div>
                           ) : (
-                            <div className="grid grid-cols-1 gap-2">
+                            <div className="grid grid-cols-1 gap-3 pr-2">
                               {(messageTypes as any[]).map((messageType: any) => (
                                 <Card 
                                   key={messageType.id} 
