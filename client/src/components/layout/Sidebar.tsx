@@ -50,18 +50,7 @@ const navigationItems = [
     icon: MessageCircle,
     description: "Create MT 700 messages",
   },
-  {
-    name: "MT Intelligence",
-    href: "/mt-intelligence",
-    icon: Database,
-    description: "SWIFT message validation & construction",
-  },
-  {
-    name: "MT Genie",
-    href: "/mt-genie",
-    icon: Zap,
-    description: "Comprehensive MT message management",
-  },
+
   {
     name: "Discrepancy Analysis",
     href: "/analysis",
