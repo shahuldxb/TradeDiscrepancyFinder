@@ -193,6 +193,37 @@ export const customCrews = pgTable("custom_crews", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// SWIFT Message Dependencies - Based on official SWIFT MT7xx dependencies documentation
+export const swiftMessageDependencies = pgTable("swift_message_dependencies", {
+  id: varchar("id").primaryKey().notNull(),
+  messageTypeCode: varchar("message_type_code", { length: 10 }).notNull(),
+  dependsOnMessageType: varchar("depends_on_message_type", { length: 10 }),
+  canBeFollowedBy: jsonb("can_be_followed_by"), // Array of message types that can follow
+  canFollowAfter: jsonb("can_follow_after"), // Array of message types this can follow
+  directContinuation: varchar("direct_continuation", { length: 10 }), // Direct continuation message
+  isContinuationOf: varchar("is_continuation_of", { length: 10 }), // What this is a continuation of
+  dependencyType: varchar("dependency_type", { length: 50 }).notNull(), // 'direct_continuation', 'business_flow', 'amendment_flow', etc.
+  businessFlow: varchar("business_flow", { length: 100 }), // 'documentary_credit', 'reimbursement', 'amendment', 'discrepancy'
+  description: text("description"),
+  reference: varchar("reference", { length: 100 }), // Reference to SWIFT documentation
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// SWIFT Message Flow Patterns - Defines common message flow sequences
+export const swiftMessageFlowPatterns = pgTable("swift_message_flow_patterns", {
+  id: varchar("id").primaryKey().notNull(),
+  patternName: varchar("pattern_name", { length: 100 }).notNull(),
+  description: text("description"),
+  messageSequence: jsonb("message_sequence"), // Array of message types in sequence
+  flowType: varchar("flow_type", { length: 50 }).notNull(), // 'linear', 'branching', 'conditional'
+  businessProcess: varchar("business_process", { length: 100 }), // 'full_documentary_credit', 'amendment_process', etc.
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Create insert schemas
 export const insertUserSchema = createInsertSchema(users).pick({
   email: true,
