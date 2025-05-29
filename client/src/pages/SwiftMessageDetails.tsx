@@ -13,7 +13,7 @@ export default function SwiftMessageDetails() {
   const messageType = params?.messageType;
 
   const { data: comprehensiveData, isLoading } = useQuery({
-    queryKey: ["/api/swift/comprehensive-data", messageType],
+    queryKey: [`/api/swift/comprehensive-data/${messageType}`],
     enabled: !!messageType,
   });
 
