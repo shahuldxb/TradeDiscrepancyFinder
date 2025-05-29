@@ -10,6 +10,12 @@ import {
   customTasks,
   customCrews,
   crewExecutions,
+  swiftMessageTypes,
+  swiftFields,
+  swiftMessages,
+  swiftValidationResults,
+  swiftTemplates,
+  digitizationProjects,
   type User,
   type UpsertUser,
   type DocumentSet,
@@ -30,6 +36,16 @@ import {
   type InsertCustomCrew,
   type CrewExecution,
   type InsertCrewExecution,
+  type SwiftMessageType,
+  type InsertSwiftMessageType,
+  type SwiftField,
+  type InsertSwiftField,
+  type SwiftMessage,
+  type InsertSwiftMessage,
+  type SwiftTemplate,
+  type InsertSwiftTemplate,
+  type DigitizationProject,
+  type InsertDigitizationProject,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql } from "drizzle-orm";
@@ -97,6 +113,31 @@ export interface IStorage {
   getCrewExecution(id: string, userId: string): Promise<CrewExecution | undefined>;
   getCrewExecutionsByUser(userId: string): Promise<CrewExecution[]>;
   updateCrewExecution(id: string, execution: Partial<CrewExecution>): Promise<void>;
+
+  // SWIFT Digitization operations
+  createSwiftMessageType(messageType: InsertSwiftMessageType & { id: string }): Promise<SwiftMessageType>;
+  getSwiftMessageTypes(): Promise<SwiftMessageType[]>;
+  getSwiftMessageType(id: string): Promise<SwiftMessageType | undefined>;
+  
+  createSwiftField(field: InsertSwiftField & { id: string }): Promise<SwiftField>;
+  getSwiftFields(): Promise<SwiftField[]>;
+  getSwiftField(id: string): Promise<SwiftField | undefined>;
+  
+  createSwiftMessage(message: InsertSwiftMessage & { userId: string, id: string }): Promise<SwiftMessage>;
+  getSwiftMessages(userId: string): Promise<SwiftMessage[]>;
+  getSwiftMessage(id: string, userId: string): Promise<SwiftMessage | undefined>;
+  
+  createSwiftValidationResult(result: any): Promise<any>;
+  getSwiftValidationResults(userId: string): Promise<any[]>;
+  
+  createSwiftTemplate(template: InsertSwiftTemplate & { userId: string, id: string }): Promise<SwiftTemplate>;
+  getSwiftTemplates(userId?: string): Promise<SwiftTemplate[]>;
+  
+  createDigitizationProject(project: InsertDigitizationProject & { userId: string, id: string }): Promise<DigitizationProject>;
+  getDigitizationProjects(userId: string): Promise<DigitizationProject[]>;
+  getDigitizationProject(id: string, userId: string): Promise<DigitizationProject | undefined>;
+  
+  getDigitizationStats(userId: string): Promise<any>;
 }
 
 export class DatabaseStorage implements IStorage {
