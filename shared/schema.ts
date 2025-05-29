@@ -393,9 +393,147 @@ export const swiftValidationErrors = pgTable("swift_validation_errors", {
   ruleId: varchar("rule_id").references(() => swiftValidationRules.id),
   errorType: varchar("error_type", { length: 50 }).notNull(),
   errorMessage: text("error_message").notNull(),
-  severity: varchar("severity", { length: 20 }).notNull(),
-  fieldValue: text("field_value"),
+  fieldPath: varchar("field_path", { length: 200 }),
+  actualValue: text("actual_value"),
   expectedValue: text("expected_value"),
+  severity: varchar("severity", { length: 20 }).notNull().default("error"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// SWIFT Templates table for storing message templates
+export const swiftTemplates = pgTable("swift_templates", {
+  id: varchar("id").primaryKey().notNull(),
+  templateId: varchar("template_id", { length: 100 }).notNull().unique(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description").notNull(),
+  category: varchar("category", { length: 100 }).notNull(),
+  messageTypeId: varchar("message_type_id").notNull().references(() => swiftMessageTypes.id),
+  templateFields: jsonb("template_fields").notNull(), // Pre-filled field values
+  isActive: boolean("is_active").notNull().default(true),
+  isPublic: boolean("is_public").notNull().default(true),
+  userId: varchar("user_id").references(() => users.id), // Creator if custom template
+  usageCount: integer("usage_count").notNull().default(0),
+  tags: text("tags").array().default([]),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// SWIFT Field Format Rules for validation patterns
+export const swiftFieldFormats = pgTable("swift_field_formats", {
+  id: varchar("id").primaryKey().notNull(),
+  formatCode: varchar("format_code", { length: 10 }).notNull().unique(),
+  description: text("description").notNull(),
+  regexPattern: text("regex_pattern").notNull(),
+  validationRules: jsonb("validation_rules"), // Additional validation logic
+  examples: text("examples").array().default([]),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// SWIFT Business Rules for complex validation logic
+export const swiftBusinessRules = pgTable("swift_business_rules", {
+  id: varchar("id").primaryKey().notNull(),
+  ruleCode: varchar("rule_code", { length: 50 }).notNull().unique(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description").notNull(),
+  messageTypeIds: text("message_type_ids").array().default([]), // Applicable message types
+  fieldIds: text("field_ids").array().default([]), // Applicable fields
+  ruleLogic: text("rule_logic").notNull(), // Business logic expression
+  errorMessage: text("error_message").notNull(),
+  severity: varchar("severity", { length: 20 }).notNull().default("error"),
+  ucpReference: varchar("ucp_reference", { length: 50 }), // UCP 600 article reference
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// SWIFT Message Relationships for tracking dependencies
+export const swiftMessageRelationships = pgTable("swift_message_relationships", {
+  id: varchar("id").primaryKey().notNull(),
+  parentMessageTypeId: varchar("parent_message_type_id").notNull().references(() => swiftMessageTypes.id),
+  childMessageTypeId: varchar("child_message_type_id").notNull().references(() => swiftMessageTypes.id),
+  relationshipType: varchar("relationship_type", { length: 50 }).notNull(), // follows, amends, cancels, etc.
+  description: text("description"),
+  conditionExpression: text("condition_expression"), // When this relationship applies
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Country and Currency codes (ISO standards)
+export const countryCodes = pgTable("country_codes", {
+  id: varchar("id").primaryKey().notNull(),
+  countryCode: varchar("country_code", { length: 3 }).notNull().unique(), // ISO 3166-1 alpha-3
+  countryName: varchar("country_name", { length: 255 }).notNull(),
+  alpha2Code: varchar("alpha2_code", { length: 2 }).notNull(), // ISO 3166-1 alpha-2
+  numericCode: varchar("numeric_code", { length: 3 }).notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+});
+
+export const currencyCodes = pgTable("currency_codes", {
+  id: varchar("id").primaryKey().notNull(),
+  currencyCode: varchar("currency_code", { length: 3 }).notNull().unique(), // ISO 4217
+  currencyName: varchar("currency_name", { length: 255 }).notNull(),
+  numericCode: varchar("numeric_code", { length: 3 }).notNull(),
+  minorUnit: integer("minor_unit").notNull().default(2), // Decimal places
+  isActive: boolean("is_active").notNull().default(true),
+});
+
+// Bank codes and routing information
+export const bankCodes = pgTable("bank_codes", {
+  id: varchar("id").primaryKey().notNull(),
+  bicCode: varchar("bic_code", { length: 11 }).notNull().unique(), // SWIFT BIC
+  bankName: varchar("bank_name", { length: 255 }).notNull(),
+  countryCode: varchar("country_code", { length: 3 }).notNull().references(() => countryCodes.countryCode),
+  cityName: varchar("city_name", { length: 100 }),
+  branchCode: varchar("branch_code", { length: 3 }),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Insert schemas for new tables
+export const insertSwiftTemplateSchema = createInsertSchema(swiftTemplates).pick({
+  templateId: true,
+  name: true,
+  description: true,
+  category: true,
+  messageTypeId: true,
+  templateFields: true,
+  isActive: true,
+  isPublic: true,
+  tags: true,
+});
+
+export const insertSwiftFieldFormatSchema = createInsertSchema(swiftFieldFormats).pick({
+  formatCode: true,
+  description: true,
+  regexPattern: true,
+  validationRules: true,
+  examples: true,
+});
+
+export const insertSwiftBusinessRuleSchema = createInsertSchema(swiftBusinessRules).pick({
+  ruleCode: true,
+  name: true,
+  description: true,
+  messageTypeIds: true,
+  fieldIds: true,
+  ruleLogic: true,
+  errorMessage: true,
+  severity: true,
+  ucpReference: true,
+});
+
+// Types for new tables
+export type SwiftTemplate = typeof swiftTemplates.$inferSelect;
+export type InsertSwiftTemplate = z.infer<typeof insertSwiftTemplateSchema>;
+export type SwiftFieldFormat = typeof swiftFieldFormats.$inferSelect;
+export type InsertSwiftFieldFormat = z.infer<typeof insertSwiftFieldFormatSchema>;
+export type SwiftBusinessRule = typeof swiftBusinessRules.$inferSelect;
+export type InsertSwiftBusinessRule = z.infer<typeof insertSwiftBusinessRuleSchema>;
+export type SwiftMessageRelationship = typeof swiftMessageRelationships.$inferSelect;
+export type CountryCode = typeof countryCodes.$inferSelect;
+export type CurrencyCode = typeof currencyCodes.$inferSelect;
+export type BankCode = typeof bankCodes.$inferSelect;
   position: integer("position"),
   createdAt: timestamp("created_at").defaultNow(),
 });
