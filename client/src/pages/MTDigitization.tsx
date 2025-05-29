@@ -181,7 +181,7 @@ export default function MTDigitization() {
               <TabsTrigger value="validator">Message Validator</TabsTrigger>
               <TabsTrigger value="constructor">Message Constructor</TabsTrigger>
               <TabsTrigger value="templates">Templates</TabsTrigger>
-              <TabsTrigger value="dependencies">Field Dependencies</TabsTrigger>
+              <TabsTrigger value="messagefields">Message Fields</TabsTrigger>
               <TabsTrigger value="projects">Projects</TabsTrigger>
             </TabsList>
 
@@ -585,29 +585,9 @@ export default function MTDigitization() {
               </Card>
             </TabsContent>
 
-            {/* Field Dependencies Tab */}
-            <TabsContent value="dependencies" className="space-y-6">
-              <Card className="banking-card">
-                <CardHeader>
-                  <CardTitle>Field Dependency Graph</CardTitle>
-                  <CardDescription>
-                    Visualize and manage field interdependencies within and across MT7xx messages
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-12">
-                    <Network className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-foreground mb-2">Dependency Visualization</h3>
-                    <p className="text-muted-foreground mb-4">
-                      Interactive graph showing field relationships and conditional requirements
-                    </p>
-                    <Button>
-                      <Zap className="h-4 w-4 mr-2" />
-                      Launch Dependency Graph
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+            {/* Message Fields Tab */}
+            <TabsContent value="messagefields" className="space-y-6">
+              <MessageFieldsGrid />
             </TabsContent>
 
             {/* Projects Tab */}
