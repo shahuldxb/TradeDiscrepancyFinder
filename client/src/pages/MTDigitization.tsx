@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import Sidebar from "@/components/layout/Sidebar";
 import TopHeader from "@/components/layout/TopHeader";
+import MessageTypeDetails from "@/components/swift/MessageTypeDetails";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -80,6 +81,7 @@ export default function MTDigitization() {
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
   const [isValidatorOpen, setIsValidatorOpen] = useState(false);
   const [validationText, setValidationText] = useState("");
+  const [selectedMessageForDetails, setSelectedMessageForDetails] = useState<string | null>(null);
 
   // Queries
   const { data: projects, isLoading: projectsLoading } = useQuery({
@@ -302,8 +304,12 @@ export default function MTDigitization() {
                         <CardContent className="pt-0">
                           <div className="space-y-2">
                             {messages.map((msg) => (
-                              <div key={msg.code} className="flex items-center justify-between">
-                                <span className="text-sm font-mono">{msg.code}</span>
+                              <div 
+                                key={msg.code} 
+                                className="flex items-center justify-between p-2 rounded hover:bg-blue-50 cursor-pointer transition-colors"
+                                onClick={() => setSelectedMessageForDetails(msg.code)}
+                              >
+                                <span className="text-sm font-mono font-medium">{msg.code}</span>
                                 <Badge variant="outline" className="text-xs">{msg.name.substring(0, 20)}...</Badge>
                               </div>
                             ))}
