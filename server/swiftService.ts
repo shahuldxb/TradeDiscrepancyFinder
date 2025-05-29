@@ -396,13 +396,14 @@ export async function getComprehensiveMessageData(messageTypeCode: string) {
         WHERE message_type_code = @messageType
       `);
     
-    // Get message fields
+    // Get message fields using message_type_id
     const fieldsResult = await pool.request()
       .input('messageType', sql.NVarChar, messageTypeCode)
       .query(`
-        SELECT * FROM swift.message_fields 
-        WHERE message_type_code = @messageType
-        ORDER BY sequence
+        SELECT mf.* FROM swift.message_fields mf
+        INNER JOIN swift.message_types mt ON mf.message_type_id = mt.message_type_id
+        WHERE mt.message_type_code = @messageType
+        ORDER BY mf.sequence
       `);
     
     // Get field specifications
@@ -410,8 +411,9 @@ export async function getComprehensiveMessageData(messageTypeCode: string) {
       .input('messageType', sql.NVarChar, messageTypeCode)
       .query(`
         SELECT fs.* FROM swift.field_specifications fs
-        INNER JOIN swift.message_fields mf ON fs.field_tag = mf.field_tag
-        WHERE mf.message_type_code = @messageType
+        INNER JOIN swift.message_fields mf ON fs.field_tag = mf.tag
+        INNER JOIN swift.message_types mt ON mf.message_type_id = mt.message_type_id
+        WHERE mt.message_type_code = @messageType
       `);
     
     // Get field format options
@@ -419,8 +421,9 @@ export async function getComprehensiveMessageData(messageTypeCode: string) {
       .input('messageType', sql.NVarChar, messageTypeCode)
       .query(`
         SELECT ffo.* FROM swift.field_format_options ffo
-        INNER JOIN swift.message_fields mf ON ffo.field_tag = mf.field_tag
-        WHERE mf.message_type_code = @messageType
+        INNER JOIN swift.message_fields mf ON ffo.field_tag = mf.tag
+        INNER JOIN swift.message_types mt ON mf.message_type_id = mt.message_type_id
+        WHERE mt.message_type_code = @messageType
       `);
     
     // Get all validation rules
