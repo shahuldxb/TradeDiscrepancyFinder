@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { swiftMessageTypes, swiftFields, swiftMessageTypeFields } from "@shared/schema";
+import { swiftMessageTypes, swiftFields, messageTypeFields } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 import OpenAI from "openai";
 
@@ -67,12 +67,12 @@ export async function getMTTemplates(): Promise<MTTemplate[]> {
           name: swiftFields.name,
           format: swiftFields.format,
           description: swiftFields.description,
-          mandatory: swiftMessageTypeFields.isMandatory,
+          mandatory: messageTypeFields.isMandatory,
         })
-        .from(swiftMessageTypeFields)
-        .innerJoin(swiftFields, eq(swiftMessageTypeFields.fieldId, swiftFields.id))
-        .where(eq(swiftMessageTypeFields.messageTypeId, messageType.id))
-        .orderBy(swiftMessageTypeFields.sequence);
+        .from(messageTypeFields)
+        .innerJoin(swiftFields, eq(messageTypeFields.fieldId, swiftFields.id))
+        .where(eq(messageTypeFields.messageTypeId, messageType.id))
+        .orderBy(messageTypeFields.sequence);
 
       templates.push({
         messageType: messageType.messageTypeCode,
@@ -126,12 +126,12 @@ export async function validateMTMessage(
         tag: swiftFields.fieldCode,
         name: swiftFields.name,
         format: swiftFields.format,
-        mandatory: swiftMessageTypeFields.isMandatory,
+        mandatory: messageTypeFields.isMandatory,
         validationRegex: swiftFields.validationRegex,
       })
-      .from(swiftMessageTypeFields)
-      .innerJoin(swiftFields, eq(swiftMessageTypeFields.fieldId, swiftFields.id))
-      .where(eq(swiftMessageTypeFields.messageTypeId, mtType.id));
+      .from(messageTypeFields)
+      .innerJoin(swiftFields, eq(messageTypeFields.fieldId, swiftFields.id))
+      .where(eq(messageTypeFields.messageTypeId, mtType.id));
 
     // Parse message content
     const parsedFields = parseSwiftMessage(messageContent);
@@ -219,13 +219,13 @@ export async function constructMTMessage(
         tag: swiftFields.fieldCode,
         name: swiftFields.name,
         format: swiftFields.format,
-        mandatory: swiftMessageTypeFields.isMandatory,
-        sequence: swiftMessageTypeFields.sequence,
+        mandatory: messageTypeFields.isMandatory,
+        sequence: messageTypeFields.sequence,
       })
-      .from(swiftMessageTypeFields)
-      .innerJoin(swiftFields, eq(swiftMessageTypeFields.fieldId, swiftFields.id))
-      .where(eq(swiftMessageTypeFields.messageTypeId, mtType.id))
-      .orderBy(swiftMessageTypeFields.sequence);
+      .from(messageTypeFields)
+      .innerJoin(swiftFields, eq(messageTypeFields.fieldId, swiftFields.id))
+      .where(eq(messageTypeFields.messageTypeId, mtType.id))
+      .orderBy(messageTypeFields.sequence);
 
     // Construct message using OpenAI for proper formatting
     const constructedMessage = await constructWithAI(messageType, fieldValues, fieldDefinitions);
