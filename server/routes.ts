@@ -446,6 +446,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all MT7xx message fields
+  app.get("/api/swift/all-message-fields", isAuthenticated, async (req, res) => {
+    try {
+      // Import the field data from swiftDigitization module
+      const { getAllMT7xxFields } = await import("./swiftDigitization");
+      const allFields = getAllMT7xxFields();
+      res.json(allFields);
+    } catch (error) {
+      console.error("Error fetching MT7xx fields:", error);
+      res.status(500).json({ message: "Failed to fetch MT7xx fields" });
+    }
+  });
+
   // Get templates
   app.get("/api/digitization/templates", isAuthenticated, async (req: any, res) => {
     try {
