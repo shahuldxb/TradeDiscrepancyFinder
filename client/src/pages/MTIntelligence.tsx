@@ -194,7 +194,7 @@ export default function MTIntelligence() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {messageTypes?.filter((msg: any) => 
-                  msg.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  msg.message_type_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                   msg.message_type_code.includes(searchTerm)
                 ).map((message: any) => (
                   <Card 
@@ -206,11 +206,12 @@ export default function MTIntelligence() {
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <h4 className="font-medium text-lg">MT{message.message_type_code}</h4>
-                          <p className="text-sm text-gray-600 mt-1">{message.description}</p>
+                          <p className="text-sm text-gray-600 mt-1">{message.message_type_name}</p>
+                          <p className="text-xs text-gray-500 mt-1">{message.purpose}</p>
                           <div className="flex items-center gap-2 mt-2">
-                            <Badge variant="outline">{message.category}</Badge>
-                            <Badge variant={message.status === 'active' ? 'default' : 'secondary'}>
-                              {message.status}
+                            <Badge variant="outline">Category {message.category}</Badge>
+                            <Badge variant={message.signed ? 'default' : 'secondary'}>
+                              {message.signed ? 'Signed' : 'Unsigned'}
                             </Badge>
                           </div>
                         </div>
@@ -236,7 +237,7 @@ export default function MTIntelligence() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle>MT{selectedMessageType.message_type_code} - {selectedMessageType.description}</CardTitle>
+                    <CardTitle>MT{selectedMessageType.message_type_code} - {selectedMessageType.message_type_name}</CardTitle>
                     <CardDescription>Field specifications, rules, and dependencies</CardDescription>
                   </div>
                   <Button 
