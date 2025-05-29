@@ -1,8 +1,8 @@
 import { db } from "./db";
 import { 
-  mtIntelligenceMessageTypes, 
-  mtIntelligenceFields, 
-  mtIntelligenceMessageTypeFields 
+  swiftMessageTypes, 
+  swiftFields, 
+  messageTypeFields 
 } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 
