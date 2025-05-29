@@ -201,9 +201,8 @@ async function migrateMessageTypes() {
 
   for (const msgType of messageTypes) {
     await db.insert(swiftMessageTypes).values({
-      id: msgType.id,
       messageTypeCode: msgType.messageTypeCode,
-      name: msgType.name,
+      name: msgType.description, // Use description as name since name field is required
       description: msgType.description,
       category: msgType.category,
       version: msgType.version,
