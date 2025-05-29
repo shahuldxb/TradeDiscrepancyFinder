@@ -5,6 +5,7 @@ import {
   swiftFields,
   messageTypeFields,
 } from "@shared/schema";
+import { eq } from "drizzle-orm";
 
 // Complete migration of all hardcoded SWIFT data to PostgreSQL
 export async function migrateAllDataToPostgreSQL() {
@@ -38,6 +39,7 @@ async function migrateMessageTypes() {
     {
       id: nanoid(),
       messageTypeCode: "MT700",
+      name: "Issue of a Documentary Credit",
       description: "Issue of a Documentary Credit",
       category: "Documentary Credits",
       version: "2019",
