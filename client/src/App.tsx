@@ -11,7 +11,7 @@ import DiscrepancyAnalysis from "@/pages/DiscrepancyAnalysis";
 import AgentMonitor from "@/pages/AgentMonitor";
 import AgentDesigner from "@/pages/AgentDesigner";
 import MessageBuilder from "@/pages/MessageBuilder";
-import MTIntelligence from "@/pages/MTIntelligence";
+import MTIntelligence from "@/pages/MTIntelligenceSimple";
 import SwiftMessageDetails from "@/pages/SwiftMessageDetails";
 
 import NotFound from "@/pages/not-found";
