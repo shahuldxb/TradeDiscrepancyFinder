@@ -117,7 +117,7 @@ export default function MTDigitization() {
       <div className="flex">
         <Sidebar />
         <div className="flex-1 flex flex-col">
-          <TopHeader />
+          <TopHeader title="MT xxx Digitization" />
           <main className="flex-1 p-6">
             <div className="max-w-7xl mx-auto">
               {/* Header */}
