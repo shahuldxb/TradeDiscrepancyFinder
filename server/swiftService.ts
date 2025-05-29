@@ -300,11 +300,45 @@ export async function getValidationRules(messageTypeCode: string) {
     const result = await pool.request()
       .input('messageType', sql.NVarChar, messageTypeCode)
       .query(`
-        SELECT * FROM swift.network_validated_rules
+        SELECT 
+          'network_validated' as rule_type,
+          rule_id,
+          rule_description,
+          rule_text,
+          field_tag,
+          created_at
+        FROM swift.network_validated_rules
         WHERE message_type_code = @messageType
+        
         UNION ALL
-        SELECT * FROM swift.usage_rules
+        
+        SELECT 
+          'usage_rule' as rule_type,
+          rule_id,
+          rule_description,
+          rule_text,
+          field_tag,
+          created_at
+        FROM swift.usage_rules
         WHERE message_type_code = @messageType
+        
+        UNION ALL
+        
+        SELECT 
+          'field_validation' as rule_type,
+          rule_id,
+          rule_description,
+          validation_pattern as rule_text,
+          field_tag,
+          created_at
+        FROM swift.field_validation_rules fvr
+        WHERE EXISTS (
+          SELECT 1 FROM swift.message_fields mf 
+          WHERE mf.field_tag = fvr.field_tag 
+          AND mf.message_type_code = @messageType
+        )
+        
+        ORDER BY rule_type, field_tag
       `);
     
     await pool.close();
@@ -312,6 +346,169 @@ export async function getValidationRules(messageTypeCode: string) {
     
   } catch (error) {
     console.error('Error fetching validation rules:', error);
+    throw error;
+  }
+}
+
+export async function getMessageDependencies(messageTypeCode: string) {
+  try {
+    const pool = await connectToAzureSQL();
+    
+    const result = await pool.request()
+      .input('messageType', sql.NVarChar, messageTypeCode)
+      .query(`
+        SELECT 
+          source_message_type,
+          target_message_type,
+          dependency_type,
+          dependency_description,
+          sequence_order,
+          is_mandatory,
+          created_at
+        FROM swift.message_dependencies
+        WHERE source_message_type = @messageType 
+           OR target_message_type = @messageType
+        ORDER BY sequence_order, dependency_type
+      `);
+    
+    await pool.close();
+    return result.recordset;
+    
+  } catch (error) {
+    console.error('Error fetching message dependencies:', error);
+    throw error;
+  }
+}
+
+export async function getComprehensiveMessageData(messageTypeCode: string) {
+  try {
+    const pool = await connectToAzureSQL();
+    
+    // Get message type info
+    const messageTypeResult = await pool.request()
+      .input('messageType', sql.NVarChar, messageTypeCode)
+      .query(`
+        SELECT * FROM swift.message_types 
+        WHERE message_type_code = @messageType
+      `);
+    
+    // Get fields with specifications and format options
+    const fieldsResult = await pool.request()
+      .input('messageType', sql.NVarChar, messageTypeCode)
+      .query(`
+        SELECT 
+          mf.*,
+          fs.format_specification,
+          fs.validation_rules as field_validation_rules,
+          fs.description as field_description,
+          fs.usage_notes,
+          ffo.format_option,
+          ffo.option_description,
+          fc.code_value,
+          fc.code_description
+        FROM swift.message_fields mf
+        LEFT JOIN swift.field_specifications fs ON mf.field_tag = fs.field_tag
+        LEFT JOIN swift.field_format_options ffo ON mf.field_tag = ffo.field_tag
+        LEFT JOIN swift.field_codes fc ON mf.field_tag = fc.field_tag
+        WHERE mf.message_type_code = @messageType
+        ORDER BY mf.sequence, ffo.format_option, fc.code_value
+      `);
+    
+    // Get all validation rules
+    const rulesResult = await pool.request()
+      .input('messageType', sql.NVarChar, messageTypeCode)
+      .query(`
+        SELECT 
+          'network_validated' as rule_type,
+          rule_id,
+          rule_description,
+          rule_text,
+          field_tag,
+          severity_level,
+          error_code,
+          created_at
+        FROM swift.network_validated_rules
+        WHERE message_type_code = @messageType
+        
+        UNION ALL
+        
+        SELECT 
+          'usage_rule' as rule_type,
+          rule_id,
+          rule_description,
+          rule_text,
+          field_tag,
+          severity_level,
+          error_code,
+          created_at
+        FROM swift.usage_rules
+        WHERE message_type_code = @messageType
+        
+        ORDER BY rule_type, field_tag, severity_level
+      `);
+    
+    // Get dependencies
+    const dependenciesResult = await pool.request()
+      .input('messageType', sql.NVarChar, messageTypeCode)
+      .query(`
+        SELECT 
+          source_message_type,
+          target_message_type,
+          dependency_type,
+          dependency_description,
+          sequence_order,
+          is_mandatory,
+          condition_rules,
+          created_at
+        FROM swift.message_dependencies
+        WHERE source_message_type = @messageType 
+           OR target_message_type = @messageType
+        ORDER BY sequence_order, dependency_type
+      `);
+    
+    // Get field codes for this message type
+    const fieldCodesResult = await pool.request()
+      .input('messageType', sql.NVarChar, messageTypeCode)
+      .query(`
+        SELECT DISTINCT
+          fc.field_tag,
+          fc.code_value,
+          fc.code_description,
+          fc.is_active
+        FROM swift.field_codes fc
+        INNER JOIN swift.message_fields mf ON fc.field_tag = mf.field_tag
+        WHERE mf.message_type_code = @messageType
+        ORDER BY fc.field_tag, fc.code_value
+      `);
+    
+    // Get recent message instances
+    const instancesResult = await pool.request()
+      .input('messageType', sql.NVarChar, messageTypeCode)
+      .query(`
+        SELECT TOP 10
+          instance_id,
+          message_content,
+          validation_status,
+          validation_errors,
+          created_at
+        FROM swift.message_instances
+        WHERE message_type_code = @messageType
+        ORDER BY created_at DESC
+      `);
+    
+    await pool.close();
+    
+    return {
+      messageType: messageTypeResult.recordset[0],
+      fields: fieldsResult.recordset,
+      validationRules: rulesResult.recordset,
+      dependencies: dependenciesResult.recordset,
+      fieldCodes: fieldCodesResult.recordset,
+      recentInstances: instancesResult.recordset
+    };
+    
+  } catch (error) {
+    console.error('Error fetching comprehensive message data:', error);
     throw error;
   }
 }

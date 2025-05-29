@@ -29,6 +29,8 @@ export default function MTIntelligence() {
   const [messageType, setMessageType] = useState("");
   const [validationResult, setValidationResult] = useState(null);
   const [selectedTable, setSelectedTable] = useState("");
+  const [selectedMessageType, setSelectedMessageType] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Fetch SWIFT message types from Azure SQL
   const { data: messageTypes, isLoading: loadingTypes } = useQuery({
@@ -44,6 +46,12 @@ export default function MTIntelligence() {
   const { data: tableData, isLoading: loadingTable } = useQuery({
     queryKey: ["/api/swift/table-data", selectedTable],
     enabled: !!selectedTable,
+  });
+
+  // Fetch comprehensive message data when a message type is selected
+  const { data: comprehensiveData, isLoading: loadingComprehensiveData } = useQuery({
+    queryKey: ["/api/swift/comprehensive-data", selectedMessageType?.message_type_code],
+    enabled: !!selectedMessageType,
   });
 
   const handleMessageValidation = async () => {
@@ -154,12 +162,211 @@ export default function MTIntelligence() {
 
       {/* Main Application Tabs */}
       <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="messages">SWIFT Messages</TabsTrigger>
           <TabsTrigger value="validator">Message Validator</TabsTrigger>
           <TabsTrigger value="parser">Document Parser</TabsTrigger>
           <TabsTrigger value="database">Database Browser</TabsTrigger>
           <TabsTrigger value="management">Management</TabsTrigger>
         </TabsList>
+
+        {/* SWIFT Messages Tab */}
+        <TabsContent value="messages" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>SWIFT Message Types</CardTitle>
+              <CardDescription>
+                Browse all SWIFT MT7xx message types with detailed field specifications
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Search messages..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="flex-1"
+                />
+                <Button variant="outline">
+                  <Search className="w-4 h-4" />
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {messageTypes?.filter((msg: any) => 
+                  msg.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  msg.message_type_code.includes(searchTerm)
+                ).map((message: any) => (
+                  <Card 
+                    key={message.message_type_code}
+                    className="cursor-pointer hover:bg-gray-50 transition-colors"
+                    onClick={() => setSelectedMessageType(message)}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h4 className="font-medium text-lg">MT{message.message_type_code}</h4>
+                          <p className="text-sm text-gray-600 mt-1">{message.description}</p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <Badge variant="outline">{message.category}</Badge>
+                            <Badge variant={message.status === 'active' ? 'default' : 'secondary'}>
+                              {message.status}
+                            </Badge>
+                          </div>
+                        </div>
+                        <Eye className="w-4 h-4 text-gray-400" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {loadingTypes && (
+                <div className="text-center py-8">
+                  <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-2" />
+                  <p>Loading SWIFT messages...</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Message Details Modal/Panel */}
+          {selectedMessageType && (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>MT{selectedMessageType.message_type_code} - {selectedMessageType.description}</CardTitle>
+                    <CardDescription>Field specifications, rules, and dependencies</CardDescription>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setSelectedMessageType(null)}
+                  >
+                    Close
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="fields" className="w-full">
+                  <TabsList className="grid w-full grid-cols-5">
+                    <TabsTrigger value="fields">Fields</TabsTrigger>
+                    <TabsTrigger value="rules">Validation Rules</TabsTrigger>
+                    <TabsTrigger value="dependencies">Dependencies</TabsTrigger>
+                    <TabsTrigger value="codes">Field Codes</TabsTrigger>
+                    <TabsTrigger value="instances">Message Instances</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="fields" className="space-y-4">
+                    <div className="border rounded-lg">
+                      <div className="bg-gray-50 p-3 border-b">
+                        <h4 className="font-medium">Message Fields</h4>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-4 py-2 text-left">Field Tag</th>
+                              <th className="px-4 py-2 text-left">Name</th>
+                              <th className="px-4 py-2 text-left">Format</th>
+                              <th className="px-4 py-2 text-left">Mandatory</th>
+                              <th className="px-4 py-2 text-left">Sequence</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {loadingFields ? (
+                              <tr>
+                                <td colSpan={5} className="px-4 py-8 text-center">
+                                  <RefreshCw className="h-4 w-4 animate-spin mx-auto mb-2" />
+                                  Loading fields...
+                                </td>
+                              </tr>
+                            ) : messageFields?.map((field: any, index: number) => (
+                              <tr key={index} className="border-b hover:bg-gray-50">
+                                <td className="px-4 py-2 font-mono text-sm">{field.field_tag}</td>
+                                <td className="px-4 py-2">{field.field_name}</td>
+                                <td className="px-4 py-2 font-mono text-sm">{field.format_specification}</td>
+                                <td className="px-4 py-2">
+                                  <Badge variant={field.is_mandatory ? 'destructive' : 'secondary'}>
+                                    {field.is_mandatory ? 'Required' : 'Optional'}
+                                  </Badge>
+                                </td>
+                                <td className="px-4 py-2">{field.sequence}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="rules" className="space-y-4">
+                    <div className="border rounded-lg">
+                      <div className="bg-gray-50 p-3 border-b">
+                        <h4 className="font-medium">Validation Rules</h4>
+                      </div>
+                      <div className="p-4 space-y-4">
+                        {loadingRules ? (
+                          <div className="text-center py-4">
+                            <RefreshCw className="h-4 w-4 animate-spin mx-auto mb-2" />
+                            Loading validation rules...
+                          </div>
+                        ) : validationRules?.map((rule: any, index: number) => (
+                          <div key={index} className="border rounded p-3 bg-gray-50">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <h5 className="font-medium">{rule.rule_description}</h5>
+                                <p className="text-sm text-gray-600 mt-1">{rule.rule_text}</p>
+                                {rule.field_tag && (
+                                  <Badge variant="outline" className="mt-2">
+                                    Field: {rule.field_tag}
+                                  </Badge>
+                                )}
+                              </div>
+                              <Badge variant={rule.rule_type === 'network_validated' ? 'default' : 'secondary'}>
+                                {rule.rule_type}
+                              </Badge>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="dependencies" className="space-y-4">
+                    <div className="border rounded-lg">
+                      <div className="bg-gray-50 p-3 border-b">
+                        <h4 className="font-medium">Message Dependencies</h4>
+                      </div>
+                      <div className="p-4 space-y-4">
+                        {loadingDependencies ? (
+                          <div className="text-center py-4">
+                            <RefreshCw className="h-4 w-4 animate-spin mx-auto mb-2" />
+                            Loading dependencies...
+                          </div>
+                        ) : messageDependencies?.map((dep: any, index: number) => (
+                          <div key={index} className="border rounded p-3 bg-blue-50">
+                            <div className="flex items-center gap-2">
+                              <MessageSquare className="w-4 h-4 text-blue-500" />
+                              <span className="font-medium">
+                                MT{dep.source_message_type} → MT{dep.target_message_type}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-600 mt-1">{dep.dependency_description}</p>
+                            <Badge variant="outline" className="mt-2">
+                              {dep.dependency_type}
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
 
         {/* Message Validator Tab */}
         <TabsContent value="validator" className="space-y-4">

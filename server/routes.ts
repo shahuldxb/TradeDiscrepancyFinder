@@ -361,6 +361,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/swift/message-fields/:messageTypeCode", async (req, res) => {
+    try {
+      const { messageTypeCode } = req.params;
+      const { getMessageTypeFields } = await import('./swiftService');
+      const fields = await getMessageTypeFields(messageTypeCode);
+      res.json(fields);
+    } catch (error) {
+      console.error("Error fetching message fields:", error);
+      res.status(500).json({ error: "Failed to fetch message fields" });
+    }
+  });
+
+  app.get("/api/swift/validation-rules/:messageTypeCode", async (req, res) => {
+    try {
+      const { messageTypeCode } = req.params;
+      const { getValidationRules } = await import('./swiftService');
+      const rules = await getValidationRules(messageTypeCode);
+      res.json(rules);
+    } catch (error) {
+      console.error("Error fetching validation rules:", error);
+      res.status(500).json({ error: "Failed to fetch validation rules" });
+    }
+  });
+
+  app.get("/api/swift/message-dependencies/:messageTypeCode", async (req, res) => {
+    try {
+      const { messageTypeCode } = req.params;
+      const { getMessageDependencies } = await import('./swiftService');
+      const dependencies = await getMessageDependencies(messageTypeCode);
+      res.json(dependencies);
+    } catch (error) {
+      console.error("Error fetching message dependencies:", error);
+      res.status(500).json({ error: "Failed to fetch message dependencies" });
+    }
+  });
+
+  app.get("/api/swift/comprehensive-data/:messageTypeCode", async (req, res) => {
+    try {
+      const { messageTypeCode } = req.params;
+      const { getComprehensiveMessageData } = await import('./swiftService');
+      const data = await getComprehensiveMessageData(messageTypeCode);
+      res.json(data);
+    } catch (error) {
+      console.error("Error fetching comprehensive message data:", error);
+      res.status(500).json({ error: "Failed to fetch comprehensive message data" });
+    }
+  });
+
 
 
   const httpServer = createServer(app);
