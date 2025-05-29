@@ -1,21 +1,90 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute } from "wouter";
-import { ArrowLeft, FileText, AlertTriangle, Code, Network, Clock } from "lucide-react";
+import { ArrowLeft, FileText, AlertTriangle, Code, Network, Clock, Sparkles, Copy, Download } from "lucide-react";
 import { Link } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function SwiftMessageDetails() {
   const [match, params] = useRoute("/swift-message/:messageType");
   const messageType = params?.messageType;
 
+  // Code generation state
+  const [selectedLanguage, setSelectedLanguage] = useState("javascript");
+  const [selectedVariation, setSelectedVariation] = useState("Message Parser");
+  const [customPrompt, setCustomPrompt] = useState("");
+  const [generatedCode, setGeneratedCode] = useState("");
+  const [codeExplanation, setCodeExplanation] = useState("");
+  const [codeDependencies, setCodeDependencies] = useState<string[]>([]);
+
   const { data: comprehensiveData, isLoading } = useQuery({
     queryKey: [`/api/swift/comprehensive-data/${messageType}`],
     enabled: !!messageType,
   });
+
+  // AI Code Generation mutations
+  const generateCodeMutation = useMutation({
+    mutationFn: async (data: any) => apiRequest(`/api/ai/generate-code`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+    onSuccess: (result) => {
+      setGeneratedCode(result.code);
+      setCodeExplanation(result.explanation);
+      setCodeDependencies(result.dependencies || []);
+    },
+  });
+
+  const generateVariationsMutation = useMutation({
+    mutationFn: async ({ language }: { language: string }) => 
+      apiRequest(`/api/ai/generate-variations/${messageType}/${language}`, {
+        method: "POST",
+      }),
+  });
+
+  const generateCustomMutation = useMutation({
+    mutationFn: async (data: any) => apiRequest(`/api/ai/generate-custom`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+    onSuccess: (result) => {
+      setGeneratedCode(result.code);
+      setCodeExplanation(result.explanation);
+      setCodeDependencies(result.dependencies || []);
+    },
+  });
+
+  const handleGenerateCode = () => {
+    generateCodeMutation.mutate({
+      messageType,
+      variation: selectedVariation,
+      programmingLanguage: selectedLanguage,
+      includeValidation: true,
+      includeFormatting: true,
+    });
+  };
+
+  const handleCustomGeneration = () => {
+    if (!customPrompt.trim()) return;
+    generateCustomMutation.mutate({
+      messageType,
+      customPrompt,
+      programmingLanguage: selectedLanguage,
+    });
+  };
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(generatedCode);
+  };
 
   if (isLoading) {
     return (
@@ -98,12 +167,16 @@ export default function SwiftMessageDetails() {
 
         {/* Detailed Information Tabs */}
         <Tabs defaultValue="fields" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="fields">Message Fields</TabsTrigger>
             <TabsTrigger value="specifications">Field Specifications</TabsTrigger>
             <TabsTrigger value="validation">Validation Rules</TabsTrigger>
             <TabsTrigger value="dependencies">Dependencies</TabsTrigger>
             <TabsTrigger value="codes">Field Codes</TabsTrigger>
+            <TabsTrigger value="ai-generator">
+              <Sparkles className="h-4 w-4 mr-1" />
+              AI Code Generator
+            </TabsTrigger>
           </TabsList>
 
           {/* Message Fields Tab */}
@@ -295,6 +368,169 @@ export default function SwiftMessageDetails() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* AI Code Generator Tab */}
+          <TabsContent value="ai-generator">
+            <div className="space-y-6">
+              {/* Code Generation Controls */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Sparkles className="h-5 w-5" />
+                    AI-Powered Code Generator
+                  </CardTitle>
+                  <CardDescription>
+                    Generate production-ready code snippets for MT{msgType.message_type_code} using authentic SWIFT specifications
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium">Programming Language</label>
+                      <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="javascript">JavaScript</SelectItem>
+                          <SelectItem value="typescript">TypeScript</SelectItem>
+                          <SelectItem value="python">Python</SelectItem>
+                          <SelectItem value="java">Java</SelectItem>
+                          <SelectItem value="csharp">C#</SelectItem>
+                          <SelectItem value="go">Go</SelectItem>
+                          <SelectItem value="rust">Rust</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Code Variation</label>
+                      <Select value={selectedVariation} onValueChange={setSelectedVariation}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Message Parser">Message Parser</SelectItem>
+                          <SelectItem value="Message Builder">Message Builder</SelectItem>
+                          <SelectItem value="Validation Engine">Validation Engine</SelectItem>
+                          <SelectItem value="Field Extractor">Field Extractor</SelectItem>
+                          <SelectItem value="Format Converter">Format Converter</SelectItem>
+                          <SelectItem value="Error Handler">Error Handler</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={handleGenerateCode}
+                      disabled={generateCodeMutation.isPending}
+                      className="flex-1"
+                    >
+                      {generateCodeMutation.isPending ? "Generating..." : "Generate Code"}
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      onClick={() => generateVariationsMutation.mutate({ language: selectedLanguage })}
+                      disabled={generateVariationsMutation.isPending}
+                    >
+                      {generateVariationsMutation.isPending ? "Loading..." : "Generate All Variations"}
+                    </Button>
+                  </div>
+
+                  {/* Custom Prompt Section */}
+                  <div className="border-t pt-4">
+                    <label className="text-sm font-medium">Custom Code Request</label>
+                    <div className="space-y-2">
+                      <Textarea
+                        placeholder="Describe your specific code requirements (e.g., 'Create a validator that checks field dependencies for MT700 messages')"
+                        value={customPrompt}
+                        onChange={(e) => setCustomPrompt(e.target.value)}
+                        rows={3}
+                      />
+                      <Button 
+                        onClick={handleCustomGeneration}
+                        disabled={generateCustomMutation.isPending || !customPrompt.trim()}
+                        variant="secondary"
+                        className="w-full"
+                      >
+                        {generateCustomMutation.isPending ? "Generating Custom Code..." : "Generate Custom Code"}
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Generated Code Display */}
+              {generatedCode && (
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle>Generated Code</CardTitle>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={copyToClipboard}>
+                          <Copy className="h-4 w-4 mr-1" />
+                          Copy
+                        </Button>
+                        <Button variant="outline" size="sm">
+                          <Download className="h-4 w-4 mr-1" />
+                          Download
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto">
+                      <pre className="text-sm">
+                        <code>{generatedCode}</code>
+                      </pre>
+                    </div>
+
+                    {codeExplanation && (
+                      <div>
+                        <h4 className="font-medium mb-2">Explanation</h4>
+                        <p className="text-sm text-gray-600">{codeExplanation}</p>
+                      </div>
+                    )}
+
+                    {codeDependencies.length > 0 && (
+                      <div>
+                        <h4 className="font-medium mb-2">Required Dependencies</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {codeDependencies.map((dep, index) => (
+                            <Badge key={index} variant="outline">{dep}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Variations Display */}
+              {generateVariationsMutation.data && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Code Variations</h3>
+                  {generateVariationsMutation.data.map((variation: any, index: number) => (
+                    <Card key={index}>
+                      <CardHeader>
+                        <CardTitle className="text-base">{variation.variation}</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto mb-4">
+                          <pre className="text-sm">
+                            <code>{variation.code}</code>
+                          </pre>
+                        </div>
+                        {variation.explanation && (
+                          <p className="text-sm text-gray-600">{variation.explanation}</p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
           </TabsContent>
         </Tabs>
       </div>

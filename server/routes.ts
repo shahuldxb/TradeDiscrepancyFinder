@@ -409,6 +409,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI Code Generator endpoints
+  app.post("/api/ai/generate-code", isAuthenticated, async (req, res) => {
+    try {
+      const { generateSwiftCodeSnippet } = await import('./aiCodeGenerator');
+      const result = await generateSwiftCodeSnippet(req.body);
+      res.json(result);
+    } catch (error) {
+      console.error("Error generating code snippet:", error);
+      res.status(500).json({ error: "Failed to generate code snippet" });
+    }
+  });
+
+  app.post("/api/ai/generate-variations/:messageType/:language", isAuthenticated, async (req, res) => {
+    try {
+      const { messageType, language } = req.params;
+      const { generateCodeVariations } = await import('./aiCodeGenerator');
+      const variations = await generateCodeVariations(messageType, language);
+      res.json(variations);
+    } catch (error) {
+      console.error("Error generating code variations:", error);
+      res.status(500).json({ error: "Failed to generate code variations" });
+    }
+  });
+
+  app.post("/api/ai/generate-custom", isAuthenticated, async (req, res) => {
+    try {
+      const { messageType, customPrompt, programmingLanguage } = req.body;
+      const { generateCustomCodeSnippet } = await import('./aiCodeGenerator');
+      const result = await generateCustomCodeSnippet(messageType, customPrompt, programmingLanguage);
+      res.json(result);
+    } catch (error) {
+      console.error("Error generating custom code:", error);
+      res.status(500).json({ error: "Failed to generate custom code snippet" });
+    }
+  });
+
 
 
   const httpServer = createServer(app);
