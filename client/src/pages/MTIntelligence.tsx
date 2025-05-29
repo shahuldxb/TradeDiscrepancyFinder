@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 
 export default function MTIntelligence() {
-  const [selectedTab, setSelectedTab] = useState("validator");
+  const [selectedTab, setSelectedTab] = useState("messages");
   const [messageText, setMessageText] = useState("");
   const [messageType, setMessageType] = useState("");
   const [validationResult, setValidationResult] = useState(null);
@@ -275,18 +275,32 @@ export default function MTIntelligence() {
                             </tr>
                           </thead>
                           <tbody>
-                            {loadingFields ? (
+                            {loadingComprehensiveData ? (
                               <tr>
                                 <td colSpan={5} className="px-4 py-8 text-center">
                                   <RefreshCw className="h-4 w-4 animate-spin mx-auto mb-2" />
                                   Loading fields...
                                 </td>
                               </tr>
-                            ) : messageFields?.map((field: any, index: number) => (
+                            ) : comprehensiveData?.fields?.map((field: any, index: number) => (
                               <tr key={index} className="border-b hover:bg-gray-50">
                                 <td className="px-4 py-2 font-mono text-sm">{field.field_tag}</td>
-                                <td className="px-4 py-2">{field.field_name}</td>
-                                <td className="px-4 py-2 font-mono text-sm">{field.format_specification}</td>
+                                <td className="px-4 py-2">
+                                  <div>
+                                    <div className="font-medium">{field.field_name}</div>
+                                    {field.field_description && (
+                                      <div className="text-xs text-gray-500">{field.field_description}</div>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="px-4 py-2 font-mono text-sm">
+                                  <div>
+                                    {field.format_specification}
+                                    {field.format_option && (
+                                      <div className="text-xs text-blue-600">{field.format_option}</div>
+                                    )}
+                                  </div>
+                                </td>
                                 <td className="px-4 py-2">
                                   <Badge variant={field.is_mandatory ? 'destructive' : 'secondary'}>
                                     {field.is_mandatory ? 'Required' : 'Optional'}
@@ -307,22 +321,34 @@ export default function MTIntelligence() {
                         <h4 className="font-medium">Validation Rules</h4>
                       </div>
                       <div className="p-4 space-y-4">
-                        {loadingRules ? (
+                        {loadingComprehensiveData ? (
                           <div className="text-center py-4">
                             <RefreshCw className="h-4 w-4 animate-spin mx-auto mb-2" />
                             Loading validation rules...
                           </div>
-                        ) : validationRules?.map((rule: any, index: number) => (
+                        ) : comprehensiveData?.validationRules?.map((rule: any, index: number) => (
                           <div key={index} className="border rounded p-3 bg-gray-50">
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
                                 <h5 className="font-medium">{rule.rule_description}</h5>
                                 <p className="text-sm text-gray-600 mt-1">{rule.rule_text}</p>
-                                {rule.field_tag && (
-                                  <Badge variant="outline" className="mt-2">
-                                    Field: {rule.field_tag}
-                                  </Badge>
-                                )}
+                                <div className="flex gap-2 mt-2">
+                                  {rule.field_tag && (
+                                    <Badge variant="outline">
+                                      Field: {rule.field_tag}
+                                    </Badge>
+                                  )}
+                                  {rule.severity_level && (
+                                    <Badge variant={rule.severity_level === 'critical' ? 'destructive' : 'secondary'}>
+                                      {rule.severity_level}
+                                    </Badge>
+                                  )}
+                                  {rule.error_code && (
+                                    <Badge variant="outline">
+                                      Code: {rule.error_code}
+                                    </Badge>
+                                  )}
+                                </div>
                               </div>
                               <Badge variant={rule.rule_type === 'network_validated' ? 'default' : 'secondary'}>
                                 {rule.rule_type}
@@ -340,12 +366,12 @@ export default function MTIntelligence() {
                         <h4 className="font-medium">Message Dependencies</h4>
                       </div>
                       <div className="p-4 space-y-4">
-                        {loadingDependencies ? (
+                        {loadingComprehensiveData ? (
                           <div className="text-center py-4">
                             <RefreshCw className="h-4 w-4 animate-spin mx-auto mb-2" />
                             Loading dependencies...
                           </div>
-                        ) : messageDependencies?.map((dep: any, index: number) => (
+                        ) : comprehensiveData?.dependencies?.map((dep: any, index: number) => (
                           <div key={index} className="border rounded p-3 bg-blue-50">
                             <div className="flex items-center gap-2">
                               <MessageSquare className="w-4 h-4 text-blue-500" />
@@ -354,11 +380,128 @@ export default function MTIntelligence() {
                               </span>
                             </div>
                             <p className="text-sm text-gray-600 mt-1">{dep.dependency_description}</p>
-                            <Badge variant="outline" className="mt-2">
-                              {dep.dependency_type}
-                            </Badge>
+                            <div className="flex gap-2 mt-2">
+                              <Badge variant="outline">
+                                {dep.dependency_type}
+                              </Badge>
+                              {dep.is_mandatory && (
+                                <Badge variant="destructive">
+                                  Mandatory
+                                </Badge>
+                              )}
+                              {dep.sequence_order && (
+                                <Badge variant="secondary">
+                                  Order: {dep.sequence_order}
+                                </Badge>
+                              )}
+                            </div>
+                            {dep.condition_rules && (
+                              <div className="mt-2 p-2 bg-white rounded text-xs">
+                                <strong>Conditions:</strong> {dep.condition_rules}
+                              </div>
+                            )}
                           </div>
                         ))}
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="codes" className="space-y-4">
+                    <div className="border rounded-lg">
+                      <div className="bg-gray-50 p-3 border-b">
+                        <h4 className="font-medium">Field Codes</h4>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-4 py-2 text-left">Field Tag</th>
+                              <th className="px-4 py-2 text-left">Code Value</th>
+                              <th className="px-4 py-2 text-left">Description</th>
+                              <th className="px-4 py-2 text-left">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {loadingComprehensiveData ? (
+                              <tr>
+                                <td colSpan={4} className="px-4 py-8 text-center">
+                                  <RefreshCw className="h-4 w-4 animate-spin mx-auto mb-2" />
+                                  Loading field codes...
+                                </td>
+                              </tr>
+                            ) : comprehensiveData?.fieldCodes?.map((code: any, index: number) => (
+                              <tr key={index} className="border-b hover:bg-gray-50">
+                                <td className="px-4 py-2 font-mono text-sm">{code.field_tag}</td>
+                                <td className="px-4 py-2 font-mono text-sm">{code.code_value}</td>
+                                <td className="px-4 py-2">{code.code_description}</td>
+                                <td className="px-4 py-2">
+                                  <Badge variant={code.is_active ? 'default' : 'secondary'}>
+                                    {code.is_active ? 'Active' : 'Inactive'}
+                                  </Badge>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="instances" className="space-y-4">
+                    <div className="border rounded-lg">
+                      <div className="bg-gray-50 p-3 border-b">
+                        <h4 className="font-medium">Recent Message Instances</h4>
+                      </div>
+                      <div className="p-4 space-y-4">
+                        {loadingComprehensiveData ? (
+                          <div className="text-center py-4">
+                            <RefreshCw className="h-4 w-4 animate-spin mx-auto mb-2" />
+                            Loading message instances...
+                          </div>
+                        ) : comprehensiveData?.recentInstances?.map((instance: any, index: number) => (
+                          <div key={index} className="border rounded p-4 bg-white">
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <FileText className="w-4 h-4 text-blue-500" />
+                                <span className="font-medium">Instance #{instance.instance_id}</span>
+                              </div>
+                              <div className="flex gap-2">
+                                <Badge variant={instance.validation_status === 'valid' ? 'default' : 'destructive'}>
+                                  {instance.validation_status}
+                                </Badge>
+                                <span className="text-xs text-gray-500">
+                                  {new Date(instance.created_at).toLocaleDateString()}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            <div className="bg-gray-50 rounded p-3 mb-3">
+                              <h6 className="font-medium text-sm mb-2">Message Content:</h6>
+                              <pre className="text-xs font-mono whitespace-pre-wrap text-gray-700 max-h-32 overflow-y-auto">
+                                {instance.message_content}
+                              </pre>
+                            </div>
+
+                            {instance.validation_errors && instance.validation_status !== 'valid' && (
+                              <div className="bg-red-50 rounded p-3">
+                                <h6 className="font-medium text-sm mb-2 text-red-700">Validation Errors:</h6>
+                                <div className="text-xs text-red-600">
+                                  {JSON.parse(instance.validation_errors).map((error: any, errorIndex: number) => (
+                                    <div key={errorIndex} className="mb-1">
+                                      <strong>{error.field}:</strong> {error.message}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                        
+                        {comprehensiveData?.recentInstances?.length === 0 && (
+                          <div className="text-center py-8 text-gray-500">
+                            No message instances found for this message type
+                          </div>
+                        )}
                       </div>
                     </div>
                   </TabsContent>
