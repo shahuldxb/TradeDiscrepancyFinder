@@ -49,12 +49,7 @@ const navigationItems = [
     icon: MessageCircle,
     description: "Create MT 700 messages",
   },
-  {
-    name: "MT xxx Digitization",
-    href: "/mt-digitization",
-    icon: Database,
-    description: "SWIFT MT7xx automation system",
-  },
+
   {
     name: "Discrepancy Analysis",
     href: "/analysis",
