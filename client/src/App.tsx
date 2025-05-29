@@ -29,7 +29,7 @@ function Router() {
           <Route path="/agents" component={AgentMonitor} />
           <Route path="/agent-designer" component={AgentDesigner} />
           <Route path="/message-builder" component={MessageBuilder} />
-          <Route path="/mt-digitization" component={MTDigitization} />
+
         </>
       )}
       <Route component={NotFound} />
