@@ -57,8 +57,12 @@ const navigationItems = [
     icon: Brain,
     description: "SWIFT MT7xx intelligence system",
   },
-
-
+  {
+    name: "Trade Finance Docs",
+    href: "/trade-finance-documents",
+    icon: FileText,
+    description: "Document management system",
+  },
   {
     name: "Discrepancy Analysis",
     href: "/analysis",
