@@ -1,10 +1,6 @@
-import OpenAI from "openai";
 import { db } from "./db";
 import { discrepancies, documentSets, documents } from "@shared/schema";
 import { eq, and, desc, count } from "drizzle-orm";
-
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 interface DiscrepancyPattern {
   fieldCode: string;
@@ -50,7 +46,6 @@ export class MLPredictiveEngine {
   }
 
   private async initializeEngine() {
-    console.log("Initializing ML Predictive Engine...");
     await this.loadHistoricalData();
     await this.analyzePatterns();
   }
@@ -61,33 +56,36 @@ export class MLPredictiveEngine {
   private async loadHistoricalData(): Promise<void> {
     try {
       const historicalDiscrepancies = await db
-        .select({
-          discrepancy: discrepancies,
-          documentSet: documentSets,
-        })
+        .select()
         .from(discrepancies)
-        .leftJoin(documentSets, eq(discrepancies.documentSetId, documentSets.id))
         .orderBy(desc(discrepancies.createdAt))
         .limit(1000);
 
-      for (const record of historicalDiscrepancies) {
-        if (record.discrepancy && record.documentSet) {
+      const documentSetIds = [...new Set(historicalDiscrepancies.map(d => d.documentSetId))];
+      
+      for (const setId of documentSetIds) {
+        const documentSet = await db
+          .select()
+          .from(documentSets)
+          .where(eq(documentSets.id, setId))
+          .limit(1);
+
+        const setDiscrepancies = historicalDiscrepancies.filter(d => d.documentSetId === setId);
+
+        if (documentSet.length > 0) {
           const trainingPoint: MLTrainingData = {
             documentFeatures: {
-              documentSetId: record.documentSet.id,
-              name: record.documentSet.name,
-              status: record.documentSet.status,
-              createdAt: record.documentSet.createdAt,
+              setId: documentSet[0].id,
+              setName: documentSet[0].setName,
+              requiredDocuments: documentSet[0].requiredDocuments,
+              uploadedDocuments: documentSet[0].uploadedDocuments
             },
-            knownDiscrepancies: [record.discrepancy],
-            fieldValues: record.discrepancy.fieldValue || {},
-            documentTypes: record.documentSet.name?.split('_') || [],
-            historicalPatterns: {
-              fieldCode: record.discrepancy.fieldCode,
-              discrepancyType: record.discrepancy.type,
-              severity: record.discrepancy.severity,
-            },
+            knownDiscrepancies: setDiscrepancies,
+            fieldValues: {},
+            documentTypes: [],
+            historicalPatterns: {}
           };
+
           this.trainingData.push(trainingPoint);
         }
       }
@@ -99,7 +97,7 @@ export class MLPredictiveEngine {
   }
 
   /**
-   * Analyze patterns using OpenAI to identify common discrepancy trends
+   * Analyze patterns using rule-based analysis to identify common discrepancy trends
    */
   private async analyzePatterns(): Promise<void> {
     if (this.trainingData.length === 0) {
@@ -108,153 +106,107 @@ export class MLPredictiveEngine {
     }
 
     try {
-      const patternAnalysisPrompt = `
-        Analyze the following trade finance discrepancy data and identify patterns:
-        
-        Historical Discrepancies:
-        ${JSON.stringify(this.trainingData.slice(0, 50), null, 2)}
-        
-        Please identify:
-        1. Most common field codes with discrepancies
-        2. Common discrepancy types and their severity patterns
-        3. Predictive indicators that suggest potential issues
-        4. Field dependencies that often cause cascading errors
-        
-        Respond with JSON in this format:
-        {
-          "patterns": [
-            {
-              "fieldCode": "string",
-              "discrepancyType": "string", 
-              "frequency": number,
-              "severity": "critical|high|medium|low",
-              "commonCauses": ["string"],
-              "predictiveIndicators": ["string"]
-            }
-          ]
-        }
-      `;
-
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content: "You are an expert in trade finance and SWIFT message validation. Analyze discrepancy patterns to identify predictive indicators for future issues."
-          },
-          {
-            role: "user",
-            content: patternAnalysisPrompt
+      // Rule-based pattern analysis
+      const fieldFrequencies = new Map<string, number>();
+      const severityDistribution = new Map<string, Map<string, number>>();
+      
+      // Analyze historical data for patterns
+      this.trainingData.forEach(data => {
+        data.knownDiscrepancies.forEach((discrepancy: any) => {
+          const fieldCode = discrepancy.fieldName || 'unknown';
+          const severity = discrepancy.severity || 'medium';
+          
+          // Count field frequencies
+          fieldFrequencies.set(fieldCode, (fieldFrequencies.get(fieldCode) || 0) + 1);
+          
+          // Track severity distribution per field
+          if (!severityDistribution.has(fieldCode)) {
+            severityDistribution.set(fieldCode, new Map());
           }
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0.1, // Low temperature for consistent analysis
+          const fieldSeverities = severityDistribution.get(fieldCode)!;
+          fieldSeverities.set(severity, (fieldSeverities.get(severity) || 0) + 1);
+        });
       });
 
-      const analysisResult = JSON.parse(response.choices[0].message.content || "{}");
-      
-      if (analysisResult.patterns) {
-        for (const pattern of analysisResult.patterns) {
-          this.patterns.set(pattern.fieldCode, pattern);
-        }
-      }
+      // Generate patterns based on analysis
+      fieldFrequencies.forEach((frequency, fieldCode) => {
+        const severities = severityDistribution.get(fieldCode);
+        const mostCommonSeverity = this.getMostCommonSeverity(severities);
+        
+        const pattern: DiscrepancyPattern = {
+          fieldCode,
+          discrepancyType: this.getCommonDiscrepancyType(fieldCode),
+          frequency,
+          severity: mostCommonSeverity,
+          commonCauses: this.getCommonCauses(fieldCode),
+          predictiveIndicators: this.getPredictiveIndicators(fieldCode)
+        };
 
-      console.log(`Identified ${this.patterns.size} discrepancy patterns`);
+        this.patterns.set(fieldCode, pattern);
+      });
+
+      console.log(`Analyzed patterns for ${this.patterns.size} field codes`);
     } catch (error) {
-      console.error("Error analyzing patterns:", error);
+      console.error("Error in pattern analysis:", error);
     }
   }
 
   /**
-   * Predict potential discrepancies for a new document set
+   * Predict potential discrepancies for a new document set using rule-based analysis
    */
   async predictDiscrepancies(documentSetId: string): Promise<RiskPrediction> {
     try {
-      // Get document set details
-      const documentSet = await db
-        .select()
-        .from(documentSets)
-        .where(eq(documentSets.id, documentSetId))
-        .limit(1);
+      const documentFeatures = await this.extractDocumentFeatures(documentSetId);
+      
+      // Rule-based risk calculation
+      let overallRiskScore = 0;
+      const fieldRiskScores: { [fieldCode: string]: number } = {};
+      const predictedDiscrepancies: PredictedDiscrepancy[] = [];
+      const recommendations: string[] = [];
 
-      if (!documentSet.length) {
-        throw new Error("Document set not found");
+      // Check for missing required documents
+      const requiredDocsComplete = this.checkRequiredDocuments(documentFeatures.documents || []);
+      if (!requiredDocsComplete) {
+        overallRiskScore += 0.3;
+        recommendations.push("Ensure all required documents are uploaded before processing");
       }
 
-      // Get documents in the set
-      const documentList = await db
-        .select()
-        .from(documents)
-        .where(eq(documents.documentSetId, documentSetId));
-
-      // Extract document features for analysis
-      const documentFeatures = {
-        documentCount: documentList.length,
-        documentTypes: documentList.map(d => d.documentType),
-        hasRequiredDocs: this.checkRequiredDocuments(documentList),
-        avgFileSize: documentList.reduce((sum, d) => sum + (d.fileSize || 0), 0) / documentList.length,
-      };
-
-      // Use OpenAI to predict potential issues
-      const predictionPrompt = `
-        Based on the following document set and historical patterns, predict potential discrepancies:
+      // Analyze field patterns
+      this.patterns.forEach((pattern, fieldCode) => {
+        const riskScore = this.calculateFieldRisk(pattern, documentFeatures);
+        fieldRiskScores[fieldCode] = riskScore;
         
-        Document Set: ${JSON.stringify(documentSet[0], null, 2)}
-        Documents: ${JSON.stringify(documentList, null, 2)}
-        Document Features: ${JSON.stringify(documentFeatures, null, 2)}
-        
-        Historical Patterns: ${JSON.stringify(Array.from(this.patterns.values()), null, 2)}
-        
-        Please analyze and predict:
-        1. Overall risk score (0-100)
-        2. Field-specific risk scores
-        3. Potential discrepancies with probability
-        4. Prevention recommendations
-        
-        Respond with JSON in this format:
-        {
-          "overallRiskScore": number,
-          "fieldRiskScores": {"fieldCode": number},
-          "predictedDiscrepancies": [
-            {
-              "fieldCode": "string",
-              "type": "string",
-              "probability": number,
-              "severity": "critical|high|medium|low",
-              "description": "string",
-              "preventionSuggestions": ["string"]
-            }
-          ],
-          "recommendations": ["string"],
-          "confidence": number
+        if (riskScore > 0.6) {
+          predictedDiscrepancies.push({
+            fieldCode,
+            type: pattern.discrepancyType,
+            probability: riskScore,
+            severity: pattern.severity,
+            description: `High probability of ${pattern.discrepancyType} in field ${fieldCode}`,
+            preventionSuggestions: pattern.commonCauses.map(cause => `Review ${cause}`)
+          });
         }
-      `;
-
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content: "You are an expert ML system for trade finance risk prediction. Analyze document patterns and predict potential discrepancies with high accuracy."
-          },
-          {
-            role: "user",
-            content: predictionPrompt
-          }
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0.1,
       });
 
-      const prediction = JSON.parse(response.choices[0].message.content || "{}");
-      
+      // Calculate overall risk
+      const avgFieldRisk = Object.values(fieldRiskScores).reduce((sum, risk) => sum + risk, 0) / 
+                          Math.max(Object.keys(fieldRiskScores).length, 1);
+      overallRiskScore = Math.min(1, overallRiskScore + avgFieldRisk);
+
+      // Generate recommendations
+      if (overallRiskScore > 0.7) {
+        recommendations.push("High risk detected - recommend thorough manual review");
+      } else if (overallRiskScore > 0.5) {
+        recommendations.push("Medium risk - focus on highlighted fields");
+      }
+
       return {
         documentSetId,
-        overallRiskScore: prediction.overallRiskScore || 0,
-        fieldRiskScores: prediction.fieldRiskScores || {},
-        predictedDiscrepancies: prediction.predictedDiscrepancies || [],
-        recommendations: prediction.recommendations || [],
-        confidence: prediction.confidence || 0,
+        overallRiskScore,
+        fieldRiskScores,
+        predictedDiscrepancies,
+        recommendations,
+        confidence: this.calculateSystemConfidence()
       };
 
     } catch (error) {
@@ -268,23 +220,22 @@ export class MLPredictiveEngine {
    */
   async learnFromNewData(documentSetId: string, actualDiscrepancies: any[]): Promise<void> {
     try {
-      // Add new training data
+      const documentFeatures = await this.extractDocumentFeatures(documentSetId);
+      
       const newTrainingData: MLTrainingData = {
-        documentFeatures: await this.extractDocumentFeatures(documentSetId),
+        documentFeatures,
         knownDiscrepancies: actualDiscrepancies,
-        fieldValues: actualDiscrepancies.reduce((acc, d) => ({ ...acc, [d.fieldCode]: d.fieldValue }), {}),
-        documentTypes: [], // Will be populated by extractDocumentFeatures
-        historicalPatterns: {},
+        fieldValues: {},
+        documentTypes: [],
+        historicalPatterns: {}
       };
 
       this.trainingData.push(newTrainingData);
-
+      
       // Re-analyze patterns with new data
-      if (this.trainingData.length % 10 === 0) { // Re-analyze every 10 new data points
-        await this.analyzePatterns();
-      }
-
-      console.log("ML engine learned from new discrepancy data");
+      await this.analyzePatterns();
+      
+      console.log(`Learned from ${actualDiscrepancies.length} new discrepancies`);
     } catch (error) {
       console.error("Error learning from new data:", error);
     }
@@ -302,48 +253,134 @@ export class MLPredictiveEngine {
    */
   getSystemMetrics(): any {
     return {
-      trainingDataSize: this.trainingData.length,
+      totalTrainingData: this.trainingData.length,
       identifiedPatterns: this.patterns.size,
-      lastUpdated: new Date().toISOString(),
       confidence: this.calculateSystemConfidence(),
+      lastUpdated: new Date().toISOString()
     };
+  }
+
+  // Helper methods
+  private getMostCommonSeverity(severities?: Map<string, number>): 'critical' | 'high' | 'medium' | 'low' {
+    if (!severities || severities.size === 0) return 'medium';
+    
+    let maxCount = 0;
+    let mostCommon: 'critical' | 'high' | 'medium' | 'low' = 'medium';
+    
+    severities.forEach((count, severity) => {
+      if (count > maxCount) {
+        maxCount = count;
+        mostCommon = severity as 'critical' | 'high' | 'medium' | 'low';
+      }
+    });
+    
+    return mostCommon;
+  }
+
+  private getCommonDiscrepancyType(fieldCode: string): string {
+    // Rule-based classification
+    if (fieldCode.includes('date') || fieldCode.includes('Date')) {
+      return 'date_format_error';
+    } else if (fieldCode.includes('amount') || fieldCode.includes('Amount')) {
+      return 'amount_mismatch';
+    } else if (fieldCode.includes('reference') || fieldCode.includes('Reference')) {
+      return 'reference_error';
+    }
+    return 'format_error';
+  }
+
+  private getCommonCauses(fieldCode: string): string[] {
+    // Rule-based common causes
+    const causes = ['data_entry_error', 'format_inconsistency'];
+    
+    if (fieldCode.includes('date')) {
+      causes.push('date_format_variation');
+    } else if (fieldCode.includes('amount')) {
+      causes.push('currency_mismatch', 'calculation_error');
+    }
+    
+    return causes;
+  }
+
+  private getPredictiveIndicators(fieldCode: string): string[] {
+    // Rule-based indicators
+    const indicators = ['incomplete_data', 'manual_entry'];
+    
+    if (fieldCode.includes('date')) {
+      indicators.push('inconsistent_date_formats');
+    } else if (fieldCode.includes('amount')) {
+      indicators.push('multiple_currencies', 'complex_calculations');
+    }
+    
+    return indicators;
+  }
+
+  private calculateFieldRisk(pattern: DiscrepancyPattern, documentFeatures: any): number {
+    let risk = 0;
+    
+    // Base risk from frequency
+    risk += Math.min(0.4, pattern.frequency / 100);
+    
+    // Severity multiplier
+    const severityMultiplier = {
+      'critical': 1.0,
+      'high': 0.8,
+      'medium': 0.5,
+      'low': 0.2
+    };
+    risk *= severityMultiplier[pattern.severity];
+    
+    return Math.min(1, risk);
   }
 
   private checkRequiredDocuments(documents: any[]): boolean {
-    const requiredTypes = ['commercial_invoice', 'bill_of_lading', 'packing_list'];
-    const presentTypes = documents.map(d => d.documentType);
-    return requiredTypes.every(type => presentTypes.includes(type));
+    const requiredTypes = ['commercial_invoice', 'bill_of_lading', 'mt700'];
+    const uploadedTypes = documents.map(d => d.documentType || d.type).filter(Boolean);
+    
+    return requiredTypes.every(type => uploadedTypes.includes(type));
   }
 
   private async extractDocumentFeatures(documentSetId: string): Promise<any> {
-    const documents = await db
-      .select()
-      .from(documents)
-      .where(eq(documents.documentSetId, documentSetId));
+    try {
+      const documentSet = await db
+        .select()
+        .from(documentSets)
+        .where(eq(documentSets.id, documentSetId))
+        .limit(1);
 
-    return {
-      documentCount: documents.length,
-      documentTypes: documents.map(d => d.documentType),
-      totalSize: documents.reduce((sum, d) => sum + (d.fileSize || 0), 0),
-      avgProcessingTime: documents.reduce((sum, d) => sum + (d.processingTime || 0), 0) / documents.length,
-    };
+      const documents: any = await db
+        .select()
+        .from(documents)
+        .where(eq(documents.documentSetId, documentSetId));
+
+      return {
+        documentSet: documentSet[0],
+        documents,
+        documentCount: documents.length,
+        avgFileSize: documents.reduce((sum: number, d: any) => sum + (d.fileSize || 0), 0) / 
+                    Math.max(documents.length, 1),
+        hasAllRequiredDocs: this.checkRequiredDocuments(documents)
+      };
+    } catch (error) {
+      console.error("Error extracting document features:", error);
+      return {};
+    }
   }
 
   private calculateSystemConfidence(): number {
-    if (this.trainingData.length === 0) return 0;
+    const minTrainingData = 100;
+    const minPatterns = 10;
     
-    // Confidence increases with more training data and identified patterns
-    const dataConfidence = Math.min(this.trainingData.length / 100, 1) * 50;
-    const patternConfidence = Math.min(this.patterns.size / 20, 1) * 50;
+    const dataConfidence = Math.min(1, this.trainingData.length / minTrainingData);
+    const patternConfidence = Math.min(1, this.patterns.size / minPatterns);
     
-    return Math.round(dataConfidence + patternConfidence);
+    return (dataConfidence + patternConfidence) / 2;
   }
 }
 
-// Global ML engine instance
 export const mlEngine = new MLPredictiveEngine();
 
-// API functions for use in routes
+// Export functions for use in routes
 export async function generateRiskPrediction(documentSetId: string): Promise<RiskPrediction> {
   return await mlEngine.predictDiscrepancies(documentSetId);
 }
