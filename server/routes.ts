@@ -420,6 +420,174 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // SWIFT MT xxx Digitization Routes
+  
+  // Get digitization stats
+  app.get("/api/digitization/stats", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const stats = await storage.getDigitizationStats(userId);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching digitization stats:", error);
+      res.status(500).json({ message: "Failed to fetch stats" });
+    }
+  });
+
+  // Get message types
+  app.get("/api/digitization/message-types", isAuthenticated, async (req, res) => {
+    try {
+      const messageTypes = await storage.getSwiftMessageTypes();
+      res.json(messageTypes);
+    } catch (error) {
+      console.error("Error fetching message types:", error);
+      res.status(500).json({ message: "Failed to fetch message types" });
+    }
+  });
+
+  // Get templates
+  app.get("/api/digitization/templates", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const templates = await storage.getSwiftTemplates(userId);
+      res.json(templates);
+    } catch (error) {
+      console.error("Error fetching templates:", error);
+      res.status(500).json({ message: "Failed to fetch templates" });
+    }
+  });
+
+  // Get validation results
+  app.get("/api/digitization/validation-results", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const results = await storage.getSwiftValidationResults(userId);
+      res.json(results);
+    } catch (error) {
+      console.error("Error fetching validation results:", error);
+      res.status(500).json({ message: "Failed to fetch validation results" });
+    }
+  });
+
+  // Get projects
+  app.get("/api/digitization/projects", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const projects = await storage.getDigitizationProjects(userId);
+      res.json(projects);
+    } catch (error) {
+      console.error("Error fetching projects:", error);
+      res.status(500).json({ message: "Failed to fetch projects" });
+    }
+  });
+
+  // Create project
+  app.post("/api/digitization/projects", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const projectData = {
+        ...req.body,
+        id: nanoid(),
+        userId,
+      };
+      const project = await storage.createDigitizationProject(projectData);
+      res.json(project);
+    } catch (error) {
+      console.error("Error creating project:", error);
+      res.status(500).json({ message: "Failed to create project" });
+    }
+  });
+
+  // Validate SWIFT message
+  app.post("/api/digitization/validate", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { content, messageType } = req.body;
+      
+      if (!content || !messageType) {
+        return res.status(400).json({ message: "Content and message type are required" });
+      }
+
+      // Create validation result with sample data structure
+      const validationResult = {
+        isValid: content.includes(":20:") && content.includes(":40A:"),
+        errors: content.includes(":20:") ? [] : [
+          {
+            fieldCode: ":20:",
+            errorType: "missing_mandatory_field",
+            errorMessage: "Mandatory field :20: (Transaction Reference) is missing",
+            severity: "error"
+          }
+        ],
+        warnings: [],
+        parsedFields: {},
+        processingTime: 150
+      };
+
+      // Store validation result
+      const resultData = {
+        id: nanoid(),
+        messageId: nanoid(),
+        userId,
+        isValid: validationResult.isValid,
+        totalErrors: validationResult.errors.length,
+        totalWarnings: validationResult.warnings.length,
+        validationSummary: {
+          ...validationResult,
+          messageType,
+          content: content.substring(0, 500)
+        },
+        processingTime: validationResult.processingTime,
+      };
+
+      await storage.createSwiftValidationResult(resultData);
+      
+      res.json(validationResult);
+    } catch (error) {
+      console.error("Error validating message:", error);
+      res.status(500).json({ message: "Failed to validate message" });
+    }
+  });
+
+  // Construct SWIFT message
+  app.post("/api/digitization/construct", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { messageType, fields } = req.body;
+      
+      if (!messageType || !fields) {
+        return res.status(400).json({ message: "Message type and fields are required" });
+      }
+
+      // Create constructed message
+      let constructedMessage = "";
+      Object.entries(fields).forEach(([fieldCode, value]) => {
+        constructedMessage += `${fieldCode}${value}\n`;
+      });
+
+      // Store constructed message
+      const messageData = {
+        id: nanoid(),
+        messageTypeId: nanoid(),
+        userId,
+        content: constructedMessage.trim(),
+        parsedFields: fields,
+        status: "constructed",
+      };
+
+      const savedMessage = await storage.createSwiftMessage(messageData);
+      
+      res.json({
+        message: constructedMessage.trim(),
+        messageId: savedMessage.id,
+        fields: fields
+      });
+    } catch (error) {
+      console.error("Error constructing message:", error);
+      res.status(500).json({ message: "Failed to construct message" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

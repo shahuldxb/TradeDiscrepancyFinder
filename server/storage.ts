@@ -519,6 +519,128 @@ export class DatabaseStorage implements IStorage {
       .set(execution)
       .where(eq(crewExecutions.id, id));
   }
+
+  // SWIFT Digitization implementations
+  async createSwiftMessageType(messageType: InsertSwiftMessageType & { id: string }): Promise<SwiftMessageType> {
+    const [created] = await db
+      .insert(swiftMessageTypes)
+      .values(messageType)
+      .returning();
+    return created;
+  }
+
+  async getSwiftMessageTypes(): Promise<SwiftMessageType[]> {
+    return await db.select().from(swiftMessageTypes).where(eq(swiftMessageTypes.isActive, true));
+  }
+
+  async getSwiftMessageType(id: string): Promise<SwiftMessageType | undefined> {
+    const [messageType] = await db.select().from(swiftMessageTypes).where(eq(swiftMessageTypes.id, id));
+    return messageType;
+  }
+
+  async createSwiftField(field: InsertSwiftField & { id: string }): Promise<SwiftField> {
+    const [created] = await db
+      .insert(swiftFields)
+      .values(field)
+      .returning();
+    return created;
+  }
+
+  async getSwiftFields(): Promise<SwiftField[]> {
+    return await db.select().from(swiftFields).where(eq(swiftFields.isActive, true));
+  }
+
+  async getSwiftField(id: string): Promise<SwiftField | undefined> {
+    const [field] = await db.select().from(swiftFields).where(eq(swiftFields.id, id));
+    return field;
+  }
+
+  async createSwiftMessage(message: InsertSwiftMessage & { userId: string, id: string }): Promise<SwiftMessage> {
+    const [created] = await db
+      .insert(swiftMessages)
+      .values(message)
+      .returning();
+    return created;
+  }
+
+  async getSwiftMessages(userId: string): Promise<SwiftMessage[]> {
+    return await db.select().from(swiftMessages).where(eq(swiftMessages.userId, userId));
+  }
+
+  async getSwiftMessage(id: string, userId: string): Promise<SwiftMessage | undefined> {
+    const [message] = await db
+      .select()
+      .from(swiftMessages)
+      .where(and(eq(swiftMessages.id, id), eq(swiftMessages.userId, userId)));
+    return message;
+  }
+
+  async createSwiftValidationResult(result: any): Promise<any> {
+    const [created] = await db
+      .insert(swiftValidationResults)
+      .values(result)
+      .returning();
+    return created;
+  }
+
+  async getSwiftValidationResults(userId: string): Promise<any[]> {
+    return await db.select().from(swiftValidationResults).where(eq(swiftValidationResults.userId, userId));
+  }
+
+  async createSwiftTemplate(template: InsertSwiftTemplate & { userId: string, id: string }): Promise<SwiftTemplate> {
+    const [created] = await db
+      .insert(swiftTemplates)
+      .values(template)
+      .returning();
+    return created;
+  }
+
+  async getSwiftTemplates(userId?: string): Promise<SwiftTemplate[]> {
+    if (userId) {
+      return await db
+        .select()
+        .from(swiftTemplates)
+        .where(
+          and(
+            eq(swiftTemplates.isActive, true),
+            sql`(${swiftTemplates.userId} = ${userId} OR ${swiftTemplates.isPublic} = true)`
+          )
+        );
+    }
+    return await db.select().from(swiftTemplates).where(eq(swiftTemplates.isActive, true));
+  }
+
+  async createDigitizationProject(project: InsertDigitizationProject & { userId: string, id: string }): Promise<DigitizationProject> {
+    const [created] = await db
+      .insert(digitizationProjects)
+      .values(project)
+      .returning();
+    return created;
+  }
+
+  async getDigitizationProjects(userId: string): Promise<DigitizationProject[]> {
+    return await db.select().from(digitizationProjects).where(eq(digitizationProjects.userId, userId));
+  }
+
+  async getDigitizationProject(id: string, userId: string): Promise<DigitizationProject | undefined> {
+    const [project] = await db
+      .select()
+      .from(digitizationProjects)
+      .where(and(eq(digitizationProjects.id, id), eq(digitizationProjects.userId, userId)));
+    return project;
+  }
+
+  async getDigitizationStats(userId: string): Promise<any> {
+    const projects = await this.getDigitizationProjects(userId);
+    const validationResults = await this.getSwiftValidationResults(userId);
+    
+    return {
+      activeProjects: projects.filter(p => p.status === 'active').length,
+      totalProjects: projects.length,
+      validatedMessages: validationResults.length,
+      successfulValidations: validationResults.filter(r => r.isValid).length,
+    };
+  }
 }
 
 export const storage = new DatabaseStorage();
