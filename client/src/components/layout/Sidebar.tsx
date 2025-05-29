@@ -15,7 +15,8 @@ import {
   LogOut,
   User,
   Wrench,
-  MessageCircle
+  MessageCircle,
+  Zap
 } from "lucide-react";
 
 const navigationItems = [
@@ -54,6 +55,12 @@ const navigationItems = [
     href: "/mt-intelligence",
     icon: Database,
     description: "SWIFT message validation & construction",
+  },
+  {
+    name: "MT Genie",
+    href: "/mt-genie",
+    icon: Zap,
+    description: "Comprehensive MT message management",
   },
   {
     name: "Discrepancy Analysis",

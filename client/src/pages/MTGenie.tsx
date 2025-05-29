@@ -13,28 +13,32 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
-  Badge,
-  Button,
-  Input,
-  Label,
-  Textarea,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-  ScrollArea,
+} from "@/components/ui/select";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+} from "@/components/ui/dialog";
+import {
   Alert,
   AlertDescription,
   AlertTitle,
-} from "@/components/ui";
+} from "@/components/ui/alert";
 import {
   Building2,
   FileText,
@@ -42,33 +46,19 @@ import {
   AlertTriangle,
   Search,
   Filter,
-  Download,
-  Upload,
-  Save,
   Play,
   Eye,
   MessageSquare,
-  Workflow,
-  Template,
   History,
   Settings,
   Zap,
   Database,
-  Users,
   BookOpen,
   ArrowRight,
   Plus,
-  Edit,
-  Trash2,
-  Copy,
   ExternalLink,
-  Clock,
-  TrendingUp,
-  BarChart3,
   Target,
-  Layers,
-  GitBranch,
-  RefreshCw
+  GitBranch
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
