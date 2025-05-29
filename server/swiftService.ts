@@ -396,26 +396,31 @@ export async function getComprehensiveMessageData(messageTypeCode: string) {
         WHERE message_type_code = @messageType
       `);
     
-    // Get fields with specifications and format options
+    // Get message fields
     const fieldsResult = await pool.request()
       .input('messageType', sql.NVarChar, messageTypeCode)
       .query(`
-        SELECT 
-          mf.*,
-          fs.format_specification,
-          fs.validation_rules as field_validation_rules,
-          fs.description as field_description,
-          fs.usage_notes,
-          ffo.format_option,
-          ffo.option_description,
-          fc.code_value,
-          fc.code_description
-        FROM swift.message_fields mf
-        LEFT JOIN swift.field_specifications fs ON mf.field_tag = fs.field_tag
-        LEFT JOIN swift.field_format_options ffo ON mf.field_tag = ffo.field_tag
-        LEFT JOIN swift.field_codes fc ON mf.field_tag = fc.field_tag
+        SELECT * FROM swift.message_fields 
+        WHERE message_type_code = @messageType
+        ORDER BY sequence
+      `);
+    
+    // Get field specifications
+    const specificationsResult = await pool.request()
+      .input('messageType', sql.NVarChar, messageTypeCode)
+      .query(`
+        SELECT fs.* FROM swift.field_specifications fs
+        INNER JOIN swift.message_fields mf ON fs.field_tag = mf.field_tag
         WHERE mf.message_type_code = @messageType
-        ORDER BY mf.sequence, ffo.format_option, fc.code_value
+      `);
+    
+    // Get field format options
+    const formatOptionsResult = await pool.request()
+      .input('messageType', sql.NVarChar, messageTypeCode)
+      .query(`
+        SELECT ffo.* FROM swift.field_format_options ffo
+        INNER JOIN swift.message_fields mf ON ffo.field_tag = mf.field_tag
+        WHERE mf.message_type_code = @messageType
       `);
     
     // Get all validation rules
@@ -505,6 +510,8 @@ export async function getComprehensiveMessageData(messageTypeCode: string) {
     return {
       messageType: messageTypeResult.recordset[0],
       fields: fieldsResult.recordset,
+      fieldSpecifications: specificationsResult.recordset,
+      fieldFormatOptions: formatOptionsResult.recordset,
       validationRules: rulesResult.recordset,
       dependencies: dependenciesResult.recordset,
       fieldCodes: fieldCodesResult.recordset,

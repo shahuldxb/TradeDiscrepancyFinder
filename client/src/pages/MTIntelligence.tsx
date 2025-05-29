@@ -192,30 +192,35 @@ export default function MTIntelligence() {
                 </Button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="space-y-2">
                 {messageTypes?.filter((msg: any) => 
                   msg.message_type_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                   msg.message_type_code.includes(searchTerm)
                 ).map((message: any) => (
                   <Card 
                     key={message.message_type_code}
-                    className="cursor-pointer hover:bg-gray-50 transition-colors"
+                    className="cursor-pointer hover:bg-blue-50 border-l-4 border-l-blue-500 transition-colors"
                     onClick={() => setSelectedMessageType(message)}
                   >
                     <CardContent className="p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h4 className="font-medium text-lg">MT{message.message_type_code}</h4>
-                          <p className="text-sm text-gray-600 mt-1">{message.message_type_name}</p>
-                          <p className="text-xs text-gray-500 mt-1">{message.purpose}</p>
-                          <div className="flex items-center gap-2 mt-2">
-                            <Badge variant="outline">Category {message.category}</Badge>
-                            <Badge variant={message.signed ? 'default' : 'secondary'}>
-                              {message.signed ? 'Signed' : 'Unsigned'}
-                            </Badge>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4 flex-1">
+                          <div className="bg-blue-100 rounded-lg p-2 min-w-fit">
+                            <span className="font-mono font-bold text-blue-800">MT{message.message_type_code}</span>
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="font-medium text-lg">{message.message_type_name}</h4>
+                            <p className="text-sm text-gray-600 mt-1">{message.purpose}</p>
+                            <div className="flex items-center gap-2 mt-2">
+                              <Badge variant="outline">Category {message.category}</Badge>
+                              <Badge variant={message.signed ? 'default' : 'secondary'}>
+                                {message.signed ? 'Signed' : 'Unsigned'}
+                              </Badge>
+                              <span className="text-xs text-gray-500">Max: {message.max_length} chars</span>
+                            </div>
                           </div>
                         </div>
-                        <Eye className="w-4 h-4 text-gray-400" />
+                        <Eye className="w-5 h-5 text-blue-500" />
                       </div>
                     </CardContent>
                   </Card>
