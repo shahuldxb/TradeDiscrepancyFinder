@@ -411,7 +411,7 @@ export async function getComprehensiveMessageData(messageTypeCode: string) {
       .input('messageType', sql.NVarChar, messageTypeCode)
       .query(`
         SELECT fs.* FROM swift.field_specifications fs
-        INNER JOIN swift.message_fields mf ON fs.field_tag = mf.tag
+        INNER JOIN swift.message_fields mf ON fs.field_id = mf.field_id
         INNER JOIN swift.message_types mt ON mf.message_type_id = mt.message_type_id
         WHERE mt.message_type_code = @messageType
       `);
