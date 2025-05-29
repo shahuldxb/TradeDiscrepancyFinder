@@ -8,9 +8,13 @@ export async function getAllMessageTypes() {
     const result = await pool.request().query(`
       SELECT 
         message_type_code,
-        description,
+        message_type_name,
+        full_name,
+        purpose,
         category,
-        status
+        signed,
+        max_length,
+        created_at
       FROM swift.message_types
       ORDER BY message_type_code
     `);
