@@ -354,10 +354,12 @@ export default function MTIntelligence() {
                                   Optional Fields
                                 </h4>
                                 <div className="space-y-2">
-                                  {(detailFields as any[])
-                                    .filter((item: any) => !item.messageTypeField.isMandatory)
+                                  {Array.isArray(detailFields) && detailFields
+                                    .filter((item: any) => !item.messageTypeField?.isMandatory)
+                                    .sort((a: any, b: any) => (a.messageTypeField?.sequence || 0) - (b.messageTypeField?.sequence || 0))
                                     .map((item: any) => {
                                       const field = item.field;
+                                      if (!field) return null;
                                       return (
                                         <Card key={field.id} className="border-l-4 border-l-blue-500">
                                           <CardContent className="p-3">
@@ -370,6 +372,9 @@ export default function MTIntelligence() {
                                                   <Badge variant="secondary" className="text-xs">
                                                     Optional
                                                   </Badge>
+                                                  <span className="text-xs text-gray-500">
+                                                    #{item.messageTypeField?.sequence}
+                                                  </span>
                                                 </div>
                                                 <div className="text-sm font-medium mt-1">
                                                   {field.name}
@@ -378,7 +383,7 @@ export default function MTIntelligence() {
                                                   {field.description}
                                                 </div>
                                                 <div className="text-xs text-gray-500 mt-1">
-                                                  Format: {field.format} | Max Length: {field.maxLength}
+                                                  Format: {field.format || 'Not specified'}
                                                 </div>
                                               </div>
                                             </div>
