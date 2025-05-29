@@ -37,6 +37,15 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Initialize SWIFT MT7xx database
+  try {
+    const { initializeMT7xxDatabase } = await import("./swiftDigitization");
+    await initializeMT7xxDatabase();
+    console.log("MT7xx database initialized successfully");
+  } catch (error) {
+    console.error("Failed to initialize MT7xx database:", error);
+  }
+
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
