@@ -291,6 +291,15 @@ export default function MTIntelligence() {
                             <div className="text-center py-8 text-gray-600">No fields found for this message type</div>
                           ) : (
                             <div className="space-y-4">
+                              {/* Summary */}
+                              <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+                                <div className="text-sm text-gray-600 dark:text-gray-300">
+                                  Total Fields: {Array.isArray(detailFields) ? detailFields.length : 0} | 
+                                  Mandatory: {Array.isArray(detailFields) ? detailFields.filter((item: any) => item.messageTypeField?.isMandatory).length : 0} | 
+                                  Optional: {Array.isArray(detailFields) ? detailFields.filter((item: any) => !item.messageTypeField?.isMandatory).length : 0}
+                                </div>
+                              </div>
+
                               {/* Mandatory Fields Section */}
                               <div>
                                 <h4 className="font-semibold text-red-600 mb-2 flex items-center gap-2">
@@ -298,10 +307,12 @@ export default function MTIntelligence() {
                                   Mandatory Fields
                                 </h4>
                                 <div className="space-y-2">
-                                  {(detailFields as any[])
-                                    .filter((item: any) => item.messageTypeField.isMandatory)
+                                  {Array.isArray(detailFields) && detailFields
+                                    .filter((item: any) => item.messageTypeField?.isMandatory)
+                                    .sort((a: any, b: any) => (a.messageTypeField?.sequence || 0) - (b.messageTypeField?.sequence || 0))
                                     .map((item: any) => {
                                       const field = item.field;
+                                      if (!field) return null;
                                       return (
                                         <Card key={field.id} className="border-l-4 border-l-red-500">
                                           <CardContent className="p-3">
@@ -314,6 +325,9 @@ export default function MTIntelligence() {
                                                   <Badge variant="destructive" className="text-xs">
                                                     Required
                                                   </Badge>
+                                                  <span className="text-xs text-gray-500">
+                                                    #{item.messageTypeField?.sequence}
+                                                  </span>
                                                 </div>
                                                 <div className="text-sm font-medium mt-1">
                                                   {field.name}
