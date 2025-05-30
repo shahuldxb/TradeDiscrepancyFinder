@@ -367,6 +367,74 @@ function SwiftCreditMappingForm({ onSubmit, isLoading, defaultValues }: {
   );
 }
 
+// Form component for Document Relationships
+function DocumentRelationshipForm({ onSubmit, isLoading, defaultValues }: {
+  onSubmit: (data: any) => void;
+  isLoading: boolean;
+  defaultValues?: any;
+}) {
+  const form = useForm({
+    resolver: zodResolver(swiftCreditMappingSchema),
+    defaultValues: defaultValues || {
+      documentCode: "",
+      swiftCode: "",
+      creditCode: ""
+    }
+  });
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="documentCode"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Document Code</FormLabel>
+              <FormControl>
+                <Input placeholder="DOC001" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="swiftCode"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>SWIFT Code</FormLabel>
+              <FormControl>
+                <Input placeholder="MT700" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="creditCode"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Credit Code</FormLabel>
+              <FormControl>
+                <Input placeholder="LC001" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <Button type="submit" disabled={isLoading} className="w-full">
+          {isLoading ? "Saving..." : "Save Relationship"}
+        </Button>
+      </form>
+    </Form>
+  );
+}
+
 export default function TradeFinanceDocuments() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedView, setSelectedView] = useState("documents");
@@ -564,6 +632,52 @@ export default function TradeFinanceDocuments() {
     },
     onError: () => {
       toast({ title: "Failed to delete mapping", variant: "destructive" });
+    }
+  });
+
+  // CRUD mutations for Document Relationships
+  const createRelationshipMutation = useMutation({
+    mutationFn: (data: any) => fetch('/api/trade-finance/document-relationships', {
+      method: 'POST',
+      body: JSON.stringify(data),
+      headers: { 'Content-Type': 'application/json' }
+    }).then(res => res.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/trade-finance/document-swift-relationships'] });
+      toast({ title: "Relationship created successfully" });
+      setIsCreateDialogOpen(false);
+    },
+    onError: () => {
+      toast({ title: "Failed to create relationship", variant: "destructive" });
+    }
+  });
+
+  const updateRelationshipMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: any }) => fetch(`/api/trade-finance/document-relationships/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+      headers: { 'Content-Type': 'application/json' }
+    }).then(res => res.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/trade-finance/document-swift-relationships'] });
+      toast({ title: "Relationship updated successfully" });
+      setIsEditDialogOpen(false);
+    },
+    onError: () => {
+      toast({ title: "Failed to update relationship", variant: "destructive" });
+    }
+  });
+
+  const deleteRelationshipMutation = useMutation({
+    mutationFn: (id: number) => fetch(`/api/trade-finance/document-relationships/${id}`, {
+      method: 'DELETE'
+    }).then(res => res.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/trade-finance/document-swift-relationships'] });
+      toast({ title: "Relationship deleted successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete relationship", variant: "destructive" });
     }
   });
 
