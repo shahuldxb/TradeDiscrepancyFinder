@@ -99,6 +99,28 @@ const navigationItems = [
     ],
   },
   {
+    name: "Lifecycles",
+    icon: Brain,
+    description: "Process lifecycle management",
+    subItems: [
+      {
+        name: "MT700 Documentary Credit",
+        href: "/mt700-lifecycle",
+        description: "LC issuance and processing lifecycle",
+      },
+      {
+        name: "Document Processing",
+        href: "/document-workflow",
+        description: "Document validation workflow",
+      },
+      {
+        name: "Compliance Management",
+        href: "/compliance-lifecycle",
+        description: "Regulatory compliance processes",
+      },
+    ],
+  },
+  {
     name: "Reports & Analytics",
     icon: FileText,
     description: "Reporting tools",

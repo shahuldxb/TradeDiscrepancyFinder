@@ -1004,6 +1004,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // MT700 Lifecycle Management Routes
+  app.get('/api/mt700-lifecycle', isAuthenticated, async (req, res) => {
+    try {
+      // Get lifecycle data from Azure SQL with real SWIFT message flow
+      const lifecycleData = await azureDataService.getMT700LifecycleData();
+      res.json(lifecycleData);
+    } catch (error) {
+      console.error('Error fetching MT700 lifecycle data:', error);
+      res.status(500).json({ error: 'Failed to fetch lifecycle data' });
+    }
+  });
+
+  app.get('/api/mt700-lifecycle/documents/:nodeId', isAuthenticated, async (req, res) => {
+    try {
+      const { nodeId } = req.params;
+      const documents = await azureDataService.getLifecycleDocuments(nodeId);
+      res.json(documents);
+    } catch (error) {
+      console.error('Error fetching lifecycle documents:', error);
+      res.status(500).json({ error: 'Failed to fetch documents' });
+    }
+  });
+
+  app.get('/api/mt700-lifecycle/agents/:nodeId', isAuthenticated, async (req, res) => {
+    try {
+      const { nodeId } = req.params;
+      const agentTasks = await azureAgentService.getLifecycleAgentTasks(nodeId);
+      res.json(agentTasks);
+    } catch (error) {
+      console.error('Error fetching agent tasks:', error);
+      res.status(500).json({ error: 'Failed to fetch agent tasks' });
+    }
+  });
+
+  app.post('/api/mt700-lifecycle/process/:nodeId', isAuthenticated, async (req, res) => {
+    try {
+      const { nodeId } = req.params;
+      const userId = req.user?.claims?.sub;
+      const result = await crewAI.processLifecycleNode(nodeId, userId);
+      res.json(result);
+    } catch (error) {
+      console.error('Error processing lifecycle node:', error);
+      res.status(500).json({ error: 'Failed to process node' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

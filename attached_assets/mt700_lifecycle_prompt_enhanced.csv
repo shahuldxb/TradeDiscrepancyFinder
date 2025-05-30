@@ -1,0 +1,126 @@
+section,id,name,description,icon,color,position_x,position_y,required_documents,agent_tasks,output_messages,optional,conditional_paths,azure_tables,document_checklist
+nodes,initiation,Initiation,Applicant requests LC issuance and issuing bank creates MT700,start_circle,#1976D2,0,0,"applicant_request,kyc_documents,credit_approval","verify_applicant,draft_lc_terms","MT700,MT701",false,,"DocumentUploads,DocumentMetadata,AgentTasks,ValidationRules","applicant_request:required,kyc_documents:required,credit_approval:required,business_license:optional,financial_statements:optional"
+nodes,transmission,Transmission,Issuing bank sends MT700 to advising bank via SWIFT,send,#00BCD4,1,0,"mt700_message,transmission_log","verify_swift_format,confirm_transmission",,false,,"SwiftMessages,MessageTemplates,TransmissionLogs,FormatValidationRules","mt700_message:required,transmission_log:required,message_acknowledgment:optional"
+nodes,advising,Advising,Advising bank receives MT700 and notifies beneficiary,mark_email_read,#388E3C,2,0,"authentication_record,beneficiary_notification","verify_authenticity,prepare_beneficiary_advice",MT730,false,,"AuthenticationRecords,NotificationEvents,NotificationTemplates,DeliveryChannels","authentication_record:required,beneficiary_notification:required,receipt_confirmation:optional"
+nodes,amendment,Amendment,Changes to LC terms communicated via MT707,edit_document,#FFC107,3,0,"amendment_request,approval_document","review_amendment,update_lc_terms","MT707,MT708",true,,"DocumentUploads,AmendmentRequests,ApprovalWorkflows,SwiftMessages","amendment_request:required,approval_document:required,supporting_documentation:optional"
+nodes,document_presentation,Document Presentation,Beneficiary ships goods and presents documents,description,#673AB7,4,0,"commercial_invoice,bill_of_lading,insurance_certificate,certificate_of_origin,packing_list","examine_documents,check_compliance",,false,,"DocumentSets,SubmissionPackages,DocumentValidation,ComplianceChecks","commercial_invoice:required,bill_of_lading:required,insurance_certificate:required,certificate_of_origin:required,packing_list:required,inspection_certificate:optional,beneficiary_statement:optional"
+nodes,payment_processing,Payment Processing,Bank processes payment based on document examination,payments,#FF5722,5,0,"payment_instruction,compliance_report","process_payment,handle_discrepancies","MT754,MT750,MT734,MT742,MT756",false,"documents_compliant:closure:MT754,documents_discrepant:document_presentation:MT750","PaymentInstructions,TransactionLogs,ValidationResults,DiscrepancyManagement","payment_instruction:required,compliance_report:required,discrepancy_waiver:conditional,payment_approval:required"
+nodes,closure,Closure,LC is discharged or cancelled,task_alt,#4CAF50,6,0,"discharge_notice,settlement_confirmation","confirm_settlement,close_lc","MT732,MT792",false,,"SettlementConfirmations,PaymentReconciliation,NotificationEvents,AuditLogs","discharge_notice:required,settlement_confirmation:required,final_reconciliation:optional,closure_acknowledgment:optional"
+
+connections,source,target,label,stroke_color,stroke_width,animated,dashed,condition,azure_event_trigger
+connections,initiation,transmission,MT700 Created,#1976D2,2,true,false,,"DocumentValidated,MT700Generated"
+connections,transmission,advising,MT700 Sent,#00BCD4,2,true,false,,"MessageTransmitted,TransmissionConfirmed"
+connections,advising,amendment,Amendment Needed,#FFC107,2,true,true,amendment_required,"AmendmentRequested,ApprovalInitiated"
+connections,advising,document_presentation,LC Advised,#388E3C,2,true,false,,"BeneficiaryNotified,LCAdvised"
+connections,amendment,document_presentation,Amendment Advised,#FFC107,2,true,false,,"AmendmentProcessed,MT707Transmitted"
+connections,document_presentation,payment_processing,Documents Presented,#673AB7,2,true,false,,"DocumentSetSubmitted,ValidationInitiated"
+connections,payment_processing,document_presentation,Discrepancies Found,#F44336,2,true,true,documents_discrepant,"DiscrepanciesIdentified,AmendmentRequested"
+connections,payment_processing,closure,Payment Completed,#FF5722,2,true,false,documents_compliant,"PaymentProcessed,SettlementInitiated"
+
+master_documents,id,name,category,validation_rules,required_fields,azure_table,document_template,validation_agent
+master_documents,applicant_request,Applicant Request for LC,Application,"must_have_applicant_signature,must_specify_beneficiary,must_include_amount_and_currency","applicant_name,beneficiary_name,amount,currency,expiry_date",DocumentValidation,"templates/applicant_request.docx",document_validator
+master_documents,kyc_documents,KYC Documents,Compliance,"must_be_current,must_include_identification","company_registration,tax_id,authorized_signatories",ComplianceChecks,"templates/kyc_package.docx",compliance_officer
+master_documents,credit_approval,Credit Approval,Internal,"must_have_approval_signature,must_specify_credit_limit","approval_date,approved_amount,approver_name",ApprovalWorkflows,"templates/credit_approval.docx",document_validator
+master_documents,mt700_message,MT700 Message,SWIFT,"must_follow_swift_format,must_include_all_required_fields","message_reference,form_of_documentary_credit,date_of_issue",SwiftMessages,"templates/mt700.txt",swift_formatter
+master_documents,transmission_log,Transmission Log,SWIFT,must_show_successful_transmission,"transmission_date,transmission_reference,status",TransmissionLogs,"templates/transmission_log.txt",swift_formatter
+master_documents,authentication_record,Authentication Record,Security,must_verify_sender_authenticity,"authentication_method,verification_result,timestamp",AuthenticationRecords,"templates/authentication_record.txt",compliance_officer
+master_documents,beneficiary_notification,Beneficiary Notification,Communication,must_include_lc_details,"notification_date,delivery_method,recipient",NotificationEvents,"templates/beneficiary_notification.docx",notification_manager
+master_documents,amendment_request,Amendment Request,Application,"must_specify_changes,must_have_applicant_signature","request_date,requested_changes,reason_for_amendment",AmendmentRequests,"templates/amendment_request.docx",document_validator
+master_documents,approval_document,Approval Document,Internal,must_have_approval_signature,"approval_date,approver_name,approval_status",ApprovalWorkflows,"templates/approval_document.docx",document_validator
+master_documents,commercial_invoice,Commercial Invoice,Trade,"must_match_lc_description,must_match_lc_amount,must_be_signed","invoice_number,date,amount,currency,goods_description",DocumentValidation,"templates/commercial_invoice.docx",document_validator
+master_documents,bill_of_lading,Bill of Lading,Transport,"must_be_clean,must_show_on_board_date,must_match_ports_in_lc","bl_number,date,vessel_name,port_of_loading,port_of_discharge",DocumentValidation,"templates/bill_of_lading.docx",document_validator
+master_documents,insurance_certificate,Insurance Certificate,Insurance,"must_cover_required_risks,must_cover_110_percent,must_be_in_lc_currency","policy_number,date,amount,currency,risks_covered",DocumentValidation,"templates/insurance_certificate.docx",document_validator
+master_documents,certificate_of_origin,Certificate of Origin,Trade,"must_show_required_origin,must_be_issued_by_authorized_body","certificate_number,date,country_of_origin,issuing_authority",DocumentValidation,"templates/certificate_of_origin.docx",document_validator
+master_documents,packing_list,Packing List,Trade,must_match_invoice_quantity,"reference_number,date,number_of_packages,gross_weight,net_weight",DocumentValidation,"templates/packing_list.docx",document_validator
+master_documents,payment_instruction,Payment Instruction,Financial,"must_specify_payment_details,must_be_authorized","instruction_date,payment_amount,payment_method,beneficiary_account",PaymentInstructions,"templates/payment_instruction.docx",payment_processor
+master_documents,compliance_report,Compliance Report,Internal,must_detail_document_examination,"examination_date,examiner_name,compliance_status,discrepancies",ComplianceChecks,"templates/compliance_report.docx",compliance_officer
+master_documents,discharge_notice,Discharge Notice,Financial,must_confirm_lc_discharge,"discharge_date,lc_reference,discharge_amount",SettlementConfirmations,"templates/discharge_notice.docx",payment_processor
+master_documents,settlement_confirmation,Settlement Confirmation,Financial,must_confirm_payment_settlement,"settlement_date,settlement_amount,settlement_method",PaymentReconciliation,"templates/settlement_confirmation.docx",payment_processor
+master_documents,inspection_certificate,Inspection Certificate,Trade,must_be_issued_by_authorized_inspector,"certificate_number,date,inspector_name,inspection_results",DocumentValidation,"templates/inspection_certificate.docx",document_validator
+master_documents,beneficiary_statement,Beneficiary Statement,Trade,must_be_signed_by_beneficiary,"statement_date,beneficiary_name,declaration_text",DocumentValidation,"templates/beneficiary_statement.docx",document_validator
+master_documents,discrepancy_waiver,Compliance,must_be_authorized_by_applicant,"waiver_date,applicant_name,discrepancies_waived,authorizer_name",DiscrepancyManagement,"templates/discrepancy_waiver.docx",compliance_officer
+master_documents,final_reconciliation,Financial,must_balance_all_transactions,"reconciliation_date,total_amount,transaction_count",PaymentReconciliation,"templates/final_reconciliation.docx",payment_processor
+
+agents,id,name,description,capabilities,icon,color,azure_service_integration,crew_assignment,task_queue
+agents,document_validator,Document Validator Agent,Validates trade documents against LC terms and compliance rules,"document_validation,discrepancy_detection,compliance_checking",fact_check,#1976D2,"Azure Cognitive Services,Azure Functions,Cosmos DB","document_processing_crew,validation_crew",document_validation_queue
+agents,swift_formatter,SWIFT Format Agent,Ensures SWIFT messages adhere to proper format and standards,"format_validation,message_generation,syntax_checking",code,#00BCD4,"Azure Functions,Logic Apps,Service Bus","message_processing_crew,transmission_crew",swift_message_queue
+agents,compliance_officer,Compliance Officer Agent,Ensures all regulatory and compliance requirements are met,"regulatory_compliance,sanction_screening,aml_checking",gavel,#673AB7,"Azure Cognitive Services,Logic Apps,Cosmos DB","compliance_crew,risk_management_crew",compliance_check_queue
+agents,payment_processor,Payment Processor Agent,Handles payment execution and settlement,"payment_processing,fund_transfer,settlement_confirmation",account_balance,#FF5722,"Azure Functions,Service Bus,Cosmos DB","payment_crew,settlement_crew",payment_processing_queue
+agents,notification_manager,Notification Manager Agent,Manages communications and notifications to all parties,"message_generation,notification_delivery,status_updates",notifications,#FFC107,"Azure Communication Services,Logic Apps,Service Bus","notification_crew,customer_service_crew",notification_queue
+
+agent_tasks,task_id,agent_id,description,required_documents,estimated_time,azure_function,input_table,output_table,error_handling
+agent_tasks,verify_applicant,compliance_officer,Verify applicant identity and eligibility,kyc_documents,10 minutes,VerifyApplicantFunction,ComplianceChecks,ValidationResults,"retry_on_failure,escalate_after_3_attempts"
+agent_tasks,draft_lc_terms,swift_formatter,Draft LC terms in proper SWIFT format,"applicant_request,credit_approval",15 minutes,DraftLCTermsFunction,"DocumentValidation,ApprovalWorkflows",SwiftMessages,"retry_on_failure,manual_review_on_error"
+agent_tasks,verify_swift_format,swift_formatter,Verify MT700 message format compliance,mt700_message,5 minutes,VerifySwiftFormatFunction,SwiftMessages,ValidationResults,"automatic_correction,retry_on_failure"
+agent_tasks,confirm_transmission,notification_manager,Confirm successful transmission of MT700,transmission_log,3 minutes,ConfirmTransmissionFunction,TransmissionLogs,NotificationEvents,"retry_on_failure,alert_on_timeout"
+agent_tasks,verify_authenticity,compliance_officer,Verify authenticity of received MT700,authentication_record,5 minutes,VerifyAuthenticityFunction,AuthenticationRecords,ValidationResults,"escalate_on_failure,high_priority_alert"
+agent_tasks,prepare_beneficiary_advice,notification_manager,Prepare and send beneficiary advice,mt700_message,10 minutes,PrepareBeneficiaryAdviceFunction,"SwiftMessages,DocumentMetadata",NotificationEvents,"retry_on_failure,manual_fallback"
+agent_tasks,review_amendment,document_validator,Review amendment request for compliance,amendment_request,15 minutes,ReviewAmendmentFunction,AmendmentRequests,ValidationResults,"manual_review_option,retry_on_failure"
+agent_tasks,update_lc_terms,swift_formatter,Update LC terms with amendment details,"amendment_request,approval_document",10 minutes,UpdateLCTermsFunction,"AmendmentRequests,ApprovalWorkflows",SwiftMessages,"version_control,retry_on_failure"
+agent_tasks,examine_documents,document_validator,Examine presented documents against LC terms,"commercial_invoice,bill_of_lading,insurance_certificate,certificate_of_origin,packing_list",30 minutes,ExamineDocumentsFunction,"DocumentSets,DocumentValidation",ValidationResults,"partial_processing,retry_on_failure"
+agent_tasks,check_compliance,compliance_officer,Check compliance with regulatory requirements,"commercial_invoice,certificate_of_origin",15 minutes,CheckComplianceFunction,"DocumentValidation,ComplianceChecks",ValidationResults,"escalate_on_failure,retry_on_failure"
+agent_tasks,process_payment,payment_processor,Process payment to beneficiary,"payment_instruction,compliance_report",20 minutes,ProcessPaymentFunction,"PaymentInstructions,ValidationResults",TransactionLogs,"transaction_rollback,high_security_verification"
+agent_tasks,handle_discrepancies,notification_manager,Notify parties of document discrepancies,compliance_report,10 minutes,HandleDiscrepanciesFunction,"ValidationResults,DiscrepancyManagement",NotificationEvents,"priority_routing,retry_on_failure"
+agent_tasks,confirm_settlement,payment_processor,Confirm settlement of payment,settlement_confirmation,5 minutes,ConfirmSettlementFunction,"TransactionLogs,SettlementConfirmations",PaymentReconciliation,"verification_check,retry_on_failure"
+agent_tasks,close_lc,notification_manager,Close LC and notify all parties,"discharge_notice,settlement_confirmation",10 minutes,CloseLCFunction,"SettlementConfirmations,PaymentReconciliation","NotificationEvents,AuditLogs","final_verification,manual_confirmation"
+
+crews,id,name,description,members,supervisor_role,azure_resource_group,communication_channel,escalation_path
+crews,document_processing_crew,Document Processing Crew,Handles document intake and initial processing,"document_validator,compliance_officer,notification_manager",Document Processing Supervisor,rg-document-processing,document_processing_topic,"supervisor_escalation,compliance_review"
+crews,validation_crew,Validation Crew,Performs detailed document validation and compliance checking,"document_validator,compliance_officer",Validation Supervisor,rg-validation,validation_topic,"supervisor_escalation,exception_committee"
+crews,message_processing_crew,Message Processing Crew,Manages SWIFT message creation and validation,"swift_formatter,document_validator",Message Processing Supervisor,rg-message-processing,message_processing_topic,"supervisor_escalation,format_specialist"
+crews,transmission_crew,Transmission Crew,Handles message transmission and confirmation,"swift_formatter,notification_manager",Transmission Supervisor,rg-transmission,transmission_topic,"supervisor_escalation,network_operations"
+crews,compliance_crew,Compliance Crew,Ensures regulatory compliance and risk management,"compliance_officer,document_validator",Compliance Supervisor,rg-compliance,compliance_topic,"supervisor_escalation,compliance_committee"
+crews,payment_crew,Payment Crew,Processes payments and financial transactions,"payment_processor,compliance_officer",Payment Supervisor,rg-payment,payment_topic,"supervisor_escalation,treasury_department"
+crews,settlement_crew,Settlement Crew,Manages settlement confirmation and reconciliation,"payment_processor,notification_manager",Settlement Supervisor,rg-settlement,settlement_topic,"supervisor_escalation,finance_department"
+crews,notification_crew,Notification Crew,Handles all communications and notifications,"notification_manager,document_validator",Notification Supervisor,rg-notification,notification_topic,"supervisor_escalation,customer_service"
+
+document_upload,component,description,azure_integration,file_types,size_limits,validation_steps,storage_location
+document_upload,drag_drop_zone,Interactive area for dragging and dropping files,Azure Blob Storage SDK,"pdf,docx,xlsx,jpg,png,tiff",25MB,"virus_scan,format_validation,metadata_extraction",documents_container
+document_upload,file_browser,Traditional file selection dialog,Azure Blob Storage SDK,"pdf,docx,xlsx,jpg,png,tiff",25MB,"virus_scan,format_validation,metadata_extraction",documents_container
+document_upload,email_processor,Process documents sent via email attachments,Azure Logic Apps + Email Connector,"pdf,docx,xlsx,jpg,png",10MB,"virus_scan,format_validation,metadata_extraction,sender_verification",documents_container
+document_upload,mobile_capture,Mobile app document capture and upload,Azure Mobile App Service,"jpg,png,pdf",15MB,"image_enhancement,ocr_preprocessing,format_validation",documents_container
+document_upload,batch_upload,Bulk document upload for multiple files,Azure Batch + Blob Storage,"pdf,docx,xlsx,zip",100MB,"virus_scan,format_validation,batch_processing,indexing",documents_container
+
+document_checklist,view_type,description,azure_component,interaction_features,status_indicators,filtering_options
+document_checklist,tree_view,Hierarchical view of documents by category,Azure Custom Web Component,"expand_collapse,drag_drop,context_menu","color_coded_icons,progress_indicators,validation_badges","by_status,by_category,by_date"
+document_checklist,table_view,Tabular view with sortable columns,Azure Data Table Component,"sort_columns,bulk_select,inline_edit","status_column,color_coding,validation_icons","by_status,by_document_type,by_due_date"
+document_checklist,card_view,Visual card-based view of documents,Azure Card Component,"card_flip,quick_actions,drag_drop","status_badges,progress_circles,validation_stamps","by_status,by_priority,by_owner"
+document_checklist,timeline_view,Chronological view of document processing,Azure Timeline Component,"zoom_in_out,milestone_markers,date_navigation","timeline_icons,status_flags,duration_indicators","by_date_range,by_milestone,by_status"
+document_checklist,kanban_view,Kanban board for document workflow stages,Azure Kanban Component,"drag_between_columns,card_details,add_notes","column_headers,card_badges,count_indicators","by_stage,by_assignee,by_priority"
+
+theme,property,value,azure_theme_integration
+theme,primary,#1976D2,theme-primary
+theme,secondary,#388E3C,theme-secondary
+theme,accent,#FFC107,theme-accent
+theme,warning,#F44336,theme-warning
+theme,info,#00BCD4,theme-info
+theme,success,#4CAF50,theme-success
+theme,background,#F5F5F5,theme-background
+theme,nodeActiveColor,#42A5F5,theme-node-active
+theme,nodeCompletedColor,#66BB6A,theme-node-completed
+theme,nodePendingColor,#FFA726,theme-node-pending
+theme,nodeErrorColor,#EF5350,theme-node-error
+theme,connectionLineColor,#78909C,theme-connection-line
+theme,connectionLineWidth,2,theme-connection-width
+theme,fontFamily,'Roboto', sans-serif,theme-font-family
+
+modal,property,value,azure_component,interaction_events
+modal,title,Node Details,AzureModalComponent,"modal_open,modal_close,modal_resize"
+modal,width,800px,AzureModalComponent,"modal_expand,modal_collapse"
+modal,height,auto,AzureModalComponent,"modal_scroll,modal_resize"
+modal,animation,slide,AzureAnimationService,"animation_start,animation_complete"
+modal,tabs,"documents,agents,messages,history",AzureTabComponent,"tab_change,tab_add,tab_close"
+modal,tabLabels,"Documents,Agents,SWIFT Messages,Activity History",AzureTabComponent,"label_click,label_hover"
+modal,tabIcons,"description,smart_toy,send,history",AzureIconService,"icon_load,icon_render"
+
+document_validation,level,description,responsible_agent,azure_service,validation_rules,output_action
+document_validation,level1,Format and completeness check,document_validator,Azure Functions,"file_format_valid,required_fields_present,document_complete","accept,reject,request_amendment"
+document_validation,level2,Content validation against LC terms,document_validator,Azure Functions + Cognitive Services,"content_matches_lc,amounts_within_tolerance,dates_valid","accept,reject,request_amendment"
+document_validation,level3,Compliance and regulatory check,compliance_officer,Azure Functions + Cognitive Services,"sanctions_check_passed,regulatory_compliant,risk_assessment_passed","accept,reject,escalate"
+document_validation,level4,Final approval,human_specialist,Azure Logic Apps Human Interaction,"manual_review_completed,approval_authorized,final_verification_passed","accept,reject,request_amendment,escalate"
+
+document_set,submission_type,description,required_validation_level,azure_workflow,notification_events
+document_set,complete_set,All required documents submitted as complete set,level3,CompleteSetSubmissionWorkflow,"set_received,validation_started,validation_completed"
+document_set,partial_set,Partial document set with completion plan,level2,PartialSetSubmissionWorkflow,"partial_set_received,completion_plan_reviewed,follow_up_scheduled"
+document_set,replacement_set,Replacement for previously rejected documents,level3,ReplacementSetSubmissionWorkflow,"replacement_received,comparison_with_original,validation_completed"
+document_set,amendment_set,Documents supporting an amendment request,level2,AmendmentSetSubmissionWorkflow,"amendment_docs_received,amendment_validation,amendment_decision"
