@@ -14,6 +14,7 @@ import MessageBuilder from "@/pages/MessageBuilder";
 import MTIntelligence from "@/pages/MTIntelligenceSimple";
 import SwiftMessageDetails from "@/pages/SwiftMessageDetails";
 import TradeFinanceDocuments from "@/pages/TradeFinanceDocuments";
+import UCPRules from "@/pages/UCPRules";
 
 import NotFound from "@/pages/not-found";
 
@@ -35,6 +36,7 @@ function Router() {
           <Route path="/mt-intelligence" component={MTIntelligence} />
           <Route path="/swift-message/:messageType" component={SwiftMessageDetails} />
           <Route path="/trade-finance-documents" component={TradeFinanceDocuments} />
+          <Route path="/ucp-rules" component={UCPRules} />
         </>
       )}
       <Route component={NotFound} />

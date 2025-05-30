@@ -17,7 +17,8 @@ import {
   Wrench,
   MessageCircle,
   Zap,
-  Brain
+  Brain,
+  Scale
 } from "lucide-react";
 
 const navigationItems = [
@@ -62,6 +63,12 @@ const navigationItems = [
     href: "/trade-finance-documents",
     icon: FileText,
     description: "Document management system",
+  },
+  {
+    name: "UCP Rule Engine",
+    href: "/ucp-rules",
+    icon: Scale,
+    description: "UCP 600 validation rules",
   },
   {
     name: "Discrepancy Analysis",
