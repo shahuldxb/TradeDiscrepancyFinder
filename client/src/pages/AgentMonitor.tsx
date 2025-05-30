@@ -27,6 +27,11 @@ export default function AgentMonitor() {
     refetchInterval: 2000, // Refresh every 2 seconds for real-time monitoring
   });
 
+  const { data: autonomousStatus, isLoading: autonomousLoading } = useQuery({
+    queryKey: ["/api/autonomous-agents/status"],
+    refetchInterval: 2000,
+  });
+
   const { data: agentTasks, isLoading: tasksLoading } = useQuery({
     queryKey: ["/api/agent-tasks"],
     refetchInterval: 5000, // Refresh every 5 seconds
@@ -169,8 +174,8 @@ export default function AgentMonitor() {
       
       <main className="flex-1 ml-64">
         <TopHeader 
-          title="CrewAI Agent Monitor"
-          subtitle="Real-time monitoring and management of AI agents"
+          title="AI-Centric Agent Monitor"
+          subtitle="Real-time monitoring of autonomous and orchestrated AI agents"
           actions={
             <div className="flex space-x-2">
               <Button 

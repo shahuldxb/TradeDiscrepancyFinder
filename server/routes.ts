@@ -1355,6 +1355,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI-Centric Autonomous Agent Routes
+  app.get("/api/autonomous-agents/status", isAuthenticated, async (req, res) => {
+    try {
+      const { autonomousAgentCoordinator } = await import('./aiCentricAgents');
+      const status = await autonomousAgentCoordinator.getAgentStatus();
+      res.json({
+        mode: 'ai_centric',
+        agents: status,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Error getting autonomous agent status:", error);
+      res.status(500).json({ message: "Failed to get autonomous agent status" });
+    }
+  });
+
+  app.post("/api/autonomous-agents/initiate", isAuthenticated, async (req, res) => {
+    try {
+      const { autonomousAgentCoordinator } = await import('./aiCentricAgents');
+      const userId = (req.user as any)?.claims?.sub || 'system';
+      const result = await autonomousAgentCoordinator.initiateAgentWorkflow(userId, req.body);
+      res.json(result);
+    } catch (error) {
+      console.error("Error initiating autonomous agent workflow:", error);
+      res.status(500).json({ message: "Failed to initiate autonomous workflow" });
+    }
+  });
+
+  app.post("/api/autonomous-agents/environment", isAuthenticated, async (req, res) => {
+    try {
+      const { autonomousAgentCoordinator } = await import('./aiCentricAgents');
+      await autonomousAgentCoordinator.updateEnvironment(req.body);
+      res.json({ 
+        message: "Environment updated - agents operating autonomously",
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Error updating agent environment:", error);
+      res.status(500).json({ message: "Failed to update environment" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
