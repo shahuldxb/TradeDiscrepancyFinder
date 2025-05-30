@@ -200,9 +200,94 @@ export default function AgentMonitor() {
         />
         
         <div className="p-6">
-          {/* Agent Status Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            {displayAgents.map((agent: any) => (
+          {/* AI-Centric Architecture Status */}
+          <div className="mb-8">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
+                <span className="text-sm font-medium text-blue-700">AI-Centric Mode Active</span>
+              </div>
+              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                Autonomous Decision Making
+              </Badge>
+            </div>
+          </div>
+
+          {/* Autonomous Agents Section */}
+          {autonomousStatus?.agents && autonomousStatus.agents.length > 0 && (
+            <div className="mb-8">
+              <div className="flex items-center gap-2 mb-4">
+                <Bot className="h-6 w-6 text-blue-600" />
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                  Autonomous AI Agents
+                </h2>
+                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                  {autonomousStatus.agents.length} Active
+                </Badge>
+              </div>
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {autonomousStatus.agents.map((agent: any) => (
+                  <Card key={agent.id} className="border-2 border-blue-200 hover:border-blue-300 transition-colors bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          <Bot className="h-5 w-5 text-blue-600" />
+                          {agent.name}
+                        </CardTitle>
+                        <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
+                          autonomous
+                        </Badge>
+                      </div>
+                      <CardDescription className="text-sm">
+                        {agent.role}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        <div>
+                          <div className="flex justify-between text-sm mb-1">
+                            <span className="text-gray-600 dark:text-gray-400">Capabilities</span>
+                            <span className="font-medium">{agent.capabilities?.length || 0}</span>
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            {agent.capabilities?.slice(0, 2).join(', ') || 'No capabilities defined'}
+                            {agent.capabilities?.length > 2 && ` +${agent.capabilities.length - 2} more`}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="flex justify-between text-sm mb-1">
+                            <span className="text-gray-600 dark:text-gray-400">Memory Usage</span>
+                            <span className="font-medium">{agent.memorySize || 0} items</span>
+                          </div>
+                        </div>
+                        <div>
+                          <div className="flex justify-between text-sm mb-1">
+                            <span className="text-gray-600 dark:text-gray-400">Goals</span>
+                            <span className="font-medium">{agent.goals?.length || 0}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Legacy Agents Section */}
+          {agentStatus?.legacy_agents && agentStatus.legacy_agents.length > 0 && (
+            <div className="mb-8">
+              <div className="flex items-center gap-2 mb-4">
+                <Activity className="h-6 w-6 text-gray-600" />
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                  Legacy CrewAI Agents
+                </h2>
+                <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
+                  {agentStatus.legacy_agents.length} Orchestrated
+                </Badge>
+              </div>
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {agentStatus.legacy_agents.map((agent: any) => (
               <Card key={agent.name} className="banking-card">
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
