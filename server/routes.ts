@@ -681,11 +681,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // UCP Rule Engine API Routes
-  // UCP Articles
+  // UCP Articles - Now using Azure SQL
   app.get('/api/ucp/articles', isAuthenticated, async (req, res) => {
     try {
-      const { getUCPArticles } = await import('./ucpService');
-      const articles = await getUCPArticles();
+      const { azureDataService } = await import('./azureDataService');
+      const articles = await azureDataService.getUCPArticles();
       res.json(articles);
     } catch (error) {
       console.error('Error fetching UCP articles:', error);
@@ -728,11 +728,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // UCP Rules
+  // UCP Rules - Now using Azure SQL
   app.get('/api/ucp/rules', isAuthenticated, async (req, res) => {
     try {
-      const { getUCPRules } = await import('./ucpService');
-      const rules = await getUCPRules();
+      const { azureDataService } = await import('./azureDataService');
+      const rules = await azureDataService.getUCPRules();
       res.json(rules);
     } catch (error) {
       console.error('Error fetching UCP rules:', error);
@@ -742,8 +742,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/ucp/rules', isAuthenticated, async (req, res) => {
     try {
-      const { createUCPRule } = await import('./ucpService');
-      const rule = await createUCPRule(req.body);
+      const { azureDataService } = await import('./azureDataService');
+      const rule = await azureDataService.createUCPRule(req.body);
       res.json(rule);
     } catch (error) {
       console.error('Error creating UCP rule:', error);
@@ -799,11 +799,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Discrepancy Types
+  // Discrepancy Types - Now using Azure SQL
   app.get('/api/ucp/discrepancy-types', isAuthenticated, async (req, res) => {
     try {
-      const { getDiscrepancyTypes } = await import('./ucpService');
-      const types = await getDiscrepancyTypes();
+      const { azureDataService } = await import('./azureDataService');
+      const types = await azureDataService.getDiscrepancyTypes();
       res.json(types);
     } catch (error) {
       console.error('Error fetching discrepancy types:', error);
@@ -845,6 +845,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error validating document:', error);
       res.status(500).json({ error: 'Failed to validate document' });
+    }
+  });
+
+  // SWIFT Message Types and Fields - Now using Azure SQL
+  app.get('/api/swift/message-types', isAuthenticated, async (req, res) => {
+    try {
+      const { azureDataService } = await import('./azureDataService');
+      const messageTypes = await azureDataService.getSwiftMessageTypes();
+      res.json(messageTypes);
+    } catch (error) {
+      console.error('Error fetching SWIFT message types:', error);
+      res.status(500).json({ error: 'Failed to fetch SWIFT message types' });
+    }
+  });
+
+  app.get('/api/swift/fields', isAuthenticated, async (req, res) => {
+    try {
+      const { azureDataService } = await import('./azureDataService');
+      const fields = await azureDataService.getSwiftFields();
+      res.json(fields);
+    } catch (error) {
+      console.error('Error fetching SWIFT fields:', error);
+      res.status(500).json({ error: 'Failed to fetch SWIFT fields' });
+    }
+  });
+
+  app.get('/api/swift/fields/:messageType', isAuthenticated, async (req, res) => {
+    try {
+      const { messageType } = req.params;
+      const { azureDataService } = await import('./azureDataService');
+      const fields = await azureDataService.getSwiftFieldsByMessageType(messageType);
+      res.json(fields);
+    } catch (error) {
+      console.error('Error fetching SWIFT fields by message type:', error);
+      res.status(500).json({ error: 'Failed to fetch SWIFT fields by message type' });
+    }
+  });
+
+  // Discrepancies - Now using Azure SQL
+  app.get('/api/discrepancies', isAuthenticated, async (req, res) => {
+    try {
+      const { azureDataService } = await import('./azureDataService');
+      const discrepancies = await azureDataService.getDiscrepancies(req.query);
+      res.json(discrepancies);
+    } catch (error) {
+      console.error('Error fetching discrepancies:', error);
+      res.status(500).json({ error: 'Failed to fetch discrepancies' });
+    }
+  });
+
+  app.post('/api/discrepancies', isAuthenticated, async (req, res) => {
+    try {
+      const { azureDataService } = await import('./azureDataService');
+      const discrepancy = await azureDataService.createDiscrepancy(req.body);
+      res.json(discrepancy);
+    } catch (error) {
+      console.error('Error creating discrepancy:', error);
+      res.status(500).json({ error: 'Failed to create discrepancy' });
+    }
+  });
+
+  // Document Sets - Now using Azure SQL
+  app.get('/api/document-sets', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const { azureDataService } = await import('./azureDataService');
+      const documentSets = await azureDataService.getDocumentSets(userId);
+      res.json(documentSets);
+    } catch (error) {
+      console.error('Error fetching document sets:', error);
+      res.status(500).json({ error: 'Failed to fetch document sets' });
+    }
+  });
+
+  app.post('/api/document-sets', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const { azureDataService } = await import('./azureDataService');
+      const documentSet = await azureDataService.createDocumentSet({ ...req.body, user_id: userId });
+      res.json(documentSet);
+    } catch (error) {
+      console.error('Error creating document set:', error);
+      res.status(500).json({ error: 'Failed to create document set' });
     }
   });
 
