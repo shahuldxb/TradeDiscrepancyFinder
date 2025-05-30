@@ -101,7 +101,15 @@ export default function UCPRules() {
 
   // Mutations
   const createArticleMutation = useMutation({
-    mutationFn: (data: any) => apiRequest("/api/ucp/articles", { method: "POST", body: data }),
+    mutationFn: async (data: any) => {
+      const response = await fetch("/api/ucp/articles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error("Failed to create article");
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/ucp/articles"] });
       setIsAddDialogOpen(false);
@@ -110,7 +118,15 @@ export default function UCPRules() {
   });
 
   const createRuleMutation = useMutation({
-    mutationFn: (data: any) => apiRequest("/api/ucp/rules", { method: "POST", body: data }),
+    mutationFn: async (data: any) => {
+      const response = await fetch("/api/ucp/rules", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error("Failed to create rule");
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/ucp/rules"] });
       setIsAddDialogOpen(false);
@@ -119,8 +135,15 @@ export default function UCPRules() {
   });
 
   const updateArticleMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) => 
-      apiRequest(`/api/ucp/articles/${id}`, { method: "PATCH", body: data }),
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
+      const response = await fetch(`/api/ucp/articles/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error("Failed to update article");
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/ucp/articles"] });
       setIsEditDialogOpen(false);
@@ -129,8 +152,15 @@ export default function UCPRules() {
   });
 
   const updateRuleMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) => 
-      apiRequest(`/api/ucp/rules/${id}`, { method: "PATCH", body: data }),
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
+      const response = await fetch(`/api/ucp/rules/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error("Failed to update rule");
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/ucp/rules"] });
       setIsEditDialogOpen(false);
@@ -139,14 +169,26 @@ export default function UCPRules() {
   });
 
   const deleteArticleMutation = useMutation({
-    mutationFn: (id: number) => apiRequest(`/api/ucp/articles/${id}`, { method: "DELETE" }),
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/ucp/articles/${id}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) throw new Error("Failed to delete article");
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/ucp/articles"] });
     },
   });
 
   const deleteRuleMutation = useMutation({
-    mutationFn: (id: number) => apiRequest(`/api/ucp/rules/${id}`, { method: "DELETE" }),
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/ucp/rules/${id}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) throw new Error("Failed to delete rule");
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/ucp/rules"] });
     },
@@ -407,7 +449,8 @@ export default function UCPRules() {
                       </TableCell>
                       <TableCell className="font-medium">{article.title}</TableCell>
                       <TableCell className="text-sm text-gray-600 dark:text-gray-400 max-w-md">
-                        {article.description?.substring(0, 100)}...
+                        {article.description?.substring(0, 100)}
+                        {article.description?.length > 100 ? "..." : ""}
                       </TableCell>
                       <TableCell>
                         <Badge variant="secondary">
@@ -581,12 +624,20 @@ export default function UCPRules() {
                           </Badge>
                         </TableCell>
                         <TableCell className="max-w-md text-sm">
-                          {rule.ruleText?.substring(0, 150)}...
+                          {rule.ruleText?.substring(0, 150)}
+                          {rule.ruleText?.length > 150 ? "..." : ""}
                         </TableCell>
                         <TableCell>
-                          <Badge variant={rule.priority <= 3 ? "destructive" : rule.priority <= 6 ? "default" : "secondary"}>
-                            Priority {rule.priority}
-                          </Badge>
+                          <div className="flex flex-col gap-1">
+                            <Badge variant={rule.priority <= 3 ? "destructive" : rule.priority <= 6 ? "default" : "secondary"}>
+                              Priority {rule.priority}
+                            </Badge>
+                            {rule.validationLogic && (
+                              <Badge variant="outline" className="text-xs">
+                                Has Logic
+                              </Badge>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
@@ -627,9 +678,45 @@ export default function UCPRules() {
               <CardDescription>Links between UCP rules and document types</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8 text-gray-500">
-                Document mappings will be displayed here once the backend API is implemented
-              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Rule Code</TableHead>
+                    <TableHead>Document Code</TableHead>
+                    <TableHead>Document Name</TableHead>
+                    <TableHead>Mandatory</TableHead>
+                    <TableHead>Priority</TableHead>
+                    <TableHead>Rule Text</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {ruleDocumentMappings?.map((mapping: any) => (
+                    <TableRow key={mapping.mappingId}>
+                      <TableCell className="font-mono font-semibold">
+                        {mapping.ruleCode}
+                      </TableCell>
+                      <TableCell className="font-mono">
+                        {mapping.documentCode}
+                      </TableCell>
+                      <TableCell>{mapping.documentName}</TableCell>
+                      <TableCell>
+                        <Badge variant={mapping.isMandatory ? "destructive" : "secondary"}>
+                          {mapping.isMandatory ? "Mandatory" : "Optional"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          Priority {mapping.validationPriority}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="max-w-md text-sm">
+                        {mapping.ruleText?.substring(0, 100)}
+                        {mapping.ruleText?.length > 100 ? "..." : ""}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
         </TabsContent>
@@ -641,9 +728,49 @@ export default function UCPRules() {
               <CardDescription>Links between UCP rules and SWIFT MT message types</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8 text-gray-500">
-                MT message mappings will be displayed here once the backend API is implemented
-              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Rule Code</TableHead>
+                    <TableHead>MT Code</TableHead>
+                    <TableHead>Field Tag</TableHead>
+                    <TableHead>Message Description</TableHead>
+                    <TableHead>Mandatory</TableHead>
+                    <TableHead>Priority</TableHead>
+                    <TableHead>Rule Text</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {ruleMTMappings?.map((mapping: any) => (
+                    <TableRow key={mapping.mappingId}>
+                      <TableCell className="font-mono font-semibold">
+                        {mapping.ruleCode}
+                      </TableCell>
+                      <TableCell className="font-mono">
+                        MT{mapping.messageTypeCode}
+                      </TableCell>
+                      <TableCell className="font-mono">
+                        {mapping.fieldTag || "All Fields"}
+                      </TableCell>
+                      <TableCell>{mapping.messageDescription}</TableCell>
+                      <TableCell>
+                        <Badge variant={mapping.isMandatory ? "destructive" : "secondary"}>
+                          {mapping.isMandatory ? "Mandatory" : "Optional"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          Priority {mapping.validationPriority}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="max-w-md text-sm">
+                        {mapping.ruleText?.substring(0, 100)}
+                        {mapping.ruleText?.length > 100 ? "..." : ""}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
         </TabsContent>
@@ -655,9 +782,38 @@ export default function UCPRules() {
               <CardDescription>Categories of discrepancies that can be detected</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8 text-gray-500">
-                Discrepancy types will be displayed here once the backend API is implemented
-              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Discrepancy Name</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Severity</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {discrepancyTypes?.map((type: any) => (
+                    <TableRow key={type.discrepancyTypeId}>
+                      <TableCell className="font-medium">
+                        {type.discrepancyName}
+                      </TableCell>
+                      <TableCell className="max-w-md">
+                        {type.description}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={type.severity <= 2 ? "destructive" : type.severity <= 4 ? "default" : "secondary"}>
+                          Level {type.severity}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={type.isActive ? "default" : "secondary"}>
+                          {type.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
         </TabsContent>
@@ -669,9 +825,60 @@ export default function UCPRules() {
               <CardDescription>Audit trail of rule execution and validation results</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8 text-gray-500">
-                Validation history will be displayed here once the backend API is implemented
-              </div>
+              {validationHistory?.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Rule Code</TableHead>
+                      <TableHead>Document Ref</TableHead>
+                      <TableHead>MT Ref</TableHead>
+                      <TableHead>Result</TableHead>
+                      <TableHead>Execution Date</TableHead>
+                      <TableHead>User ID</TableHead>
+                      <TableHead>Details</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {validationHistory.map((history: any) => (
+                      <TableRow key={history.executionId}>
+                        <TableCell className="font-mono font-semibold">
+                          {history.ruleCode}
+                        </TableCell>
+                        <TableCell className="font-mono">
+                          {history.documentReference || "N/A"}
+                        </TableCell>
+                        <TableCell className="font-mono">
+                          {history.mtReference || "N/A"}
+                        </TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant={
+                              history.result === 'Pass' ? 'default' : 
+                              history.result === 'Fail' ? 'destructive' : 
+                              'secondary'
+                            }
+                          >
+                            {history.result}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {new Date(history.executionDate).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>{history.userId || "System"}</TableCell>
+                        <TableCell className="max-w-md text-sm">
+                          {history.discrepancyDetails || "No details"}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <Clock className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                  <p>No validation history found</p>
+                  <p className="text-sm">Rule executions will appear here once validations are performed</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
