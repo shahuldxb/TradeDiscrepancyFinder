@@ -216,7 +216,7 @@ export default function Sidebar() {
 
             return (
               <Link key={item.name} href={item.href}>
-                <a
+                <div
                   className={`nav-item ${
                     isActive
                       ? "bg-sidebar-primary text-sidebar-primary-foreground"
@@ -225,7 +225,7 @@ export default function Sidebar() {
                 >
                   <Icon className="h-5 w-5" />
                   <span>{item.name}</span>
-                </a>
+                </div>
               </Link>
             );
           })}
