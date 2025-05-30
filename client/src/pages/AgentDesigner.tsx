@@ -86,9 +86,9 @@ export default function AgentDesigner() {
   const [selectedCrew, setSelectedCrew] = useState<Crew | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
 
-  // Fetch data
+  // Fetch data from enhanced Azure SQL tables
   const { data: customAgents = [], isLoading: agentsLoading } = useQuery({
-    queryKey: ['/api/custom-agents'],
+    queryKey: ['/api/enhanced-agents'],
   });
 
   const { data: systemAgents = [], isLoading: systemAgentsLoading } = useQuery({
