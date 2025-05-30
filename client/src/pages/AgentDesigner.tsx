@@ -87,17 +87,35 @@ export default function AgentDesigner() {
   const [isEditMode, setIsEditMode] = useState(false);
 
   // Fetch data
-  const { data: agents = [], isLoading: agentsLoading } = useQuery({
-    queryKey: ['/api/agents'],
+  const { data: customAgents = [], isLoading: agentsLoading } = useQuery({
+    queryKey: ['/api/custom-agents'],
+  });
+
+  const { data: systemAgents = [], isLoading: systemAgentsLoading } = useQuery({
+    queryKey: ['/api/agents/status'],
+    refetchInterval: 5000,
   });
 
   const { data: tasks = [], isLoading: tasksLoading } = useQuery({
-    queryKey: ['/api/tasks'],
+    queryKey: ['/api/custom-tasks'],
   });
 
   const { data: crews = [], isLoading: crewsLoading } = useQuery({
-    queryKey: ['/api/crews'],
+    queryKey: ['/api/custom-crews'],
   });
+
+  // Combine system and custom agents
+  const allAgents = [
+    ...systemAgents.map((agent: any) => ({ 
+      ...agent, 
+      type: 'system',
+      id: agent.name,
+      skills: ['System Agent'],
+      tools: ['Built-in Tools'],
+      isActive: agent.status !== 'error'
+    })),
+    ...customAgents.map((agent: any) => ({ ...agent, type: 'custom' }))
+  ];
 
   // Mutations
   const createAgentMutation = useMutation({
@@ -111,7 +129,7 @@ export default function AgentDesigner() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/agents'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/custom-agents'] });
       toast({ title: "Agent created successfully!" });
       setSelectedAgent(null);
       setIsEditMode(false);
@@ -394,7 +412,7 @@ export default function AgentDesigner() {
                 <SelectValue placeholder="Select an agent" />
               </SelectTrigger>
               <SelectContent>
-                {agents.map((agent: Agent) => (
+                {allAgents.map((agent: Agent) => (
                   <SelectItem key={agent.id} value={agent.id!}>
                     {agent.name} - {agent.role}
                   </SelectItem>
@@ -547,7 +565,7 @@ export default function AgentDesigner() {
         <div>
           <Label>Select Agents</Label>
           <div className="grid grid-cols-2 gap-2 mt-2 max-h-40 overflow-y-auto">
-            {agents.map((agent: Agent) => (
+            {allAgents.map((agent: Agent) => (
               <div key={agent.id} className="flex items-center space-x-2">
                 <input
                   type="checkbox"
