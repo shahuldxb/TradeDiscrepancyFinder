@@ -33,12 +33,85 @@ import {
 } from "lucide-react";
 import { Link } from "wouter";
 
+// Form schemas for CRUD operations
+const masterDocumentSchema = z.object({
+  documentCode: z.string().min(1, "Document code is required"),
+  documentName: z.string().min(1, "Document name is required"),
+  description: z.string().min(1, "Description is required"),
+  isActive: z.boolean()
+});
+
+const documentaryCreditSchema = z.object({
+  creditCode: z.string().min(1, "Credit code is required"),
+  creditName: z.string().min(1, "Credit name is required"),
+  description: z.string().min(1, "Description is required"),
+  isActive: z.boolean()
+});
+
+const swiftMessageSchema = z.object({
+  swiftCode: z.string().min(1, "SWIFT code is required"),
+  description: z.string().min(1, "Description is required"),
+  isActive: z.boolean()
+});
+
 export default function TradeFinanceDocuments() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedView, setSelectedView] = useState("documents");
   const [selectedCredit, setSelectedCredit] = useState("");
   const [selectedSwift, setSelectedSwift] = useState("");
   const [selectedDocument, setSelectedDocument] = useState("");
+  const [editingItem, setEditingItem] = useState<any>(null);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  // Mutation hooks for CRUD operations
+  const createDocumentMutation = useMutation({
+    mutationFn: (data: any) => apiRequest('/api/trade-finance/master-documents', {
+      method: 'POST',
+      body: JSON.stringify(data),
+      headers: { 'Content-Type': 'application/json' }
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/trade-finance/master-documents'] });
+      toast({ title: "Document created successfully" });
+      setIsCreateDialogOpen(false);
+    },
+    onError: () => {
+      toast({ title: "Failed to create document", variant: "destructive" });
+    }
+  });
+
+  const updateDocumentMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: any }) => apiRequest(`/api/trade-finance/master-documents/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+      headers: { 'Content-Type': 'application/json' }
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/trade-finance/master-documents'] });
+      toast({ title: "Document updated successfully" });
+      setIsEditDialogOpen(false);
+    },
+    onError: () => {
+      toast({ title: "Failed to update document", variant: "destructive" });
+    }
+  });
+
+  const deleteDocumentMutation = useMutation({
+    mutationFn: (id: number) => apiRequest(`/api/trade-finance/master-documents/${id}`, {
+      method: 'DELETE'
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/trade-finance/master-documents'] });
+      toast({ title: "Document deleted successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete document", variant: "destructive" });
+    }
+  });
 
   // Fetch trade finance statistics
   const { data: statistics } = useQuery({
@@ -232,11 +305,33 @@ export default function TradeFinanceDocuments() {
           <TabsContent value="documents">
             <div className="space-y-6">
               <Card>
-                <CardHeader>
-                  <CardTitle>Master Documents ({documents?.length || 0})</CardTitle>
-                  <CardDescription>
-                    Click on any document to see which credits and SWIFT messages use it
-                  </CardDescription>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle>Master Documents ({documents?.length || 0})</CardTitle>
+                    <CardDescription>
+                      Click on any document to see which credits and SWIFT messages use it
+                    </CardDescription>
+                  </div>
+                  <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button className="flex items-center gap-2">
+                        <Plus className="h-4 w-4" />
+                        Add Document
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Create Master Document</DialogTitle>
+                        <DialogDescription>
+                          Add a new master document to the system
+                        </DialogDescription>
+                      </DialogHeader>
+                      <MasterDocumentForm 
+                        onSubmit={(data) => createDocumentMutation.mutate(data)}
+                        isLoading={createDocumentMutation.isPending}
+                      />
+                    </DialogContent>
+                  </Dialog>
                 </CardHeader>
                 <CardContent>
                   <Table>
@@ -246,6 +341,7 @@ export default function TradeFinanceDocuments() {
                         <TableHead>Document Name</TableHead>
                         <TableHead>Description</TableHead>
                         <TableHead>Status</TableHead>
+                        <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -264,6 +360,33 @@ export default function TradeFinanceDocuments() {
                             <Badge variant={document.isActive ? "default" : "secondary"}>
                               {document.isActive ? "Active" : "Inactive"}
                             </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingItem(document);
+                                  setIsEditDialogOpen(true);
+                                }}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (confirm('Are you sure you want to delete this document?')) {
+                                    deleteDocumentMutation.mutate(document.documentId);
+                                  }
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
