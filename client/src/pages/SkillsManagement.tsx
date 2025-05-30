@@ -121,10 +121,7 @@ export default function SkillsManagement() {
   // Update skill mutation
   const updateSkillMutation = useMutation({
     mutationFn: ({ id, ...skillData }: Partial<Skill> & { id: string }) => 
-      apiRequest(`/api/skills/${id}`, {
-        method: "PUT",
-        body: JSON.stringify(skillData),
-      }),
+      apiRequest(`/api/skills/${id}`, "PUT", skillData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/skills"] });
       toast({
@@ -145,9 +142,7 @@ export default function SkillsManagement() {
 
   // Delete skill mutation
   const deleteSkillMutation = useMutation({
-    mutationFn: (id: string) => apiRequest(`/api/skills/${id}`, {
-      method: "DELETE",
-    }),
+    mutationFn: (id: string) => apiRequest(`/api/skills/${id}`, "DELETE"),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/skills"] });
       toast({
@@ -164,7 +159,7 @@ export default function SkillsManagement() {
     },
   });
 
-  const filteredSkills = skills.filter((skill: Skill) => {
+  const filteredSkills = (skills as Skill[] || []).filter((skill: Skill) => {
     const matchesSearch = skill.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          skill.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = !selectedCategory || skill.category === selectedCategory;
