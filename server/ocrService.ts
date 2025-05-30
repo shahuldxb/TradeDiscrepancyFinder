@@ -19,7 +19,8 @@ interface OCRResult {
   error?: string;
 }
 
-export class OCRService {
+// Utility class that agents can call
+export class OCRUtility {
   
   async processDocument(filePath: string, originalName: string, mimeType: string, fileSize: number): Promise<OCRResult> {
     const startTime = Date.now();
@@ -398,4 +399,19 @@ export class OCRService {
   }
 }
 
-export const ocrService = new OCRService();
+// Create utility instance that autonomous agents can call
+export const ocrUtility = new OCRUtility();
+
+// Legacy export for backward compatibility (will be removed)
+export const ocrService = ocrUtility;
+
+// Function that SHOULD ONLY be called by autonomous agents
+export async function processDocument(data: any) {
+  // Only autonomous agents should call this - not external routes
+  return await ocrUtility.processDocument(
+    data.filePath || 'sample-document.pdf',
+    data.originalName || 'sample.pdf', 
+    data.mimeType || 'application/pdf',
+    data.fileSize || 1024
+  );
+}

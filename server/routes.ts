@@ -221,12 +221,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/agents/process", isAuthenticated, async (req, res) => {
     try {
+      // AI-Centric: Signal autonomous agents instead of calling them directly
+      const { autonomousAgentCoordinator } = await import('./autonomousAgents');
       const { documentSetId } = req.body;
-      const taskId = await processDocumentSetWithAgents(documentSetId);
-      res.json({ taskId, message: "Agent processing started" });
+      
+      await autonomousAgentCoordinator.updateEnvironment({
+        newDocumentSet: documentSetId,
+        processingRequested: true,
+        priority: 'user_requested'
+      });
+      
+      res.json({ 
+        message: "Autonomous agents notified - they will process when ready",
+        mode: "ai_centric",
+        documentSetId 
+      });
     } catch (error) {
-      console.error("Error starting agent processing:", error);
-      res.status(500).json({ message: "Failed to start agent processing" });
+      console.error("Error notifying autonomous agents:", error);
+      res.status(500).json({ message: "Failed to notify autonomous agents" });
     }
   });
 
