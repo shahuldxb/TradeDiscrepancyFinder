@@ -324,7 +324,7 @@ export default function MT700Lifecycle() {
                       </CardHeader>
                       <CardContent>
                         <div className="text-2xl font-bold">
-                          {documentsByNode[selectedNode.id]?.length || 0}
+                          {Array.isArray(documentsData) ? documentsData.length : 0}
                         </div>
                         <p className="text-xs text-gray-600">Required & Optional</p>
                       </CardContent>
@@ -336,7 +336,7 @@ export default function MT700Lifecycle() {
                       </CardHeader>
                       <CardContent>
                         <div className="text-2xl font-bold">
-                          {selectedNode.agentTasks.length}
+                          {Array.isArray(agentTasksData) ? agentTasksData.length : 0}
                         </div>
                         <p className="text-xs text-gray-600">Automated Tasks</p>
                       </CardContent>
@@ -363,7 +363,7 @@ export default function MT700Lifecycle() {
 
                 <TabsContent value="documents" className="space-y-4">
                   <div className="grid gap-4">
-                    {documentsByNode[selectedNode.id]?.map((doc) => (
+                    {(documentsData || []).map((doc: any) => (
                       <Card key={doc.id} className="p-4">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
@@ -399,25 +399,25 @@ export default function MT700Lifecycle() {
 
                 <TabsContent value="agents" className="space-y-4">
                   <div className="grid gap-4">
-                    {agentTasksByNode[selectedNode.id]?.map((task) => (
+                    {(agentTasksData || []).map((task: any) => (
                       <Card key={task.id} className="p-4">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center space-x-3">
                             <Bot className="w-5 h-5 text-blue-500" />
                             <div>
-                              <h4 className="font-medium">{task.description}</h4>
-                              <p className="text-sm text-gray-600">Agent: {task.agentId}</p>
+                              <h4 className="font-medium">{task.description || task.taskType}</h4>
+                              <p className="text-sm text-gray-600">Agent: {task.agentName || task.agentId}</p>
                             </div>
                           </div>
                           <div className="flex items-center space-x-2">
                             <Badge className={getAgentStatusColor(task.status)}>
                               {task.status}
                             </Badge>
-                            <span className="text-sm text-gray-600">{task.estimatedTime}</span>
+                            <span className="text-sm text-gray-600">{task.estimatedTime || 'Processing'}</span>
                           </div>
                         </div>
                         {task.status === 'running' && (
-                          <Progress value={task.progress} className="h-2" />
+                          <Progress value={task.progress || 50} className="h-2" />
                         )}
                       </Card>
                     ))}
