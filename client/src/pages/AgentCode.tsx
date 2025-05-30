@@ -1101,7 +1101,7 @@ if __name__ == "__main__":
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="code" className="w-full">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-5">
                   <TabsTrigger value="code">
                     <Code className="w-4 h-4 mr-2" />
                     Code
@@ -1109,6 +1109,10 @@ if __name__ == "__main__":
                   <TabsTrigger value="features">
                     <Eye className="w-4 h-4 mr-2" />
                     Features
+                  </TabsTrigger>
+                  <TabsTrigger value="simple-example">
+                    <FileText className="w-4 h-4 mr-2" />
+                    Simple Example
                   </TabsTrigger>
                   <TabsTrigger value="task-form">
                     <Plus className="w-4 h-4 mr-2" />
@@ -1269,6 +1273,299 @@ if __name__ == "__main__":
                         </div>
                       </TabsContent>
                     </Tabs>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="simple-example" className="mt-4">
+                  <div className="space-y-6">
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-6 rounded-lg">
+                      <h3 className="text-xl font-bold text-blue-900 dark:text-blue-100 mb-2">Simple Example: Invoice Analysis Workflow</h3>
+                      <p className="text-blue-800 dark:text-blue-200">A complete example showing one agent, one task, and one crew manager working together to analyze a commercial invoice.</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      {/* 1. The Agent */}
+                      <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border-2 border-green-200 dark:border-green-800">
+                        <h4 className="font-bold text-green-800 dark:text-green-200 mb-3">1. The Agent</h4>
+                        <div className="space-y-2">
+                          <div><strong>Name:</strong> Invoice Analyzer</div>
+                          <div><strong>Role:</strong> Document Parser</div>
+                          <div><strong>Goal:</strong> Extract data from invoices</div>
+                          <div><strong>Tools:</strong> PDF Parser, Data Extractor</div>
+                          <div><strong>Status:</strong> <span className="text-green-600">Ready</span></div>
+                        </div>
+                      </div>
+
+                      {/* 2. The Task */}
+                      <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border-2 border-yellow-200 dark:border-yellow-800">
+                        <h4 className="font-bold text-yellow-800 dark:text-yellow-200 mb-3">2. The Task</h4>
+                        <div className="space-y-2">
+                          <div><strong>Name:</strong> Analyze Invoice</div>
+                          <div><strong>Input:</strong> Commercial invoice PDF</div>
+                          <div><strong>Process:</strong> Extract amounts, dates, parties</div>
+                          <div><strong>Output:</strong> Structured JSON data</div>
+                          <div><strong>Priority:</strong> High</div>
+                        </div>
+                      </div>
+
+                      {/* 3. The Crew Manager */}
+                      <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg border-2 border-purple-200 dark:border-purple-800">
+                        <h4 className="font-bold text-purple-800 dark:text-purple-200 mb-3">3. The Crew Manager</h4>
+                        <div className="space-y-2">
+                          <div><strong>Name:</strong> Invoice Processing Crew</div>
+                          <div><strong>Manages:</strong> 1 Agent, 1 Task</div>
+                          <div><strong>Process:</strong> Sequential execution</div>
+                          <div><strong>Monitors:</strong> Progress, errors, results</div>
+                          <div><strong>Reports:</strong> Success/failure status</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg">
+                      <h4 className="font-bold mb-4">Complete Working Example:</h4>
+                      <div className="border rounded-lg overflow-hidden">
+                        <div className="bg-gray-800 text-gray-200 p-3">
+                          <span className="text-sm font-mono">invoice_analysis_example.py</span>
+                        </div>
+                        <ScrollArea className="h-[400px]">
+                          <pre className="p-4 text-sm font-mono bg-white dark:bg-gray-900">
+                            <code className="text-gray-800 dark:text-gray-200">
+{`# Simple Example: One Agent + One Task + One Crew Manager
+from crewai import Agent, Task, Crew, Process
+from crewai_tools import BaseTool
+import json
+
+# 1. THE AGENT - Invoice Analyzer
+class InvoiceParsingTool(BaseTool):
+    name = "invoice_parser"
+    description = "Extracts data from commercial invoices"
+    
+    def _run(self, invoice_path: str) -> dict:
+        # Simulated invoice parsing
+        return {
+            "invoice_number": "INV-2024-001",
+            "date": "2024-05-30",
+            "seller": "XYZ Exports Ltd.",
+            "buyer": "ABC Trading Co.",
+            "amount": "USD 95,000.00",
+            "currency": "USD",
+            "goods": "Electronic Components"
+        }
+
+# Create the Invoice Analyzer Agent
+invoice_agent = Agent(
+    role="Invoice Document Specialist",
+    goal="Extract accurate data from commercial invoices",
+    backstory="Expert at reading and parsing trade finance documents",
+    tools=[InvoiceParsingTool()],
+    verbose=True,
+    allow_delegation=False
+)
+
+# 2. THE TASK - Analyze Invoice
+analyze_invoice_task = Task(
+    description="Parse the uploaded commercial invoice and extract all key data points including amounts, dates, and party information",
+    expected_output="JSON object with extracted invoice data",
+    agent=invoice_agent
+)
+
+# 3. THE CREW MANAGER - Invoice Processing Crew
+invoice_crew = Crew(
+    agents=[invoice_agent],
+    tasks=[analyze_invoice_task],
+    process=Process.sequential,
+    verbose=True
+)
+
+# EXECUTION EXAMPLE
+if __name__ == "__main__":
+    # Input: Invoice file path
+    inputs = {
+        "invoice_path": "/uploads/commercial_invoice.pdf"
+    }
+    
+    # Crew manager orchestrates the work
+    print("🚀 Starting invoice analysis...")
+    result = invoice_crew.kickoff(inputs=inputs)
+    
+    print("✅ Analysis complete!")
+    print("📄 Extracted data:", result)
+    
+    # Expected output:
+    # {
+    #   "invoice_number": "INV-2024-001",
+    #   "date": "2024-05-30", 
+    #   "seller": "XYZ Exports Ltd.",
+    #   "buyer": "ABC Trading Co.",
+    #   "amount": "USD 95,000.00",
+    #   "currency": "USD",
+    #   "goods": "Electronic Components"
+    # }`}
+                            </code>
+                          </pre>
+                        </ScrollArea>
+                      </div>
+                    </div>
+
+                    <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                      <h4 className="font-bold text-blue-800 dark:text-blue-200 mb-3">How It Works:</h4>
+                      <div className="space-y-2 text-sm">
+                        <div><strong>Step 1:</strong> Upload a commercial invoice PDF</div>
+                        <div><strong>Step 2:</strong> Crew manager assigns the task to the Invoice Analyzer agent</div>
+                        <div><strong>Step 3:</strong> Agent uses its parsing tool to extract data from the invoice</div>
+                        <div><strong>Step 4:</strong> Agent returns structured JSON data with all key information</div>
+                        <div><strong>Step 5:</strong> Crew manager reports success and provides the results</div>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => copyToClipboard(`# Simple Example: One Agent + One Task + One Crew Manager
+from crewai import Agent, Task, Crew, Process
+from crewai_tools import BaseTool
+import json
+
+# 1. THE AGENT - Invoice Analyzer
+class InvoiceParsingTool(BaseTool):
+    name = "invoice_parser"
+    description = "Extracts data from commercial invoices"
+    
+    def _run(self, invoice_path: str) -> dict:
+        # Simulated invoice parsing
+        return {
+            "invoice_number": "INV-2024-001",
+            "date": "2024-05-30",
+            "seller": "XYZ Exports Ltd.",
+            "buyer": "ABC Trading Co.",
+            "amount": "USD 95,000.00",
+            "currency": "USD",
+            "goods": "Electronic Components"
+        }
+
+# Create the Invoice Analyzer Agent
+invoice_agent = Agent(
+    role="Invoice Document Specialist",
+    goal="Extract accurate data from commercial invoices",
+    backstory="Expert at reading and parsing trade finance documents",
+    tools=[InvoiceParsingTool()],
+    verbose=True,
+    allow_delegation=False
+)
+
+# 2. THE TASK - Analyze Invoice
+analyze_invoice_task = Task(
+    description="Parse the uploaded commercial invoice and extract all key data points including amounts, dates, and party information",
+    expected_output="JSON object with extracted invoice data",
+    agent=invoice_agent
+)
+
+# 3. THE CREW MANAGER - Invoice Processing Crew
+invoice_crew = Crew(
+    agents=[invoice_agent],
+    tasks=[analyze_invoice_task],
+    process=Process.sequential,
+    verbose=True
+)
+
+# EXECUTION EXAMPLE
+if __name__ == "__main__":
+    # Input: Invoice file path
+    inputs = {
+        "invoice_path": "/uploads/commercial_invoice.pdf"
+    }
+    
+    # Crew manager orchestrates the work
+    print("🚀 Starting invoice analysis...")
+    result = invoice_crew.kickoff(inputs=inputs)
+    
+    print("✅ Analysis complete!")
+    print("📄 Extracted data:", result)`)}
+                      >
+                        <Copy className="w-4 h-4 mr-2" />
+                        Copy Example Code
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const code = `# Simple Example: One Agent + One Task + One Crew Manager
+from crewai import Agent, Task, Crew, Process
+from crewai_tools import BaseTool
+import json
+
+# 1. THE AGENT - Invoice Analyzer
+class InvoiceParsingTool(BaseTool):
+    name = "invoice_parser"
+    description = "Extracts data from commercial invoices"
+    
+    def _run(self, invoice_path: str) -> dict:
+        # Simulated invoice parsing
+        return {
+            "invoice_number": "INV-2024-001",
+            "date": "2024-05-30",
+            "seller": "XYZ Exports Ltd.",
+            "buyer": "ABC Trading Co.",
+            "amount": "USD 95,000.00",
+            "currency": "USD",
+            "goods": "Electronic Components"
+        }
+
+# Create the Invoice Analyzer Agent
+invoice_agent = Agent(
+    role="Invoice Document Specialist",
+    goal="Extract accurate data from commercial invoices",
+    backstory="Expert at reading and parsing trade finance documents",
+    tools=[InvoiceParsingTool()],
+    verbose=True,
+    allow_delegation=False
+)
+
+# 2. THE TASK - Analyze Invoice
+analyze_invoice_task = Task(
+    description="Parse the uploaded commercial invoice and extract all key data points including amounts, dates, and party information",
+    expected_output="JSON object with extracted invoice data",
+    agent=invoice_agent
+)
+
+# 3. THE CREW MANAGER - Invoice Processing Crew
+invoice_crew = Crew(
+    agents=[invoice_agent],
+    tasks=[analyze_invoice_task],
+    process=Process.sequential,
+    verbose=True
+)
+
+# EXECUTION EXAMPLE
+if __name__ == "__main__":
+    # Input: Invoice file path
+    inputs = {
+        "invoice_path": "/uploads/commercial_invoice.pdf"
+    }
+    
+    # Crew manager orchestrates the work
+    print("🚀 Starting invoice analysis...")
+    result = invoice_crew.kickoff(inputs=inputs)
+    
+    print("✅ Analysis complete!")
+    print("📄 Extracted data:", result)`;
+                          const blob = new Blob([code], { type: 'text/plain' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = 'invoice_analysis_example.py';
+                          document.body.appendChild(a);
+                          a.click();
+                          document.body.removeChild(a);
+                          URL.revokeObjectURL(url);
+                          toast({ title: "Download started", description: "invoice_analysis_example.py has been downloaded." });
+                        }}
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Download Example
+                      </Button>
+                    </div>
                   </div>
                 </TabsContent>
                 
