@@ -386,21 +386,53 @@ class CrewAIOrchestrator {
   }
 
   private async parseMTMessage(document: any): Promise<any> {
-    // Simulate MT message parsing
-    return {
-      documentId: document.id,
-      messageType: 'MT700',
-      isValid: true,
-      fields: {
-        creditNumber: 'LC123456',
-        amount: '100000.00',
-        currency: 'USD',
-        expiryDate: '2024-12-31',
-        beneficiary: 'ABC Company Ltd.',
-        applicant: 'XYZ Corporation',
-      },
-      validationErrors: [],
-    };
+    try {
+      // Connect to real Azure SQL SWIFT data
+      const { azureDataService } = await import('./azureDataService');
+      
+      // Determine message type from document
+      const messageType = document.fileName?.includes('MT700') ? 'MT700' : 
+                         document.fileName?.includes('MT701') ? 'MT701' : 'MT700';
+      
+      // Get real SWIFT field definitions from Azure SQL
+      const swiftFields = await azureDataService.getSwiftFieldsByMessageType(messageType);
+      
+      // Parse actual document content for SWIFT fields
+      const extractedFields: any = {};
+      const validationErrors: string[] = [];
+      
+      if (document.content && typeof document.content === 'string') {
+        // Parse SWIFT message format
+        for (const fieldDef of swiftFields) {
+          const pattern = new RegExp(`:${fieldDef.field_code}:(.*?)(?=:|$)`, 'g');
+          const match = pattern.exec(document.content);
+          if (match) {
+            extractedFields[fieldDef.field_code] = match[1].trim();
+          } else if (fieldDef.is_mandatory) {
+            validationErrors.push(`Missing mandatory field ${fieldDef.field_code}: ${fieldDef.field_name}`);
+          }
+        }
+      }
+
+      return {
+        documentId: document.id,
+        messageType,
+        isValid: validationErrors.length === 0,
+        fields: extractedFields,
+        validationErrors,
+        fieldsFound: Object.keys(extractedFields).length,
+        totalFields: swiftFields.length
+      };
+    } catch (error) {
+      console.error('Error parsing MT message with Azure SQL:', error);
+      return {
+        documentId: document.id,
+        messageType: 'Unknown',
+        isValid: false,
+        fields: {},
+        validationErrors: ['Failed to connect to SWIFT field definitions'],
+      };
+    }
   }
 
   private async validateLCDocument(document: any): Promise<any> {
@@ -452,21 +484,84 @@ class CrewAIOrchestrator {
   }
 
   private async applyUCPRules(discrepancy: any): Promise<any> {
-    // Simulate UCP rule application
-    const ucpRules = {
-      'amount': { reference: 'Article 18b', severity: 'critical' },
-      'date': { reference: 'Article 14c', severity: 'high' },
-      'description': { reference: 'Article 14d', severity: 'medium' },
-    };
+    try {
+      // Connect to real Azure SQL UCP data
+      const { azureDataService } = await import('./azureDataService');
+      
+      // Get real UCP rules from Azure SQL
+      const ucpRules = await azureDataService.getUCPRules();
+      
+      // Find applicable rule based on discrepancy type and field
+      const applicableRule = ucpRules.find(rule => 
+        rule.rule_text.toLowerCase().includes(discrepancy.fieldName?.toLowerCase()) ||
+        rule.rule_title.toLowerCase().includes(discrepancy.type?.toLowerCase())
+      );
+      
+      if (applicableRule) {
+        // Create discrepancy record in Azure SQL
+        await azureDataService.createDiscrepancy({
+          document_set_id: discrepancy.documentSetId,
+          discrepancy_type: discrepancy.type,
+          field_name: discrepancy.fieldName,
+          severity: this.determineSeverity(applicableRule.rule_number),
+          ucp_reference: `Article ${applicableRule.article_id}`,
+          description: discrepancy.description,
+          rule_explanation: applicableRule.rule_text,
+          advice: this.generateAdvice(applicableRule)
+        });
 
-    const rule = ucpRules[discrepancy.fieldName as keyof typeof ucpRules];
-    
-    return {
-      ucpReference: rule?.reference,
-      updatedSeverity: rule?.severity,
-      explanation: rule ? `UCP 600 ${rule.reference} requires field consistency` : undefined,
-      advice: rule ? 'Review document and ensure compliance with UCP 600 standards' : undefined,
-    };
+        return {
+          ucpReference: `Article ${applicableRule.article_id}`,
+          ruleNumber: applicableRule.rule_number,
+          updatedSeverity: this.determineSeverity(applicableRule.rule_number),
+          explanation: applicableRule.rule_text,
+          advice: this.generateAdvice(applicableRule),
+        };
+      }
+      
+      return {
+        ucpReference: 'No specific UCP rule found',
+        explanation: 'General UCP 600 compliance required',
+        advice: 'Review document against UCP 600 standards'
+      };
+    } catch (error) {
+      console.error('Error applying UCP rules with Azure SQL:', error);
+      return {
+        ucpReference: 'Error accessing UCP rules',
+        explanation: 'Failed to connect to UCP rule database',
+        advice: 'Manual review required'
+      };
+    }
+  }
+
+  private determineSeverity(ruleNumber: string): 'critical' | 'high' | 'medium' | 'low' {
+    // Critical rules (payment, amount, validity)
+    if (ruleNumber.includes('18') || ruleNumber.includes('7') || ruleNumber.includes('6')) {
+      return 'critical';
+    }
+    // High priority rules (documents, presentation)
+    if (ruleNumber.includes('14') || ruleNumber.includes('20') || ruleNumber.includes('16')) {
+      return 'high';
+    }
+    // Medium priority rules (general compliance)
+    if (ruleNumber.includes('4') || ruleNumber.includes('5')) {
+      return 'medium';
+    }
+    return 'low';
+  }
+
+  private generateAdvice(rule: any): string {
+    const ruleText = rule.rule_text || '';
+    if (ruleText.includes('payment') || ruleText.includes('amount')) {
+      return 'Verify payment instructions and amounts match across all documents';
+    }
+    if (ruleText.includes('document') || ruleText.includes('presentation')) {
+      return 'Ensure all required documents are present and properly formatted';
+    }
+    if (ruleText.includes('date') || ruleText.includes('expiry')) {
+      return 'Check all dates for consistency and validity periods';
+    }
+    return 'Review against UCP 600 requirements and ensure compliance';
   }
 
   private generateRecommendation(discrepancies: any[]): string {
