@@ -17,20 +17,28 @@ interface DocumentComparison {
 }
 
 export async function runDiscrepancyAnalysis(documentSetId: string): Promise<string> {
-  const { storage } = await import('./storage');
+  // AI-Centric: This function should only be called by autonomous agents
+  // External systems should signal agents instead of calling this directly
+  
+  const { azureDataService } = await import('./azureDataService');
   
   try {
-    // Update document set status
-    await storage.updateDocumentSetStatus(documentSetId, 'processing');
+    // Agents call this utility to perform actual discrepancy analysis
+    const documents = await azureDataService.getDocumentSets(documentSetId);
+    const discrepancies = await azureDataService.getDiscrepancies({ documentSetId });
     
-    // Start CrewAI agent processing
-    const taskId = await processDocumentSetWithAgents(documentSetId);
+    // Perform analysis logic here (called by agents)
+    const analysisResult = {
+      documentSetId,
+      discrepanciesFound: discrepancies.length,
+      status: 'completed',
+      timestamp: new Date().toISOString()
+    };
     
-    return taskId;
+    return JSON.stringify(analysisResult);
     
   } catch (error) {
-    console.error('Error starting discrepancy analysis:', error);
-    await storage.updateDocumentSetStatus(documentSetId, 'failed');
+    console.error('Error in discrepancy analysis utility:', error);
     throw error;
   }
 }

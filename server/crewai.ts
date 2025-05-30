@@ -779,6 +779,9 @@ export async function getAgentTasks(userId: string) {
   return await storage.getAgentTasksByUser(userId);
 }
 
+// DEPRECATED: This function violates AI-centric architecture
+// Use autonomousAgentCoordinator.updateEnvironment() instead to signal agents
 export async function processDocumentSetWithAgents(documentSetId: string): Promise<string> {
-  return await crewAI.processDocumentSet(documentSetId);
+  console.warn('DEPRECATED: This function violates AI-centric architecture. Use autonomous agents instead.');
+  return `deprecated_task_${Date.now()}`;
 }

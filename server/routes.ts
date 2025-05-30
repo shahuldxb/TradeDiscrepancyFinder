@@ -211,8 +211,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // CrewAI Agent routes
   app.get("/api/agents/status", isAuthenticated, async (req, res) => {
     try {
-      const agents = await crewAI.getAgentStatus();
-      res.json(agents);
+      // AI-Centric: Get status from autonomous agents directly
+      const { autonomousAgentCoordinator } = await import('./autonomousAgents');
+      const autonomousAgents = await autonomousAgentCoordinator.getAgentStatus();
+      
+      // Also get legacy agent data for comparison
+      const legacyAgents = await crewAI.getAgentStatus();
+      
+      res.json({
+        agents: autonomousAgents,
+        legacy_agents: legacyAgents,
+        mode: "ai_centric",
+        note: "Autonomous agents operate independently"
+      });
     } catch (error) {
       console.error("Error fetching agent status:", error);
       res.status(500).json({ message: "Failed to fetch agent status" });
@@ -242,24 +253,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Test agent demo endpoint
+  // AI-Centric Demo - Signal autonomous agents
   app.post("/api/agents/demo", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
+      const { autonomousAgentCoordinator } = await import('./autonomousAgents');
       
-      // Create a demo document set
-      const demoDocumentSet = await storage.createDocumentSet({
-        setName: "Demo Processing - Agent Test",
-        userId
+      // Create a demo document set in Azure
+      const { azureDataService } = await import('./azureDataService');
+      const demoDocumentSet = await azureDataService.createDocumentSet({
+        setName: "Demo Processing - Autonomous Agent Test",
+        user_id: userId
       });
 
-      // Start agent workflow immediately
-      crewAI.startDemoWorkflow(demoDocumentSet.id);
+      // Signal autonomous agents instead of calling them
+      await autonomousAgentCoordinator.updateEnvironment({
+        demoMode: true,
+        documentSetId: demoDocumentSet.id,
+        processingRequested: true,
+        priority: 'demo'
+      });
       
       res.json({ 
         success: true,
         documentSetId: demoDocumentSet.id,
-        message: "Demo processing started! Watch the agents change status from idle to processing."
+        message: "Autonomous agents notified for demo processing",
+        mode: "ai_centric"
       });
     } catch (error) {
       console.error("Error starting demo processing:", error);
@@ -1094,12 +1113,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { nodeId } = req.params;
       const userId = req.user?.claims?.sub;
-      const { crewAI } = await import('./crewai');
-      const result = await crewAI.processLifecycleNode(nodeId, userId);
-      res.json(result);
+      const { autonomousAgentCoordinator } = await import('./autonomousAgents');
+      
+      // AI-Centric: Signal autonomous agents instead of calling lifecycle processing directly
+      await autonomousAgentCoordinator.updateEnvironment({
+        lifecycleProcessingRequested: true,
+        nodeId,
+        userId,
+        priority: 'lifecycle_processing'
+      });
+      
+      res.json({
+        message: 'Autonomous agents notified for lifecycle processing',
+        nodeId,
+        mode: 'ai_centric_lifecycle'
+      });
     } catch (error) {
-      console.error('Error processing lifecycle node:', error);
-      res.status(500).json({ error: 'Failed to process node' });
+      console.error('Error notifying agents for lifecycle processing:', error);
+      res.status(500).json({ error: 'Failed to notify agents' });
     }
   });
 
