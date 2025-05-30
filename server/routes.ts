@@ -1009,9 +1009,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // MT700 Lifecycle Management Routes
   app.get('/api/mt700-lifecycle', isAuthenticated, async (req, res) => {
     try {
-      // Get lifecycle data from Azure SQL with real SWIFT message flow
-      const { azureDataService } = await import('./azureDataService');
-      const lifecycleData = await azureDataService.getMT700LifecycleData();
+      // Get lifecycle data from Azure SQL with enhanced agent system
+      const { enhancedAzureAgentService } = await import('./enhancedAzureAgentService');
+      const lifecycleData = await enhancedAzureAgentService.getMT700LifecycleData();
       res.json(lifecycleData);
     } catch (error) {
       console.error('Error fetching MT700 lifecycle data:', error);
@@ -1034,8 +1034,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/mt700-lifecycle/agents/:nodeId', isAuthenticated, async (req, res) => {
     try {
       const { nodeId } = req.params;
-      const { azureAgentService } = await import('./azureAgentService');
-      const agentTasks = await azureAgentService.getLifecycleAgentTasks(nodeId);
+      const { enhancedAzureAgentService } = await import('./enhancedAzureAgentService');
+      const agentTasks = await enhancedAzureAgentService.getLifecycleAgentTasks(nodeId);
       res.json(agentTasks);
     } catch (error) {
       console.error('Error fetching agent tasks:', error);
@@ -1053,6 +1053,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error processing lifecycle node:', error);
       res.status(500).json({ error: 'Failed to process node' });
+    }
+  });
+
+  // Enhanced Agent Management Routes - Based on Field Classification
+  
+  // Custom Agents API
+  app.get('/api/enhanced-agents', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const { enhancedAzureAgentService } = await import('./enhancedAzureAgentService');
+      const agents = await enhancedAzureAgentService.getCustomAgents(userId);
+      res.json(agents);
+    } catch (error) {
+      console.error('Error fetching custom agents:', error);
+      res.status(500).json({ error: 'Failed to fetch agents' });
+    }
+  });
+
+  app.post('/api/enhanced-agents', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const agentData = { ...req.body, user_id: userId };
+      const { enhancedAzureAgentService } = await import('./enhancedAzureAgentService');
+      const result = await enhancedAzureAgentService.createCustomAgent(agentData);
+      res.json(result);
+    } catch (error) {
+      console.error('Error creating custom agent:', error);
+      res.status(500).json({ error: 'Failed to create agent' });
+    }
+  });
+
+  // Custom Tasks API
+  app.get('/api/enhanced-tasks', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const { enhancedAzureAgentService } = await import('./enhancedAzureAgentService');
+      const tasks = await enhancedAzureAgentService.getCustomTasks(userId);
+      res.json(tasks);
+    } catch (error) {
+      console.error('Error fetching custom tasks:', error);
+      res.status(500).json({ error: 'Failed to fetch tasks' });
+    }
+  });
+
+  app.post('/api/enhanced-tasks', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const taskData = { ...req.body, user_id: userId };
+      const { enhancedAzureAgentService } = await import('./enhancedAzureAgentService');
+      const result = await enhancedAzureAgentService.createCustomTask(taskData);
+      res.json(result);
+    } catch (error) {
+      console.error('Error creating custom task:', error);
+      res.status(500).json({ error: 'Failed to create task' });
+    }
+  });
+
+  // Custom Crews API
+  app.get('/api/enhanced-crews', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const { enhancedAzureAgentService } = await import('./enhancedAzureAgentService');
+      const crews = await enhancedAzureAgentService.getCustomCrews(userId);
+      res.json(crews);
+    } catch (error) {
+      console.error('Error fetching custom crews:', error);
+      res.status(500).json({ error: 'Failed to fetch crews' });
+    }
+  });
+
+  app.post('/api/enhanced-crews', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const crewData = { ...req.body, user_id: userId };
+      const { enhancedAzureAgentService } = await import('./enhancedAzureAgentService');
+      const result = await enhancedAzureAgentService.createCustomCrew(crewData);
+      res.json(result);
+    } catch (error) {
+      console.error('Error creating custom crew:', error);
+      res.status(500).json({ error: 'Failed to create crew' });
     }
   });
 
