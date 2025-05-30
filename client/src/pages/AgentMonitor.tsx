@@ -9,10 +9,18 @@ import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Bot, Activity, Clock, CheckCircle, AlertTriangle, Settings, Play, Pause, RotateCcw } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { useState } from "react";
 
 export default function AgentMonitor() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [selectedAgent, setSelectedAgent] = useState<any>(null);
+  const [configOpen, setConfigOpen] = useState(false);
 
   const { data: agentStatus, isLoading: agentLoading } = useQuery({
     queryKey: ["/api/agents/status"],
@@ -237,10 +245,110 @@ export default function AgentMonitor() {
                         <Play className="h-3 w-3 mr-1" />
                         Start
                       </Button>
-                      <Button variant="outline" size="sm" className="flex-1">
-                        <Settings className="h-3 w-3 mr-1" />
-                        Config
-                      </Button>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" size="sm" className="flex-1">
+                            <Settings className="h-3 w-3 mr-1" />
+                            Config
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-2xl">
+                          <DialogHeader>
+                            <DialogTitle>Configure {agent.name}</DialogTitle>
+                            <DialogDescription>
+                              Adjust settings and parameters for the {agent.role}
+                            </DialogDescription>
+                          </DialogHeader>
+                          
+                          <div className="space-y-6">
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="agent-name">Agent Name</Label>
+                                <Input 
+                                  id="agent-name" 
+                                  defaultValue={agent.name}
+                                  placeholder="Enter agent name"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="agent-role">Role</Label>
+                                <Input 
+                                  id="agent-role" 
+                                  defaultValue={agent.role}
+                                  placeholder="Enter agent role"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="agent-goal">Goal</Label>
+                              <Textarea 
+                                id="agent-goal" 
+                                defaultValue={agent.goal}
+                                placeholder="Define the agent's primary objective"
+                                rows={3}
+                              />
+                            </div>
+
+                            <div className="space-y-4">
+                              <h4 className="font-medium">Processing Settings</h4>
+                              <div className="grid grid-cols-2 gap-4">
+                                <div className="flex items-center space-x-2">
+                                  <Switch id="auto-retry" defaultChecked />
+                                  <Label htmlFor="auto-retry">Auto Retry on Failure</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <Switch id="parallel-processing" />
+                                  <Label htmlFor="parallel-processing">Parallel Processing</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <Switch id="detailed-logging" defaultChecked />
+                                  <Label htmlFor="detailed-logging">Detailed Logging</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <Switch id="real-time-updates" defaultChecked />
+                                  <Label htmlFor="real-time-updates">Real-time Updates</Label>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="timeout">Timeout (seconds)</Label>
+                                <Input 
+                                  id="timeout" 
+                                  type="number" 
+                                  defaultValue="300"
+                                  placeholder="300"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="max-retries">Max Retries</Label>
+                                <Input 
+                                  id="max-retries" 
+                                  type="number" 
+                                  defaultValue="3"
+                                  placeholder="3"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="flex justify-end space-x-2">
+                              <DialogTrigger asChild>
+                                <Button variant="outline">Cancel</Button>
+                              </DialogTrigger>
+                              <Button onClick={() => {
+                                toast({
+                                  title: "Configuration Saved",
+                                  description: `Settings for ${agent.name} have been updated successfully.`,
+                                });
+                              }}>
+                                Save Configuration
+                              </Button>
+                            </div>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
                     </div>
                   </div>
                 </CardContent>
