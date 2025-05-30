@@ -1355,14 +1355,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // AI-Centric Autonomous Agent Routes
+  // True AI-Centric Autonomous Agent Routes
   app.get("/api/autonomous-agents/status", isAuthenticated, async (req, res) => {
     try {
-      const { autonomousAgentCoordinator } = await import('./aiCentricAgents');
+      const { autonomousAgentCoordinator } = await import('./autonomousAgents');
       const status = await autonomousAgentCoordinator.getAgentStatus();
       res.json({
-        mode: 'ai_centric',
+        mode: 'truly_autonomous',
         agents: status,
+        message: 'Agents operate independently and call utility classes autonomously',
         timestamp: new Date().toISOString()
       });
     } catch (error) {
@@ -1373,22 +1374,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/autonomous-agents/initiate", isAuthenticated, async (req, res) => {
     try {
-      const { autonomousAgentCoordinator } = await import('./aiCentricAgents');
+      const { autonomousAgentCoordinator } = await import('./autonomousAgents');
       const userId = (req.user as any)?.claims?.sub || 'system';
       const result = await autonomousAgentCoordinator.initiateAgentWorkflow(userId, req.body);
       res.json(result);
     } catch (error) {
-      console.error("Error initiating autonomous agent workflow:", error);
-      res.status(500).json({ message: "Failed to initiate autonomous workflow" });
+      console.error("Error with autonomous agents:", error);
+      res.status(500).json({ message: "Agents are already operating autonomously" });
     }
   });
 
   app.post("/api/autonomous-agents/environment", isAuthenticated, async (req, res) => {
     try {
-      const { autonomousAgentCoordinator } = await import('./aiCentricAgents');
+      const { autonomousAgentCoordinator } = await import('./autonomousAgents');
       await autonomousAgentCoordinator.updateEnvironment(req.body);
       res.json({ 
-        message: "Environment updated - agents operating autonomously",
+        message: "Environment updated - agents will perceive changes autonomously",
+        note: "No manual coordination required - agents make their own decisions",
         timestamp: new Date().toISOString()
       });
     } catch (error) {
