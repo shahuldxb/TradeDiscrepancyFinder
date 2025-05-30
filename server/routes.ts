@@ -200,7 +200,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Create a demo document set
       const demoDocumentSet = await storage.createDocumentSet({
-        name: "Demo Processing - Agent Test",
+        setName: "Demo Processing - Agent Test",
         description: "Demonstration of agent processing capabilities",
         userId
       });

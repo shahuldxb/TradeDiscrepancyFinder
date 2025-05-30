@@ -172,6 +172,28 @@ export class DatabaseStorage implements IStorage {
     return task;
   }
 
+  async updateAgentTask(taskId: number, status: string, outputData?: any, errorMessage?: string): Promise<void> {
+    await db
+      .update(agentTasks)
+      .set({
+        status,
+        outputData,
+        errorMessage,
+        completedAt: status === 'completed' || status === 'failed' ? new Date() : undefined,
+      })
+      .where(eq(agentTasks.id, taskId));
+  }
+
+  async updateDocumentSetStatus(documentSetId: string, status: string): Promise<void> {
+    await db
+      .update(documentSets)
+      .set({
+        status,
+        updatedAt: new Date(),
+      })
+      .where(eq(documentSets.id, documentSetId));
+  }
+
   // Custom Agent Designer operations
   async getCustomAgentsByUser(userId: string): Promise<CustomAgent[]> {
     return await db.select().from(customAgents).where(eq(customAgents.userId, userId));
