@@ -623,9 +623,10 @@ export default function UCPRules() {
                             Article {article?.articleNumber}
                           </Badge>
                         </TableCell>
-                        <TableCell className="max-w-md text-sm">
-                          {rule.ruleText?.substring(0, 150)}
-                          {rule.ruleText?.length > 150 ? "..." : ""}
+                        <TableCell className="text-sm">
+                          <div className="whitespace-pre-wrap max-w-2xl">
+                            {rule.ruleText}
+                          </div>
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-col gap-1">
@@ -709,9 +710,10 @@ export default function UCPRules() {
                           Priority {mapping.validationPriority}
                         </Badge>
                       </TableCell>
-                      <TableCell className="max-w-md text-sm">
-                        {mapping.ruleText?.substring(0, 100)}
-                        {mapping.ruleText?.length > 100 ? "..." : ""}
+                      <TableCell className="text-sm">
+                        <div className="whitespace-pre-wrap max-w-2xl">
+                          {mapping.ruleText}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -763,9 +765,10 @@ export default function UCPRules() {
                           Priority {mapping.validationPriority}
                         </Badge>
                       </TableCell>
-                      <TableCell className="max-w-md text-sm">
-                        {mapping.ruleText?.substring(0, 100)}
-                        {mapping.ruleText?.length > 100 ? "..." : ""}
+                      <TableCell className="text-sm">
+                        <div className="whitespace-pre-wrap max-w-2xl">
+                          {mapping.ruleText}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
