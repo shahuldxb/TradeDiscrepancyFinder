@@ -45,7 +45,7 @@ export class OCRService {
 
       if (mimeType.startsWith('image/')) {
         // Process image files
-        const result = await this.processImage(filePath);
+        const result = await this.processImage(filePath, mimeType);
         extractedText = result.text;
         confidence = result.confidence;
       } else if (mimeType === 'application/pdf') {
@@ -103,12 +103,14 @@ export class OCRService {
     }
   }
 
-  private async processImage(imagePath: string): Promise<{ text: string; confidence: number }> {
+  private async processImage(imagePath: string, originalMimeType?: string): Promise<{ text: string; confidence: number }> {
     try {
       // Convert image to base64
       const imageBuffer = fs.readFileSync(imagePath);
       const base64Image = imageBuffer.toString('base64');
-      const mimeType = this.getMimeTypeFromExtension(imagePath);
+      const mimeType = originalMimeType ? this.getMimeTypeFromFile(imagePath, originalMimeType) : this.getMimeTypeFromExtension(imagePath);
+
+      console.log('Processing image with MIME type:', mimeType);
 
       // Use Gemini Pro Vision model
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
@@ -208,7 +210,16 @@ export class OCRService {
       '.gif': 'image/gif',
       '.pdf': 'application/pdf'
     };
-    return mimeTypes[ext] || 'application/octet-stream';
+    return mimeTypes[ext] || 'image/jpeg'; // Default to jpeg instead of octet-stream
+  }
+
+  private getMimeTypeFromFile(filePath: string, originalMimeType: string): string {
+    // Use the original MIME type from multer if available and valid
+    if (originalMimeType && originalMimeType !== 'application/octet-stream') {
+      return originalMimeType;
+    }
+    // Fall back to extension-based detection
+    return this.getMimeTypeFromExtension(filePath);
   }
 
   private generateId(): string {
