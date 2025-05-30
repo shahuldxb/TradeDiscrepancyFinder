@@ -240,52 +240,73 @@ export class AzureDataService {
     try {
       const pool = await connectToAzureSQL();
       
-      // Get actual MT700 message data from Azure SQL
+      // Get actual MT700 message data from Azure SQL using correct schema
       const mt700Messages = await pool.request().query(`
         SELECT 
-          mt.message_type_code,
+          mt.message_type,
           mt.description,
           mt.category,
-          COUNT(ds.id) as active_transactions,
-          AVG(CASE WHEN ds.status = 'completed' THEN 100 ELSE 50 END) as avg_progress
-        FROM swift_message_types mt
-        LEFT JOIN document_sets ds ON ds.message_type = mt.message_type_code
-        WHERE mt.message_type_code = 'MT700'
-        GROUP BY mt.message_type_code, mt.description, mt.category
+          COUNT(DISTINCT mi.id) as active_transactions
+        FROM swift.message_types mt
+        LEFT JOIN swift.message_instances mi ON mi.message_type = mt.message_type
+        WHERE mt.message_type = 'MT700'
+        GROUP BY mt.message_type, mt.description, mt.category
       `);
 
-      // Get lifecycle stages from actual SWIFT message flow
+      // Get lifecycle stages from actual SWIFT message dependencies
       const lifecycleStages = await pool.request().query(`
         SELECT DISTINCT
-          smr.from_message_type,
-          smr.to_message_type,
-          smr.relationship_type,
-          smr.sequence_order,
-          smt.description as stage_description
-        FROM swift_message_relationships smr
-        JOIN swift_message_types smt ON smt.message_type_code = smr.to_message_type
-        WHERE smr.from_message_type = 'MT700' OR smr.to_message_type = 'MT700'
-        ORDER BY smr.sequence_order
+          md.parent_message_type,
+          md.child_message_type,
+          md.dependency_type,
+          md.sequence_order,
+          mt.description as stage_description
+        FROM swift.message_dependencies md
+        JOIN swift.message_types mt ON mt.message_type = md.child_message_type
+        WHERE md.parent_message_type = 'MT700' OR md.child_message_type = 'MT700'
+        ORDER BY md.sequence_order
       `);
 
       // Get document requirements from actual UCP rules
       const documentRequirements = await pool.request().query(`
         SELECT 
-          ur.rule_number,
-          ur.rule_text,
-          ur.document_type,
-          ur.mandatory_fields,
-          COUNT(d.id) as documents_processed
-        FROM ucp_rules ur
-        LEFT JOIN discrepancies d ON d.ucp_rule_id = ur.id
-        WHERE ur.document_type IS NOT NULL
-        GROUP BY ur.rule_number, ur.rule_text, ur.document_type, ur.mandatory_fields
+          ur.RuleNumber,
+          ur.RuleText,
+          ur.DocumentType,
+          ur.Severity,
+          COUNT(rdm.DocumentTypeID) as documents_mapped
+        FROM UCPRules ur
+        LEFT JOIN RuleDocumentMapping rdm ON rdm.RuleID = ur.RuleID
+        WHERE ur.DocumentType IS NOT NULL
+        GROUP BY ur.RuleNumber, ur.RuleText, ur.DocumentType, ur.Severity
+      `);
+
+      // Get actual documentary credits data
+      const documentaryCredits = await pool.request().query(`
+        SELECT 
+          dc.CreditID,
+          dc.CreditNumber,
+          dc.CreditType,
+          dc.Status,
+          dc.Amount,
+          dc.Currency,
+          dc.ExpiryDate,
+          dc.CreatedDate
+        FROM DocumentaryCredits dc
+        WHERE dc.CreditType LIKE '%MT700%' OR dc.CreditType = 'Letter of Credit'
+        ORDER BY dc.CreatedDate DESC
       `);
 
       return {
-        messageType: mt700Messages.recordset[0] || {},
+        messageType: mt700Messages.recordset[0] || {
+          message_type: 'MT700',
+          description: 'Issue of a Documentary Credit',
+          category: 'Documentary Credits and Guarantees',
+          active_transactions: 0
+        },
         lifecycleStages: lifecycleStages.recordset,
         documentRequirements: documentRequirements.recordset,
+        documentaryCredits: documentaryCredits.recordset,
         lastUpdated: new Date()
       };
     } catch (error) {
@@ -298,40 +319,91 @@ export class AzureDataService {
     try {
       const pool = await connectToAzureSQL();
       
-      // Get actual documents for this lifecycle stage from Azure SQL
+      // Get actual documents from the MasterDocuments and DocumentRequirements tables
       const documents = await pool.request()
         .input('nodeId', nodeId)
         .query(`
           SELECT 
-            ds.id,
-            ds.name,
-            ds.file_type,
-            ds.status,
-            ds.created_at,
-            ds.updated_at,
-            ds.validation_status,
-            ur.document_type as required_type,
-            ur.mandatory_fields
-          FROM document_sets ds
-          LEFT JOIN ucp_rules ur ON ur.document_type = ds.file_type
-          WHERE ds.lifecycle_stage = @nodeId OR ds.status = 'processing'
-          ORDER BY ds.created_at DESC
+            md.DocumentID,
+            md.DocumentName,
+            md.DocumentType,
+            md.Status,
+            md.CreatedDate,
+            md.UpdatedDate,
+            dr.RequirementType,
+            dr.IsMandatory,
+            ur.DocumentType as UCPDocumentType,
+            ur.RuleText
+          FROM MasterDocuments md
+          LEFT JOIN DocumentRequirements dr ON dr.DocumentType = md.DocumentType
+          LEFT JOIN UCPRules ur ON ur.DocumentType = md.DocumentType
+          WHERE md.Status IS NOT NULL
+          ORDER BY md.CreatedDate DESC
         `);
 
-      return documents.recordset.map(doc => ({
-        id: doc.id.toString(),
-        name: doc.name,
-        type: doc.file_type,
-        status: doc.validation_status || doc.status,
-        required: !!doc.required_type,
-        uploadedAt: doc.created_at,
-        validatedBy: doc.validation_status === 'validated' ? 'Document Validator Agent' : null,
-        mandatoryFields: doc.mandatory_fields ? JSON.parse(doc.mandatory_fields) : []
+      // Get actual documentary credits documents
+      const creditDocuments = await pool.request()
+        .input('nodeId', nodeId)
+        .query(`
+          SELECT 
+            dc.CreditID,
+            dc.CreditNumber,
+            dc.CreditType,
+            dc.Status,
+            dc.Amount,
+            dc.Currency,
+            dc.ExpiryDate,
+            dc.CreatedDate
+          FROM DocumentaryCredits dc
+          WHERE dc.Status IN ('Active', 'Processing', 'Pending')
+          ORDER BY dc.CreatedDate DESC
+        `);
+
+      const documentResults = documents.recordset.map(doc => ({
+        id: doc.DocumentID?.toString() || 'doc_' + Date.now(),
+        name: doc.DocumentName || 'Document',
+        type: doc.DocumentType || 'general',
+        status: this.mapDocumentStatus(doc.Status),
+        required: doc.IsMandatory === 1 || doc.RequirementType === 'Mandatory',
+        uploadedAt: doc.CreatedDate,
+        validatedBy: doc.Status === 'Validated' ? 'Document Validator Agent' : null,
+        ucpRule: doc.RuleText || null
       }));
+
+      const creditResults = creditDocuments.recordset.map(credit => ({
+        id: 'credit_' + credit.CreditID,
+        name: credit.CreditNumber || `LC-${credit.CreditID}`,
+        type: 'letter_of_credit',
+        status: this.mapDocumentStatus(credit.Status),
+        required: true,
+        uploadedAt: credit.CreatedDate,
+        validatedBy: credit.Status === 'Active' ? 'Credit Officer Agent' : null,
+        amount: credit.Amount,
+        currency: credit.Currency,
+        expiryDate: credit.ExpiryDate
+      }));
+
+      return [...documentResults, ...creditResults];
     } catch (error) {
       console.error('Error fetching lifecycle documents from Azure:', error);
       throw error;
     }
+  }
+
+  private mapDocumentStatus(status: string): string {
+    if (!status) return 'missing';
+    
+    const statusMap: { [key: string]: string } = {
+      'Active': 'approved',
+      'Validated': 'validated',
+      'Processing': 'uploaded',
+      'Pending': 'uploaded',
+      'Draft': 'missing',
+      'Rejected': 'missing',
+      'Completed': 'approved'
+    };
+    
+    return statusMap[status] || 'missing';
   }
 }
 

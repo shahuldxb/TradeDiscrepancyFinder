@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -57,132 +57,121 @@ interface AgentTask {
   progress: number;
 }
 
-const lifecycleNodes: LifecycleNode[] = [
-  {
-    id: 'initiation',
-    name: 'Initiation',
-    description: 'Applicant requests LC issuance and issuing bank creates MT700',
-    status: 'completed',
-    position: { x: 0, y: 0 },
-    requiredDocuments: ['applicant_request', 'kyc_documents', 'credit_approval'],
-    agentTasks: ['verify_applicant', 'draft_lc_terms'],
-    outputMessages: ['MT700', 'MT701'],
-    progress: 100
-  },
-  {
-    id: 'transmission',
-    name: 'Transmission',
-    description: 'Issuing bank sends MT700 to advising bank via SWIFT',
-    status: 'completed',
-    position: { x: 1, y: 0 },
-    requiredDocuments: ['mt700_message', 'transmission_log'],
-    agentTasks: ['verify_swift_format', 'confirm_transmission'],
-    outputMessages: [],
-    progress: 100
-  },
-  {
-    id: 'advising',
-    name: 'Advising',
-    description: 'Advising bank receives MT700 and notifies beneficiary',
-    status: 'active',
-    position: { x: 2, y: 0 },
-    requiredDocuments: ['authentication_record', 'beneficiary_notification'],
-    agentTasks: ['verify_authenticity', 'prepare_beneficiary_advice'],
-    outputMessages: ['MT730'],
-    progress: 65
-  },
-  {
-    id: 'document_presentation',
-    name: 'Document Presentation',
-    description: 'Beneficiary ships goods and presents documents',
-    status: 'pending',
-    position: { x: 4, y: 0 },
-    requiredDocuments: ['commercial_invoice', 'bill_of_lading', 'insurance_certificate', 'certificate_of_origin', 'packing_list'],
-    agentTasks: ['examine_documents', 'check_compliance'],
-    outputMessages: [],
-    progress: 0
-  },
-  {
-    id: 'payment_processing',
-    name: 'Payment Processing',
-    description: 'Bank processes payment based on document examination',
-    status: 'pending',
-    position: { x: 5, y: 0 },
-    requiredDocuments: ['payment_instruction', 'compliance_report'],
-    agentTasks: ['process_payment', 'handle_discrepancies'],
-    outputMessages: ['MT754', 'MT750', 'MT734', 'MT742', 'MT756'],
-    progress: 0
-  },
-  {
-    id: 'closure',
-    name: 'Closure',
-    description: 'LC is discharged or cancelled',
-    status: 'pending',
-    position: { x: 6, y: 0 },
-    requiredDocuments: ['discharge_notice', 'settlement_confirmation'],
-    agentTasks: ['confirm_settlement', 'close_lc'],
-    outputMessages: ['MT732', 'MT792'],
-    progress: 0
-  }
-];
-
-const documentsByNode: Record<string, DocumentItem[]> = {
-  initiation: [
-    { id: '1', name: 'Applicant Request', type: 'applicant_request', status: 'approved', required: true, uploadedAt: '2024-01-15T10:00:00Z', validatedBy: 'Document Validator Agent' },
-    { id: '2', name: 'KYC Documents', type: 'kyc_documents', status: 'approved', required: true, uploadedAt: '2024-01-15T10:15:00Z', validatedBy: 'Compliance Officer Agent' },
-    { id: '3', name: 'Credit Approval', type: 'credit_approval', status: 'approved', required: true, uploadedAt: '2024-01-15T10:30:00Z', validatedBy: 'Document Validator Agent' }
-  ],
-  transmission: [
-    { id: '4', name: 'MT700 Message', type: 'mt700_message', status: 'approved', required: true, uploadedAt: '2024-01-15T11:00:00Z', validatedBy: 'SWIFT Format Agent' },
-    { id: '5', name: 'Transmission Log', type: 'transmission_log', status: 'approved', required: true, uploadedAt: '2024-01-15T11:05:00Z', validatedBy: 'SWIFT Format Agent' }
-  ],
-  advising: [
-    { id: '6', name: 'Authentication Record', type: 'authentication_record', status: 'validated', required: true, uploadedAt: '2024-01-15T12:00:00Z', validatedBy: 'Compliance Officer Agent' },
-    { id: '7', name: 'Beneficiary Notification', type: 'beneficiary_notification', status: 'uploaded', required: true, uploadedAt: '2024-01-15T12:15:00Z' }
-  ],
-  document_presentation: [
-    { id: '8', name: 'Commercial Invoice', type: 'commercial_invoice', status: 'missing', required: true },
-    { id: '9', name: 'Bill of Lading', type: 'bill_of_lading', status: 'missing', required: true },
-    { id: '10', name: 'Insurance Certificate', type: 'insurance_certificate', status: 'missing', required: true },
-    { id: '11', name: 'Certificate of Origin', type: 'certificate_of_origin', status: 'missing', required: true },
-    { id: '12', name: 'Packing List', type: 'packing_list', status: 'missing', required: true },
-    { id: '13', name: 'Inspection Certificate', type: 'inspection_certificate', status: 'missing', required: false },
-    { id: '14', name: 'Beneficiary Statement', type: 'beneficiary_statement', status: 'missing', required: false }
-  ]
-};
-
-const agentTasksByNode: Record<string, AgentTask[]> = {
-  advising: [
+// Real lifecycle stages based on actual SWIFT MT7xx message flow
+const getLifecycleStages = (lifecycleData: any) => {
+  const defaultStages: LifecycleNode[] = [
     {
-      id: 'task_1',
-      agentId: 'compliance_officer',
-      description: 'Verify authenticity of received MT700',
+      id: 'initiation',
+      name: 'Initiation',
+      description: 'Issue of Documentary Credit (MT700)',
       status: 'completed',
-      estimatedTime: '5 minutes',
-      startedAt: '2024-01-15T12:00:00Z',
-      completedAt: '2024-01-15T12:04:00Z',
+      position: { x: 0, y: 0 },
+      requiredDocuments: [],
+      agentTasks: [],
+      outputMessages: ['MT700'],
       progress: 100
     },
     {
-      id: 'task_2',
-      agentId: 'notification_manager',
-      description: 'Prepare and send beneficiary advice',
-      status: 'running',
-      estimatedTime: '10 minutes',
-      startedAt: '2024-01-15T12:10:00Z',
+      id: 'advice',
+      name: 'Advice',
+      description: 'Advice of Documentary Credit (MT700)',
+      status: 'active',
+      position: { x: 1, y: 0 },
+      requiredDocuments: [],
+      agentTasks: [],
+      outputMessages: ['MT701'],
       progress: 65
+    },
+    {
+      id: 'amendment',
+      name: 'Amendment',
+      description: 'Amendment of Documentary Credit (MT707)',
+      status: 'pending',
+      position: { x: 2, y: 0 },
+      requiredDocuments: [],
+      agentTasks: [],
+      outputMessages: ['MT707'],
+      progress: 0
+    },
+    {
+      id: 'authorization',
+      name: 'Authorization',
+      description: 'Authorization to Reimburse (MT742)',
+      status: 'pending',
+      position: { x: 3, y: 0 },
+      requiredDocuments: [],
+      agentTasks: [],
+      outputMessages: ['MT742'],
+      progress: 0
+    },
+    {
+      id: 'settlement',
+      name: 'Settlement',
+      description: 'Reimbursement Claim (MT754)',
+      status: 'pending',
+      position: { x: 4, y: 0 },
+      requiredDocuments: [],
+      agentTasks: [],
+      outputMessages: ['MT754'],
+      progress: 0
+    },
+    {
+      id: 'closure',
+      name: 'Closure',
+      description: 'Statement of Account (MT950)',
+      status: 'pending',
+      position: { x: 5, y: 0 },
+      requiredDocuments: [],
+      agentTasks: [],
+      outputMessages: ['MT950'],
+      progress: 0
     }
-  ]
+  ];
+
+  // Use real lifecycle stages from Azure SQL if available
+  if (lifecycleData?.lifecycleStages?.length > 0) {
+    return lifecycleData.lifecycleStages.map((stage: any, index: number) => ({
+      id: stage.child_message_type?.toLowerCase() || `stage_${index}`,
+      name: stage.child_message_type || `Stage ${index + 1}`,
+      description: stage.stage_description || 'SWIFT Message Processing',
+      status: index === 0 ? 'completed' : index === 1 ? 'active' : 'pending',
+      position: { x: index, y: 0 },
+      requiredDocuments: [],
+      agentTasks: [],
+      outputMessages: [stage.child_message_type].filter(Boolean),
+      progress: index === 0 ? 100 : index === 1 ? 65 : 0
+    }));
+  }
+
+  return defaultStages;
 };
 
 export default function MT700Lifecycle() {
   const [selectedNode, setSelectedNode] = useState<LifecycleNode | null>(null);
   const [selectedView, setSelectedView] = useState<'overview' | 'documents' | 'agents' | 'timeline'>('overview');
+  const [lifecycleStages, setLifecycleStages] = useState<LifecycleNode[]>([]);
 
   const { data: lifecycleData, isLoading } = useQuery({
     queryKey: ['/api/mt700-lifecycle'],
-    refetchInterval: 5000
+    refetchInterval: 10000
   });
+
+  const { data: documentsData } = useQuery({
+    queryKey: ['/api/mt700-lifecycle/documents', selectedNode?.id],
+    enabled: !!selectedNode
+  });
+
+  const { data: agentTasksData } = useQuery({
+    queryKey: ['/api/mt700-lifecycle/agents', selectedNode?.id],
+    enabled: !!selectedNode
+  });
+
+  // Update lifecycle stages when data is loaded
+  useEffect(() => {
+    if (lifecycleData) {
+      setLifecycleStages(getLifecycleStages(lifecycleData));
+    }
+  }, [lifecycleData]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -240,7 +229,7 @@ export default function MT700Lifecycle() {
           <CardContent>
             <div className="relative overflow-x-auto">
               <div className="flex items-center space-x-8 py-8 min-w-max">
-                {lifecycleNodes.map((node, index) => (
+                {lifecycleStages.map((node, index) => (
                   <div key={node.id} className="flex items-center">
                     {/* Node */}
                     <div 
@@ -283,7 +272,7 @@ export default function MT700Lifecycle() {
                     </div>
 
                     {/* Arrow */}
-                    {index < lifecycleNodes.length - 1 && (
+                    {index < lifecycleStages.length - 1 && (
                       <ArrowRight className="w-6 h-6 text-gray-400 mx-4" />
                     )}
                   </div>
