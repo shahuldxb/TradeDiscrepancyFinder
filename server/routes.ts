@@ -848,6 +848,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Azure SQL Agent Operations - Replace PostgreSQL
+  app.get('/api/azure-agents/tasks', isAuthenticated, async (req, res) => {
+    try {
+      const { azureAgentService } = await import('./azureAgentService');
+      const tasks = await azureAgentService.getAgentTasks();
+      res.json(tasks);
+    } catch (error) {
+      console.error('Error fetching agent tasks from Azure:', error);
+      res.status(500).json({ error: 'Failed to fetch agent tasks' });
+    }
+  });
+
+  app.get('/api/azure-agents/custom', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const { azureAgentService } = await import('./azureAgentService');
+      const agents = await azureAgentService.getCustomAgents(userId);
+      res.json(agents);
+    } catch (error) {
+      console.error('Error fetching custom agents from Azure:', error);
+      res.status(500).json({ error: 'Failed to fetch custom agents' });
+    }
+  });
+
+  app.post('/api/azure-agents/custom', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const { azureAgentService } = await import('./azureAgentService');
+      const agent = await azureAgentService.createCustomAgent({ ...req.body, userId });
+      res.json(agent);
+    } catch (error) {
+      console.error('Error creating custom agent in Azure:', error);
+      res.status(500).json({ error: 'Failed to create custom agent' });
+    }
+  });
+
+  app.post('/api/azure-agents/save-config', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const { agentName, configuration } = req.body;
+      const { azureAgentService } = await import('./azureAgentService');
+      await azureAgentService.saveAgentConfiguration(agentName, userId, configuration);
+      res.json({ success: true, message: 'Configuration saved to Azure SQL' });
+    } catch (error) {
+      console.error('Error saving agent configuration:', error);
+      res.status(500).json({ error: 'Failed to save configuration' });
+    }
+  });
+
+  app.get('/api/azure-agents/config/:agentName', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const { agentName } = req.params;
+      const { azureAgentService } = await import('./azureAgentService');
+      const config = await azureAgentService.getAgentConfiguration(agentName, userId);
+      res.json(config || {});
+    } catch (error) {
+      console.error('Error getting agent configuration:', error);
+      res.status(500).json({ error: 'Failed to get configuration' });
+    }
+  });
+
+  app.post('/api/migrate-postgres-to-azure', isAuthenticated, async (req, res) => {
+    try {
+      const { azureAgentService } = await import('./azureAgentService');
+      const result = await azureAgentService.migratePostgreSQLData();
+      res.json(result);
+    } catch (error) {
+      console.error('Error migrating PostgreSQL data:', error);
+      res.status(500).json({ error: 'Failed to migrate data' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
