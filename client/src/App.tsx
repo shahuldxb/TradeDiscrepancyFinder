@@ -16,6 +16,7 @@ import SwiftMessageDetails from "@/pages/SwiftMessageDetails";
 import TradeFinanceDocuments from "@/pages/TradeFinanceDocuments";
 import UCPRules from "@/pages/UCPRules";
 import MT700Lifecycle from "@/pages/MT700Lifecycle";
+import SkillsManagement from "@/pages/SkillsManagement";
 
 import NotFound from "@/pages/not-found";
 
@@ -39,6 +40,7 @@ function Router() {
           <Route path="/trade-finance-documents" component={TradeFinanceDocuments} />
           <Route path="/ucp-rules" component={UCPRules} />
           <Route path="/mt700-lifecycle" component={MT700Lifecycle} />
+          <Route path="/skills-management" component={SkillsManagement} />
         </>
       )}
       <Route component={NotFound} />

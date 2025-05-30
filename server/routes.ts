@@ -1154,6 +1154,107 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Skills Management API - Azure SQL Integration
+  app.get('/api/skills', isAuthenticated, async (req, res) => {
+    try {
+      const { skillsService } = await import('./skillsService');
+      const skills = await skillsService.getAllSkills();
+      res.json(skills);
+    } catch (error) {
+      console.error('Error fetching skills:', error);
+      res.status(500).json({ error: 'Failed to fetch skills' });
+    }
+  });
+
+  app.get('/api/skills/:id', isAuthenticated, async (req, res) => {
+    try {
+      const { skillsService } = await import('./skillsService');
+      const skill = await skillsService.getSkillById(req.params.id);
+      if (skill) {
+        res.json(skill);
+      } else {
+        res.status(404).json({ error: 'Skill not found' });
+      }
+    } catch (error) {
+      console.error('Error fetching skill:', error);
+      res.status(500).json({ error: 'Failed to fetch skill' });
+    }
+  });
+
+  app.post('/api/skills', isAuthenticated, async (req, res) => {
+    try {
+      const { skillsService } = await import('./skillsService');
+      const skill = await skillsService.createSkill(req.body);
+      res.json(skill);
+    } catch (error) {
+      console.error('Error creating skill:', error);
+      res.status(500).json({ error: 'Failed to create skill' });
+    }
+  });
+
+  app.put('/api/skills/:id', isAuthenticated, async (req, res) => {
+    try {
+      const { skillsService } = await import('./skillsService');
+      const skill = await skillsService.updateSkill(req.params.id, req.body);
+      if (skill) {
+        res.json(skill);
+      } else {
+        res.status(404).json({ error: 'Skill not found' });
+      }
+    } catch (error) {
+      console.error('Error updating skill:', error);
+      res.status(500).json({ error: 'Failed to update skill' });
+    }
+  });
+
+  app.delete('/api/skills/:id', isAuthenticated, async (req, res) => {
+    try {
+      const { skillsService } = await import('./skillsService');
+      const success = await skillsService.deleteSkill(req.params.id);
+      if (success) {
+        res.json({ message: 'Skill deleted successfully' });
+      } else {
+        res.status(404).json({ error: 'Skill not found' });
+      }
+    } catch (error) {
+      console.error('Error deleting skill:', error);
+      res.status(500).json({ error: 'Failed to delete skill' });
+    }
+  });
+
+  app.get('/api/skills/category/:category', isAuthenticated, async (req, res) => {
+    try {
+      const { skillsService } = await import('./skillsService');
+      const skills = await skillsService.getSkillsByCategory(req.params.category);
+      res.json(skills);
+    } catch (error) {
+      console.error('Error fetching skills by category:', error);
+      res.status(500).json({ error: 'Failed to fetch skills by category' });
+    }
+  });
+
+  app.get('/api/skills/search/:term', isAuthenticated, async (req, res) => {
+    try {
+      const { skillsService } = await import('./skillsService');
+      const skills = await skillsService.searchSkills(req.params.term);
+      res.json(skills);
+    } catch (error) {
+      console.error('Error searching skills:', error);
+      res.status(500).json({ error: 'Failed to search skills' });
+    }
+  });
+
+  app.get('/api/skills-statistics', isAuthenticated, async (req, res) => {
+    try {
+      const { skillsService } = await import('./skillsService');
+      const statistics = await skillsService.getSkillStatistics();
+      res.json(statistics);
+    } catch (error) {
+      console.error('Error fetching skill statistics:', error);
+      res.status(500).json({ error: 'Failed to fetch skill statistics' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

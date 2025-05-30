@@ -62,6 +62,11 @@ const navigationItems = [
         href: "/agent-designer",
         description: "Create custom agents",
       },
+      {
+        name: "Skills Management",
+        href: "/skills-management",
+        description: "Manage agent skills",
+      },
     ],
   },
   {
