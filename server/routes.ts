@@ -29,7 +29,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const user = await enhancedAzureAgentService.getUser(userId);
+      const user = await storage.getUser(userId);
       if (user) {
         // Transform Azure SQL format to expected frontend format
         const formattedUser = {

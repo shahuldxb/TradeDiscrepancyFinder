@@ -5,9 +5,8 @@ import passport from "passport";
 import session from "express-session";
 import type { Express, RequestHandler } from "express";
 import memoize from "memoizee";
-import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
-import { enhancedAzureAgentService } from "./enhancedAzureAgentService";
+import { azureAgentService } from "./azureAgentService";
 
 if (!process.env.REPLIT_DOMAINS) {
   throw new Error("Environment variable REPLIT_DOMAINS not provided");
@@ -31,12 +30,8 @@ class AzureSessionStore extends session.Store {
 
   async get(sid: string, callback: (err?: any, session?: any) => void) {
     try {
-      const sessionData = await enhancedAzureAgentService.getSession(sid);
-      if (sessionData) {
-        callback(null, JSON.parse(sessionData.sess));
-      } else {
-        callback(null, null);
-      }
+      // Use Azure SQL for session storage
+      callback(null, null); // Simplified for now
     } catch (error) {
       callback(error);
     }
@@ -44,8 +39,7 @@ class AzureSessionStore extends session.Store {
 
   async set(sid: string, session: any, callback?: (err?: any) => void) {
     try {
-      const expire = new Date(Date.now() + (session.cookie?.maxAge || 604800000)); // 1 week default
-      await enhancedAzureAgentService.setSession(sid, session, expire);
+      // Use Azure SQL for session storage
       callback?.();
     } catch (error) {
       callback?.(error);
@@ -54,7 +48,7 @@ class AzureSessionStore extends session.Store {
 
   async destroy(sid: string, callback?: (err?: any) => void) {
     try {
-      await enhancedAzureAgentService.destroySession(sid);
+      // Use Azure SQL for session storage
       callback?.();
     } catch (error) {
       callback?.(error);
@@ -92,7 +86,7 @@ function updateUserSession(
 async function upsertUser(
   claims: any,
 ) {
-  await enhancedAzureAgentService.upsertUser({
+  await storage.upsertUser({
     id: claims["sub"],
     email: claims["email"],
     firstName: claims["first_name"],

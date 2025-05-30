@@ -2,6 +2,60 @@ import { connectToAzureSQL } from './azureSqlConnection';
 
 export class AzureAgentService {
   
+  // User authentication methods for Replit Auth
+  async getUser(userId: string) {
+    try {
+      const pool = await connectToAzureSQL();
+      
+      const result = await pool.request()
+        .input('user_id', userId)
+        .query(`
+          SELECT * FROM users WHERE id = @user_id
+        `);
+      
+      return result.recordset[0] || null;
+    } catch (error) {
+      console.error('Error getting user from Azure:', error);
+      return null;
+    }
+  }
+
+  async upsertUser(userData: any) {
+    try {
+      const pool = await connectToAzureSQL();
+      
+      const result = await pool.request()
+        .input('id', userData.id)
+        .input('email', userData.email)
+        .input('first_name', userData.firstName)
+        .input('last_name', userData.lastName)
+        .input('profile_image_url', userData.profileImageUrl)
+        .input('role', userData.role || 'analyst')
+        .query(`
+          MERGE users AS target
+          USING (SELECT @id as id) AS source
+          ON target.id = source.id
+          WHEN MATCHED THEN
+            UPDATE SET 
+              email = @email,
+              first_name = @first_name,
+              last_name = @last_name,
+              profile_image_url = @profile_image_url,
+              role = @role,
+              updated_at = GETDATE()
+          WHEN NOT MATCHED THEN
+            INSERT (id, email, first_name, last_name, profile_image_url, role, created_at, updated_at)
+            VALUES (@id, @email, @first_name, @last_name, @profile_image_url, @role, GETDATE(), GETDATE())
+          OUTPUT INSERTED.*;
+        `);
+      
+      return result.recordset[0];
+    } catch (error) {
+      console.error('Error upserting user in Azure:', error);
+      throw error;
+    }
+  }
+  
   async createAgentTask(taskData: any) {
     try {
       const pool = await connectToAzureSQL();
