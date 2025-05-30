@@ -5,12 +5,40 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Copy, Download, Eye, Code, FileText, Settings } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Copy, Download, Eye, Code, FileText, Settings, Plus, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function AgentCode() {
   const { toast } = useToast();
   const [selectedAgent, setSelectedAgent] = useState("document_parser");
+  
+  // Task Form State
+  const [taskForm, setTaskForm] = useState({
+    name: "",
+    description: "",
+    expected_output: "",
+    priority: "medium",
+    dependencies: [],
+    tools: [],
+    context: ""
+  });
+  
+  // Crew Form State
+  const [crewForm, setCrewForm] = useState({
+    name: "",
+    description: "",
+    agents: [],
+    tasks: [],
+    process: "sequential",
+    memory: false,
+    planning: false,
+    verbose: true
+  });
 
   const agentCode = {
     document_parser: `"""
@@ -476,6 +504,49 @@ if __name__ == "__main__":
     });
   };
 
+  // Generate task code from form
+  const generateTaskCode = () => {
+    return `# Generated Task Definition
+from crewai import Task
+
+${taskForm.name.replace(/\s+/g, '_').toLowerCase()}_task = Task(
+    description="""${taskForm.description}""",
+    expected_output="""${taskForm.expected_output}""",
+    ${taskForm.context ? `context="""${taskForm.context}""",` : ''}
+    agent=None,  # Assign when creating crew
+    tools=${JSON.stringify(taskForm.tools)},
+    priority="${taskForm.priority}",
+    dependencies=${JSON.stringify(taskForm.dependencies)}
+)`;
+  };
+
+  // Generate crew code from form
+  const generateCrewCode = () => {
+    return `# Generated Crew Configuration
+from crewai import Crew, Process
+
+def create_${crewForm.name.replace(/\s+/g, '_').toLowerCase()}_crew():
+    """${crewForm.description}"""
+    
+    # Create crew
+    crew = Crew(
+        agents=[${crewForm.agents.join(', ')}],
+        tasks=[${crewForm.tasks.join(', ')}],
+        process=Process.${crewForm.process},
+        verbose=${crewForm.verbose},
+        memory=${crewForm.memory},
+        planning=${crewForm.planning}
+    )
+    
+    return crew
+
+# Usage
+if __name__ == "__main__":
+    crew = create_${crewForm.name.replace(/\s+/g, '_').toLowerCase()}_crew()
+    result = crew.kickoff(inputs={})
+    print("Crew execution complete:", result)`;
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
@@ -560,7 +631,7 @@ if __name__ == "__main__":
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="code" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
+                <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="code">
                     <Code className="w-4 h-4 mr-2" />
                     Code
@@ -568,6 +639,14 @@ if __name__ == "__main__":
                   <TabsTrigger value="features">
                     <Eye className="w-4 h-4 mr-2" />
                     Features
+                  </TabsTrigger>
+                  <TabsTrigger value="task-form">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Task Builder
+                  </TabsTrigger>
+                  <TabsTrigger value="crew-form">
+                    <Settings className="w-4 h-4 mr-2" />
+                    Crew Builder
                   </TabsTrigger>
                 </TabsList>
 
@@ -625,11 +704,251 @@ if __name__ == "__main__":
                           </div>
                         </div>
                       </TabsContent>
+                      
+                      <TabsContent value="task-form" className="mt-4">
+                        <div className="space-y-6">
+                          <div>
+                            <h3 className="text-lg font-semibold mb-4">Create New Task</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <Label htmlFor="task-name">Task Name</Label>
+                                <Input
+                                  id="task-name"
+                                  placeholder="Enter task name"
+                                  value={taskForm.name}
+                                  onChange={(e) => setTaskForm(prev => ({ ...prev, name: e.target.value }))}
+                                />
+                              </div>
+                              <div>
+                                <Label htmlFor="task-priority">Priority</Label>
+                                <Select
+                                  value={taskForm.priority}
+                                  onValueChange={(value) => setTaskForm(prev => ({ ...prev, priority: value }))}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select priority" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="low">Low</SelectItem>
+                                    <SelectItem value="medium">Medium</SelectItem>
+                                    <SelectItem value="high">High</SelectItem>
+                                    <SelectItem value="critical">Critical</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
+                            
+                            <div className="mt-4">
+                              <Label htmlFor="task-description">Description</Label>
+                              <Textarea
+                                id="task-description"
+                                placeholder="Describe what this task should accomplish..."
+                                value={taskForm.description}
+                                onChange={(e) => setTaskForm(prev => ({ ...prev, description: e.target.value }))}
+                                rows={4}
+                              />
+                            </div>
+                            
+                            <div className="mt-4">
+                              <Label htmlFor="task-output">Expected Output</Label>
+                              <Textarea
+                                id="task-output"
+                                placeholder="Describe the expected output format..."
+                                value={taskForm.expected_output}
+                                onChange={(e) => setTaskForm(prev => ({ ...prev, expected_output: e.target.value }))}
+                                rows={3}
+                              />
+                            </div>
+                            
+                            <div className="mt-4">
+                              <Label htmlFor="task-context">Additional Context (Optional)</Label>
+                              <Textarea
+                                id="task-context"
+                                placeholder="Any additional context or requirements..."
+                                value={taskForm.context}
+                                onChange={(e) => setTaskForm(prev => ({ ...prev, context: e.target.value }))}
+                                rows={2}
+                              />
+                            </div>
+                          </div>
+                          
+                          <Separator />
+                          
+                          <div>
+                            <h4 className="text-md font-semibold mb-4">Generated Code Preview</h4>
+                            <div className="border rounded-lg overflow-hidden">
+                              <div className="bg-gray-800 text-gray-200 p-3">
+                                <span className="text-sm font-mono">task_definition.py</span>
+                              </div>
+                              <ScrollArea className="h-[300px]">
+                                <pre className="p-4 text-sm font-mono bg-gray-50 dark:bg-gray-900">
+                                  <code className="text-gray-800 dark:text-gray-200">
+                                    {generateTaskCode()}
+                                  </code>
+                                </pre>
+                              </ScrollArea>
+                            </div>
+                            <div className="flex gap-2 mt-3">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => copyToClipboard(generateTaskCode())}
+                              >
+                                <Copy className="w-4 h-4 mr-2" />
+                                Copy Code
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const code = generateTaskCode();
+                                  const blob = new Blob([code], { type: 'text/plain' });
+                                  const url = URL.createObjectURL(blob);
+                                  const a = document.createElement('a');
+                                  a.href = url;
+                                  a.download = 'task_definition.py';
+                                  document.body.appendChild(a);
+                                  a.click();
+                                  document.body.removeChild(a);
+                                  URL.revokeObjectURL(url);
+                                  toast({ title: "Download started", description: "task_definition.py has been downloaded." });
+                                }}
+                              >
+                                <Download className="w-4 h-4 mr-2" />
+                                Download
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </TabsContent>
+                      
+                      <TabsContent value="crew-form" className="mt-4">
+                        <div className="space-y-6">
+                          <div>
+                            <h3 className="text-lg font-semibold mb-4">Create New Crew</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <Label htmlFor="crew-name">Crew Name</Label>
+                                <Input
+                                  id="crew-name"
+                                  placeholder="Enter crew name"
+                                  value={crewForm.name}
+                                  onChange={(e) => setCrewForm(prev => ({ ...prev, name: e.target.value }))}
+                                />
+                              </div>
+                              <div>
+                                <Label htmlFor="crew-process">Process Type</Label>
+                                <Select
+                                  value={crewForm.process}
+                                  onValueChange={(value) => setCrewForm(prev => ({ ...prev, process: value }))}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select process" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="sequential">Sequential</SelectItem>
+                                    <SelectItem value="hierarchical">Hierarchical</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
+                            
+                            <div className="mt-4">
+                              <Label htmlFor="crew-description">Description</Label>
+                              <Textarea
+                                id="crew-description"
+                                placeholder="Describe the purpose of this crew..."
+                                value={crewForm.description}
+                                onChange={(e) => setCrewForm(prev => ({ ...prev, description: e.target.value }))}
+                                rows={3}
+                              />
+                            </div>
+                            
+                            <div className="mt-4 space-y-3">
+                              <div className="flex items-center space-x-2">
+                                <Checkbox
+                                  id="crew-memory"
+                                  checked={crewForm.memory}
+                                  onCheckedChange={(checked) => setCrewForm(prev => ({ ...prev, memory: !!checked }))}
+                                />
+                                <Label htmlFor="crew-memory">Enable Memory</Label>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <Checkbox
+                                  id="crew-planning"
+                                  checked={crewForm.planning}
+                                  onCheckedChange={(checked) => setCrewForm(prev => ({ ...prev, planning: !!checked }))}
+                                />
+                                <Label htmlFor="crew-planning">Enable Planning</Label>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <Checkbox
+                                  id="crew-verbose"
+                                  checked={crewForm.verbose}
+                                  onCheckedChange={(checked) => setCrewForm(prev => ({ ...prev, verbose: !!checked }))}
+                                />
+                                <Label htmlFor="crew-verbose">Verbose Output</Label>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <Separator />
+                          
+                          <div>
+                            <h4 className="text-md font-semibold mb-4">Generated Code Preview</h4>
+                            <div className="border rounded-lg overflow-hidden">
+                              <div className="bg-gray-800 text-gray-200 p-3">
+                                <span className="text-sm font-mono">crew_definition.py</span>
+                              </div>
+                              <ScrollArea className="h-[300px]">
+                                <pre className="p-4 text-sm font-mono bg-gray-50 dark:bg-gray-900">
+                                  <code className="text-gray-800 dark:text-gray-200">
+                                    {generateCrewCode()}
+                                  </code>
+                                </pre>
+                              </ScrollArea>
+                            </div>
+                            <div className="flex gap-2 mt-3">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => copyToClipboard(generateCrewCode())}
+                              >
+                                <Copy className="w-4 h-4 mr-2" />
+                                Copy Code
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const code = generateCrewCode();
+                                  const blob = new Blob([code], { type: 'text/plain' });
+                                  const url = URL.createObjectURL(blob);
+                                  const a = document.createElement('a');
+                                  a.href = url;
+                                  a.download = 'crew_definition.py';
+                                  document.body.appendChild(a);
+                                  a.click();
+                                  document.body.removeChild(a);
+                                  URL.revokeObjectURL(url);
+                                  toast({ title: "Download started", description: "crew_definition.py has been downloaded." });
+                                }}
+                              >
+                                <Download className="w-4 h-4 mr-2" />
+                                Download
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </TabsContent>
                     </Tabs>
                   </CardContent>
                 </Card>
               </div>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
   );
 }
