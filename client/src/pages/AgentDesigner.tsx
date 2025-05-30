@@ -703,7 +703,7 @@ export default function AgentDesigner() {
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {agents.map((agent: Agent) => (
+            {allAgents.map((agent: Agent) => (
               <Card key={agent.id} className="hover:shadow-md transition-shadow">
                 <CardHeader>
                   <div className="flex justify-between items-start">
