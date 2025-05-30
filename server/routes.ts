@@ -1325,6 +1325,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Health check endpoint for OpenAI API key
+  app.get('/api/health/openai', async (req, res) => {
+    try {
+      const OpenAI = await import('openai');
+      const openai = new OpenAI.default({ apiKey: process.env.OPENAI_API_KEY });
+      
+      // Test with a simple completion request
+      const response = await openai.chat.completions.create({
+        model: "gpt-3.5-turbo",
+        messages: [{ role: "user", content: "Say 'API key is working'" }],
+        max_tokens: 10
+      });
+      
+      res.json({
+        status: 'healthy',
+        keyValid: true,
+        response: response.choices[0].message.content,
+        model: 'gpt-3.5-turbo'
+      });
+    } catch (error) {
+      console.error('OpenAI API key health check failed:', error);
+      res.status(500).json({
+        status: 'unhealthy',
+        keyValid: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        code: error instanceof Error && 'code' in error ? error.code : 'unknown'
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
