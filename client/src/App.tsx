@@ -26,27 +26,20 @@ function Router() {
 
   return (
     <Switch>
-      {/* Test Drive routes available without authentication */}
+      {/* All routes temporarily available without authentication for testing */}
+      <Route path="/" component={Dashboard} />
+      <Route path="/documents" component={DocumentUpload} />
+      <Route path="/analysis" component={DiscrepancyAnalysis} />
+      <Route path="/agents" component={AgentMonitor} />
+      <Route path="/agent-designer" component={AgentDesigner} />
+      <Route path="/message-builder" component={MessageBuilder} />
+      <Route path="/mt-intelligence" component={MTIntelligence} />
+      <Route path="/swift-message/:messageType" component={SwiftMessageDetails} />
+      <Route path="/trade-finance-documents" component={TradeFinanceDocuments} />
+      <Route path="/ucp-rules" component={UCPRules} />
+      <Route path="/mt700-lifecycle" component={MT700Lifecycle} />
+      <Route path="/skills-management" component={SkillsManagement} />
       <Route path="/test-drive/ocr" component={OCRAgent} />
-      
-      {isLoading || !isAuthenticated ? (
-        <Route path="/" component={Landing} />
-      ) : (
-        <>
-          <Route path="/" component={Dashboard} />
-          <Route path="/documents" component={DocumentUpload} />
-          <Route path="/analysis" component={DiscrepancyAnalysis} />
-          <Route path="/agents" component={AgentMonitor} />
-          <Route path="/agent-designer" component={AgentDesigner} />
-          <Route path="/message-builder" component={MessageBuilder} />
-          <Route path="/mt-intelligence" component={MTIntelligence} />
-          <Route path="/swift-message/:messageType" component={SwiftMessageDetails} />
-          <Route path="/trade-finance-documents" component={TradeFinanceDocuments} />
-          <Route path="/ucp-rules" component={UCPRules} />
-          <Route path="/mt700-lifecycle" component={MT700Lifecycle} />
-          <Route path="/skills-management" component={SkillsManagement} />
-        </>
-      )}
       <Route component={NotFound} />
     </Switch>
   );
