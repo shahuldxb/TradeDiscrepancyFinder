@@ -26,6 +26,9 @@ function Router() {
 
   return (
     <Switch>
+      {/* Test Drive routes available without authentication */}
+      <Route path="/test-drive/ocr" component={OCRAgent} />
+      
       {isLoading || !isAuthenticated ? (
         <Route path="/" component={Landing} />
       ) : (
@@ -42,7 +45,6 @@ function Router() {
           <Route path="/ucp-rules" component={UCPRules} />
           <Route path="/mt700-lifecycle" component={MT700Lifecycle} />
           <Route path="/skills-management" component={SkillsManagement} />
-          <Route path="/test-drive/ocr" component={OCRAgent} />
         </>
       )}
       <Route component={NotFound} />
