@@ -54,6 +54,96 @@ const swiftMessageSchema = z.object({
   isActive: z.boolean()
 });
 
+// Form component for Master Documents
+function MasterDocumentForm({ onSubmit, isLoading, defaultValues }: {
+  onSubmit: (data: any) => void;
+  isLoading: boolean;
+  defaultValues?: any;
+}) {
+  const form = useForm({
+    resolver: zodResolver(masterDocumentSchema),
+    defaultValues: defaultValues || {
+      documentCode: "",
+      documentName: "",
+      description: "",
+      isActive: true
+    }
+  });
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="documentCode"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Document Code</FormLabel>
+              <FormControl>
+                <Input placeholder="DOC001" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="documentName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Document Name</FormLabel>
+              <FormControl>
+                <Input placeholder="Commercial Invoice" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Description</FormLabel>
+              <FormControl>
+                <Textarea placeholder="Description of the document..." {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="isActive"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <FormLabel className="text-base">Active Status</FormLabel>
+                <div className="text-sm text-muted-foreground">
+                  Enable this document in the system
+                </div>
+              </div>
+              <FormControl>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+            </FormItem>
+          )}
+        />
+        
+        <Button type="submit" disabled={isLoading} className="w-full">
+          {isLoading ? "Saving..." : "Save Document"}
+        </Button>
+      </form>
+    </Form>
+  );
+}
+
 export default function TradeFinanceDocuments() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedView, setSelectedView] = useState("documents");
@@ -69,11 +159,11 @@ export default function TradeFinanceDocuments() {
 
   // Mutation hooks for CRUD operations
   const createDocumentMutation = useMutation({
-    mutationFn: (data: any) => apiRequest('/api/trade-finance/master-documents', {
+    mutationFn: (data: any) => fetch('/api/trade-finance/master-documents', {
       method: 'POST',
       body: JSON.stringify(data),
       headers: { 'Content-Type': 'application/json' }
-    }),
+    }).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/trade-finance/master-documents'] });
       toast({ title: "Document created successfully" });
@@ -85,11 +175,11 @@ export default function TradeFinanceDocuments() {
   });
 
   const updateDocumentMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) => apiRequest(`/api/trade-finance/master-documents/${id}`, {
+    mutationFn: ({ id, data }: { id: number; data: any }) => fetch(`/api/trade-finance/master-documents/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
       headers: { 'Content-Type': 'application/json' }
-    }),
+    }).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/trade-finance/master-documents'] });
       toast({ title: "Document updated successfully" });
@@ -101,9 +191,9 @@ export default function TradeFinanceDocuments() {
   });
 
   const deleteDocumentMutation = useMutation({
-    mutationFn: (id: number) => apiRequest(`/api/trade-finance/master-documents/${id}`, {
+    mutationFn: (id: number) => fetch(`/api/trade-finance/master-documents/${id}`, {
       method: 'DELETE'
-    }),
+    }).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/trade-finance/master-documents'] });
       toast({ title: "Document deleted successfully" });
@@ -330,6 +420,25 @@ export default function TradeFinanceDocuments() {
                         onSubmit={(data) => createDocumentMutation.mutate(data)}
                         isLoading={createDocumentMutation.isPending}
                       />
+                    </DialogContent>
+                  </Dialog>
+
+                  {/* Edit Dialog */}
+                  <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Edit Master Document</DialogTitle>
+                        <DialogDescription>
+                          Update the master document information
+                        </DialogDescription>
+                      </DialogHeader>
+                      {editingItem && (
+                        <MasterDocumentForm 
+                          onSubmit={(data) => updateDocumentMutation.mutate({ id: editingItem.documentId, data })}
+                          isLoading={updateDocumentMutation.isPending}
+                          defaultValues={editingItem}
+                        />
+                      )}
                     </DialogContent>
                   </Dialog>
                 </CardHeader>
