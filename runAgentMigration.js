@@ -1,18 +1,13 @@
 import sql from 'mssql';
 
 const azureConfig = {
-  server: 'tfgeniesqlserver.database.windows.net',
+  server: 'shahulmi.database.windows.net',
+  port: 1433,
   database: 'TF_genie',
-  authentication: {
-    type: 'default',
-    options: {
-      userName: 'sqladmin',
-      password: 'Thiru@123'
-    }
-  },
+  user: 'shahul',
+  password: 'Apple123!@#',
   options: {
     encrypt: true,
-    enableArithAbort: true,
     trustServerCertificate: false
   }
 };
