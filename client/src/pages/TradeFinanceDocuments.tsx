@@ -1479,6 +1479,7 @@ export default function TradeFinanceDocuments() {
                         <TableHead>SWIFT Description</TableHead>
                         <TableHead>Credit Code</TableHead>
                         <TableHead>Credit Name</TableHead>
+                        <TableHead>Documents</TableHead>
                         <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -1495,6 +1496,12 @@ export default function TradeFinanceDocuments() {
                           <TableCell className="text-sm">{mapping.swiftDescription}</TableCell>
                           <TableCell className="font-mono">{mapping.creditCode}</TableCell>
                           <TableCell>{mapping.creditName}</TableCell>
+                          <TableCell className="text-sm">
+                            {mapping.documentsText ? 
+                              <span className="text-wrap">{mapping.documentsText}</span> : 
+                              <span className="text-gray-500">No documents linked</span>
+                            }
+                          </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <Button
