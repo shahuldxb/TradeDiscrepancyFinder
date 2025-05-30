@@ -97,6 +97,11 @@ const navigationItems = [
         href: "/test-drive/ocr",
         description: "Upload and extract text from documents",
       },
+      {
+        name: "Agent Code",
+        href: "/test-drive/agent-code",
+        description: "View CrewAI agent implementations",
+      },
     ],
   },
   {

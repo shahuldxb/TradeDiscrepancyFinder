@@ -18,6 +18,7 @@ import UCPRules from "@/pages/UCPRules";
 import MT700Lifecycle from "@/pages/MT700Lifecycle";
 import SkillsManagement from "@/pages/SkillsManagement";
 import OCRAgent from "@/pages/OCRAgent";
+import AgentCode from "@/pages/AgentCode";
 
 import NotFound from "@/pages/not-found";
 
@@ -40,6 +41,7 @@ function Router() {
       <Route path="/mt700-lifecycle" component={MT700Lifecycle} />
       <Route path="/skills-management" component={SkillsManagement} />
       <Route path="/test-drive/ocr" component={OCRAgent} />
+      <Route path="/test-drive/agent-code" component={AgentCode} />
       <Route component={NotFound} />
     </Switch>
   );
