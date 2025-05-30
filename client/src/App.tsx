@@ -17,6 +17,7 @@ import TradeFinanceDocuments from "@/pages/TradeFinanceDocuments";
 import UCPRules from "@/pages/UCPRules";
 import MT700Lifecycle from "@/pages/MT700Lifecycle";
 import SkillsManagement from "@/pages/SkillsManagement";
+import OCRAgent from "@/pages/OCRAgent";
 
 import NotFound from "@/pages/not-found";
 
@@ -41,6 +42,7 @@ function Router() {
           <Route path="/ucp-rules" component={UCPRules} />
           <Route path="/mt700-lifecycle" component={MT700Lifecycle} />
           <Route path="/skills-management" component={SkillsManagement} />
+          <Route path="/test-drive/ocr" component={OCRAgent} />
         </>
       )}
       <Route component={NotFound} />

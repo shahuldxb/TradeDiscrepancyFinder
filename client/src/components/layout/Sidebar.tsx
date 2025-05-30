@@ -20,7 +20,8 @@ import {
   Brain,
   Scale,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Beaker
 } from "lucide-react";
 
 const navigationItems = [
@@ -83,6 +84,18 @@ const navigationItems = [
         name: "MT Intelligence",
         href: "/mt-intelligence",
         description: "SWIFT MT7xx intelligence system",
+      },
+    ],
+  },
+  {
+    name: "Test Drive",
+    icon: Beaker,
+    description: "Test OCR and document processing",
+    subItems: [
+      {
+        name: "OCR Agent",
+        href: "/test-drive/ocr",
+        description: "Upload and extract text from documents",
       },
     ],
   },
