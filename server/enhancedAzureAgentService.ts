@@ -3,6 +3,7 @@ import { connectToAzureSQL } from './azureSqlConnection';
 /**
  * Enhanced Azure Agent Service implementing the field classification requirements
  * Based on the Field Classification for Database Enhancement document
+ * Now includes user and session management in Azure SQL
  */
 export class EnhancedAzureAgentService {
   
@@ -372,6 +373,128 @@ export class EnhancedAzureAgentService {
       return result.rowsAffected[0] > 0;
     } catch (error) {
       console.error('Error updating agent task:', error);
+      throw error;
+    }
+  }
+
+  // User Management in Azure SQL
+  async getUser(id: string) {
+    try {
+      const pool = await connectToAzureSQL();
+      const result = await pool.request()
+        .input('id', id)
+        .query(`
+          SELECT id, email, first_name, last_name, profile_image_url, 
+                 role, customer_segment, operation_segment, is_active,
+                 created_at, updated_at
+          FROM users 
+          WHERE id = @id
+        `);
+      return result.recordset[0];
+    } catch (error) {
+      console.error('Error fetching user from Azure:', error);
+      throw error;
+    }
+  }
+
+  async upsertUser(userData: any) {
+    try {
+      const pool = await connectToAzureSQL();
+      const result = await pool.request()
+        .input('id', userData.id)
+        .input('email', userData.email)
+        .input('first_name', userData.firstName)
+        .input('last_name', userData.lastName)
+        .input('profile_image_url', userData.profileImageUrl)
+        .input('role', userData.role || 'analyst')
+        .input('customer_segment', userData.customerSegment || null)
+        .input('operation_segment', userData.operationSegment || null)
+        .query(`
+          MERGE users AS target
+          USING (SELECT @id as id, @email as email, @first_name as first_name, 
+                        @last_name as last_name, @profile_image_url as profile_image_url,
+                        @role as role, @customer_segment as customer_segment,
+                        @operation_segment as operation_segment) AS source
+          ON target.id = source.id
+          WHEN MATCHED THEN
+            UPDATE SET 
+              email = source.email,
+              first_name = source.first_name,
+              last_name = source.last_name,
+              profile_image_url = source.profile_image_url,
+              role = source.role,
+              customer_segment = source.customer_segment,
+              operation_segment = source.operation_segment,
+              updated_at = GETDATE()
+          WHEN NOT MATCHED THEN
+            INSERT (id, email, first_name, last_name, profile_image_url, 
+                   role, customer_segment, operation_segment, is_active, created_at, updated_at)
+            VALUES (source.id, source.email, source.first_name, source.last_name, 
+                   source.profile_image_url, source.role, source.customer_segment, 
+                   source.operation_segment, 1, GETDATE(), GETDATE());
+          
+          SELECT id, email, first_name, last_name, profile_image_url, 
+                 role, customer_segment, operation_segment, is_active,
+                 created_at, updated_at
+          FROM users WHERE id = @id;
+        `);
+      return result.recordset[0];
+    } catch (error) {
+      console.error('Error upserting user in Azure:', error);
+      throw error;
+    }
+  }
+
+  // Session Management in Azure SQL
+  async getSession(sid: string) {
+    try {
+      const pool = await connectToAzureSQL();
+      const result = await pool.request()
+        .input('sid', sid)
+        .query(`
+          SELECT sid, sess, expire
+          FROM sessions 
+          WHERE sid = @sid AND expire > GETDATE()
+        `);
+      return result.recordset[0];
+    } catch (error) {
+      console.error('Error fetching session from Azure:', error);
+      throw error;
+    }
+  }
+
+  async setSession(sid: string, session: any, expire: Date) {
+    try {
+      const pool = await connectToAzureSQL();
+      await pool.request()
+        .input('sid', sid)
+        .input('sess', JSON.stringify(session))
+        .input('expire', expire)
+        .query(`
+          MERGE sessions AS target
+          USING (SELECT @sid as sid, @sess as sess, @expire as expire) AS source
+          ON target.sid = source.sid
+          WHEN MATCHED THEN
+            UPDATE SET sess = source.sess, expire = source.expire
+          WHEN NOT MATCHED THEN
+            INSERT (sid, sess, expire) VALUES (source.sid, source.sess, source.expire);
+        `);
+      return true;
+    } catch (error) {
+      console.error('Error setting session in Azure:', error);
+      throw error;
+    }
+  }
+
+  async destroySession(sid: string) {
+    try {
+      const pool = await connectToAzureSQL();
+      await pool.request()
+        .input('sid', sid)
+        .query(`DELETE FROM sessions WHERE sid = @sid`);
+      return true;
+    } catch (error) {
+      console.error('Error destroying session in Azure:', error);
       throw error;
     }
   }
