@@ -144,6 +144,171 @@ function MasterDocumentForm({ onSubmit, isLoading, defaultValues }: {
   );
 }
 
+// Form component for Documentary Credits
+function DocumentaryCreditForm({ onSubmit, isLoading, defaultValues }: {
+  onSubmit: (data: any) => void;
+  isLoading: boolean;
+  defaultValues?: any;
+}) {
+  const form = useForm({
+    resolver: zodResolver(documentaryCreditSchema),
+    defaultValues: defaultValues || {
+      creditCode: "",
+      creditName: "",
+      description: "",
+      isActive: true
+    }
+  });
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="creditCode"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Credit Code</FormLabel>
+              <FormControl>
+                <Input placeholder="LC001" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="creditName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Credit Name</FormLabel>
+              <FormControl>
+                <Input placeholder="Import Letter of Credit" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Description</FormLabel>
+              <FormControl>
+                <Textarea placeholder="Description of the credit type..." {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="isActive"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <FormLabel className="text-base">Active Status</FormLabel>
+                <div className="text-sm text-muted-foreground">
+                  Enable this credit type in the system
+                </div>
+              </div>
+              <FormControl>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+            </FormItem>
+          )}
+        />
+        
+        <Button type="submit" disabled={isLoading} className="w-full">
+          {isLoading ? "Saving..." : "Save Credit"}
+        </Button>
+      </form>
+    </Form>
+  );
+}
+
+// Form component for SWIFT Message Codes
+function SwiftMessageForm({ onSubmit, isLoading, defaultValues }: {
+  onSubmit: (data: any) => void;
+  isLoading: boolean;
+  defaultValues?: any;
+}) {
+  const form = useForm({
+    resolver: zodResolver(swiftMessageSchema),
+    defaultValues: defaultValues || {
+      swiftCode: "",
+      description: "",
+      isActive: true
+    }
+  });
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="swiftCode"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>SWIFT Code</FormLabel>
+              <FormControl>
+                <Input placeholder="MT700" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Description</FormLabel>
+              <FormControl>
+                <Textarea placeholder="Description of the SWIFT message..." {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="isActive"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <FormLabel className="text-base">Active Status</FormLabel>
+                <div className="text-sm text-muted-foreground">
+                  Enable this SWIFT message in the system
+                </div>
+              </div>
+              <FormControl>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+            </FormItem>
+          )}
+        />
+        
+        <Button type="submit" disabled={isLoading} className="w-full">
+          {isLoading ? "Saving..." : "Save SWIFT Code"}
+        </Button>
+      </form>
+    </Form>
+  );
+}
+
 export default function TradeFinanceDocuments() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedView, setSelectedView] = useState("documents");
@@ -200,6 +365,101 @@ export default function TradeFinanceDocuments() {
     },
     onError: () => {
       toast({ title: "Failed to delete document", variant: "destructive" });
+    }
+  });
+
+  // CRUD mutations for Documentary Credits
+  const createCreditMutation = useMutation({
+    mutationFn: (data: any) => fetch('/api/trade-finance/documentary-credits', {
+      method: 'POST',
+      body: JSON.stringify(data),
+      headers: { 'Content-Type': 'application/json' }
+    }).then(res => res.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/trade-finance/documentary-credits'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/trade-finance/credit-document-summary'] });
+      toast({ title: "Credit created successfully" });
+      setIsCreateDialogOpen(false);
+    },
+    onError: () => {
+      toast({ title: "Failed to create credit", variant: "destructive" });
+    }
+  });
+
+  const updateCreditMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: any }) => fetch(`/api/trade-finance/documentary-credits/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+      headers: { 'Content-Type': 'application/json' }
+    }).then(res => res.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/trade-finance/documentary-credits'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/trade-finance/credit-document-summary'] });
+      toast({ title: "Credit updated successfully" });
+      setIsEditDialogOpen(false);
+    },
+    onError: () => {
+      toast({ title: "Failed to update credit", variant: "destructive" });
+    }
+  });
+
+  const deleteCreditMutation = useMutation({
+    mutationFn: (id: number) => fetch(`/api/trade-finance/documentary-credits/${id}`, {
+      method: 'DELETE'
+    }).then(res => res.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/trade-finance/documentary-credits'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/trade-finance/credit-document-summary'] });
+      toast({ title: "Credit deleted successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete credit", variant: "destructive" });
+    }
+  });
+
+  // CRUD mutations for SWIFT Message Codes
+  const createSwiftMutation = useMutation({
+    mutationFn: (data: any) => fetch('/api/trade-finance/swift-message-codes', {
+      method: 'POST',
+      body: JSON.stringify(data),
+      headers: { 'Content-Type': 'application/json' }
+    }).then(res => res.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/trade-finance/swift-message-codes'] });
+      toast({ title: "SWIFT code created successfully" });
+      setIsCreateDialogOpen(false);
+    },
+    onError: () => {
+      toast({ title: "Failed to create SWIFT code", variant: "destructive" });
+    }
+  });
+
+  const updateSwiftMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: any }) => fetch(`/api/trade-finance/swift-message-codes/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+      headers: { 'Content-Type': 'application/json' }
+    }).then(res => res.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/trade-finance/swift-message-codes'] });
+      toast({ title: "SWIFT code updated successfully" });
+      setIsEditDialogOpen(false);
+    },
+    onError: () => {
+      toast({ title: "Failed to update SWIFT code", variant: "destructive" });
+    }
+  });
+
+  const deleteSwiftMutation = useMutation({
+    mutationFn: (id: number) => fetch(`/api/trade-finance/swift-message-codes/${id}`, {
+      method: 'DELETE'
+    }).then(res => res.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/trade-finance/swift-message-codes'] });
+      toast({ title: "SWIFT code deleted successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete SWIFT code", variant: "destructive" });
     }
   });
 
@@ -548,11 +808,52 @@ export default function TradeFinanceDocuments() {
           <TabsContent value="credits">
             <div className="space-y-6">
               <Card>
-                <CardHeader>
-                  <CardTitle>Documentary Credit Summary ({creditSummary?.length || 0})</CardTitle>
-                  <CardDescription>
-                    Click on any credit to see required documents with details. Ordered by credit code.
-                  </CardDescription>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle>Documentary Credit Summary ({creditSummary?.length || 0})</CardTitle>
+                    <CardDescription>
+                      Click on any credit to see required documents with details. Ordered by credit code.
+                    </CardDescription>
+                  </div>
+                  <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button className="flex items-center gap-2">
+                        <Plus className="h-4 w-4" />
+                        Add Credit
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Create Documentary Credit</DialogTitle>
+                        <DialogDescription>
+                          Add a new documentary credit type to the system
+                        </DialogDescription>
+                      </DialogHeader>
+                      <DocumentaryCreditForm 
+                        onSubmit={(data) => createCreditMutation.mutate(data)}
+                        isLoading={createCreditMutation.isPending}
+                      />
+                    </DialogContent>
+                  </Dialog>
+
+                  {/* Edit Dialog for Credits */}
+                  <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Edit Documentary Credit</DialogTitle>
+                        <DialogDescription>
+                          Update the documentary credit information
+                        </DialogDescription>
+                      </DialogHeader>
+                      {editingItem && (
+                        <DocumentaryCreditForm 
+                          onSubmit={(data) => updateCreditMutation.mutate({ id: editingItem.creditId, data })}
+                          isLoading={updateCreditMutation.isPending}
+                          defaultValues={editingItem}
+                        />
+                      )}
+                    </DialogContent>
+                  </Dialog>
                 </CardHeader>
                 <CardContent>
                   <Table>
@@ -563,6 +864,7 @@ export default function TradeFinanceDocuments() {
                         <TableHead>Mandatory Documents</TableHead>
                         <TableHead>Optional Documents</TableHead>
                         <TableHead>Total Documents</TableHead>
+                        <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -585,6 +887,33 @@ export default function TradeFinanceDocuments() {
                             <Badge variant="outline">
                               {summary.mandatoryDocumentCount + summary.optionalDocumentCount}
                             </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingItem(summary);
+                                  setIsEditDialogOpen(true);
+                                }}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (confirm('Are you sure you want to delete this credit?')) {
+                                    deleteCreditMutation.mutate(summary.creditId);
+                                  }
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -716,11 +1045,52 @@ export default function TradeFinanceDocuments() {
           <TabsContent value="swift">
             <div className="space-y-6">
               <Card>
-                <CardHeader>
-                  <CardTitle>SWIFT Message Codes ({swiftCodes?.length || 0})</CardTitle>
-                  <CardDescription>
-                    Click on any SWIFT message to see all relevant documents. Ordered by SWIFT code.
-                  </CardDescription>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle>SWIFT Message Codes ({swiftCodes?.length || 0})</CardTitle>
+                    <CardDescription>
+                      Click on any SWIFT message to see all relevant documents. Ordered by SWIFT code.
+                    </CardDescription>
+                  </div>
+                  <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button className="flex items-center gap-2">
+                        <Plus className="h-4 w-4" />
+                        Add SWIFT Code
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Create SWIFT Message Code</DialogTitle>
+                        <DialogDescription>
+                          Add a new SWIFT message code to the system
+                        </DialogDescription>
+                      </DialogHeader>
+                      <SwiftMessageForm 
+                        onSubmit={(data) => createSwiftMutation.mutate(data)}
+                        isLoading={createSwiftMutation.isPending}
+                      />
+                    </DialogContent>
+                  </Dialog>
+
+                  {/* Edit Dialog for SWIFT Messages */}
+                  <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Edit SWIFT Message Code</DialogTitle>
+                        <DialogDescription>
+                          Update the SWIFT message code information
+                        </DialogDescription>
+                      </DialogHeader>
+                      {editingItem && (
+                        <SwiftMessageForm 
+                          onSubmit={(data) => updateSwiftMutation.mutate({ id: editingItem.swiftCodeId, data })}
+                          isLoading={updateSwiftMutation.isPending}
+                          defaultValues={editingItem}
+                        />
+                      )}
+                    </DialogContent>
+                  </Dialog>
                 </CardHeader>
                 <CardContent>
                   <Table>
