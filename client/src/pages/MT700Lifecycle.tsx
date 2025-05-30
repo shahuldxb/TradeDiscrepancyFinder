@@ -227,9 +227,35 @@ export default function MT700Lifecycle() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="relative overflow-x-auto">
-              <div className="flex items-center space-x-8 py-8 min-w-max">
-                {lifecycleStages.map((node, index) => (
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                  <p className="text-gray-600 dark:text-gray-300">Loading lifecycle data from Azure SQL...</p>
+                </div>
+              </div>
+            ) : lifecycleStages.length === 0 ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-center">
+                  <Workflow className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No Lifecycle Data Available</h3>
+                  <p className="text-gray-600 dark:text-gray-300 mb-4">
+                    Unable to load MT700 lifecycle data. This may be due to authentication or database connectivity issues.
+                  </p>
+                  <Button 
+                    onClick={() => window.location.reload()} 
+                    variant="outline"
+                    className="gap-2"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    Retry Loading
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="relative overflow-x-auto">
+                <div className="flex items-center space-x-8 py-8 min-w-max">
+                  {lifecycleStages.map((node, index) => (
                   <div key={node.id} className="flex items-center">
                     {/* Node */}
                     <div 
@@ -277,8 +303,9 @@ export default function MT700Lifecycle() {
                     )}
                   </div>
                 ))}
+                </div>
               </div>
-            </div>
+            )}
           </CardContent>
         </Card>
 
