@@ -1206,29 +1206,104 @@ export default function TradeFinanceDocuments() {
             <div className="space-y-6">
               {/* SWIFT Credit Mappings */}
               <Card>
-                <CardHeader>
-                  <CardTitle>SWIFT Credit Mappings</CardTitle>
-                  <CardDescription>
-                    Relationship between documentary credits and SWIFT messages
-                  </CardDescription>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle>SWIFT Credit Mappings ({swiftCreditMappings?.length || 0})</CardTitle>
+                    <CardDescription>
+                      Relationship between documentary credits and SWIFT messages. Ordered by SWIFT code and credit name.
+                    </CardDescription>
+                  </div>
+                  <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button className="flex items-center gap-2">
+                        <Plus className="h-4 w-4" />
+                        Add Mapping
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Create SWIFT Credit Mapping</DialogTitle>
+                        <DialogDescription>
+                          Link a documentary credit with a SWIFT message
+                        </DialogDescription>
+                      </DialogHeader>
+                      <SwiftCreditMappingForm 
+                        onSubmit={(data) => createMappingMutation.mutate(data)}
+                        isLoading={createMappingMutation.isPending}
+                      />
+                    </DialogContent>
+                  </Dialog>
+
+                  {/* Edit Dialog for Mappings */}
+                  <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Edit SWIFT Credit Mapping</DialogTitle>
+                        <DialogDescription>
+                          Update the relationship between credit and SWIFT message
+                        </DialogDescription>
+                      </DialogHeader>
+                      {editingItem && (
+                        <SwiftCreditMappingForm 
+                          onSubmit={(data) => updateMappingMutation.mutate({ id: editingItem.id, data })}
+                          isLoading={updateMappingMutation.isPending}
+                          defaultValues={editingItem}
+                        />
+                      )}
+                    </DialogContent>
+                  </Dialog>
                 </CardHeader>
                 <CardContent>
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Credit Code</TableHead>
-                        <TableHead>Credit Name</TableHead>
                         <TableHead>SWIFT Code</TableHead>
                         <TableHead>SWIFT Description</TableHead>
+                        <TableHead>Credit Code</TableHead>
+                        <TableHead>Credit Name</TableHead>
+                        <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {swiftCreditMappings?.slice(0, 20).map((mapping: any, index: number) => (
+                      {swiftCreditMappings
+                        ?.sort((a: any, b: any) => {
+                          const swiftCompare = a.swiftCode.localeCompare(b.swiftCode);
+                          return swiftCompare !== 0 ? swiftCompare : a.creditName.localeCompare(b.creditName);
+                        })
+                        .slice(0, 20)
+                        .map((mapping: any, index: number) => (
                         <TableRow key={index}>
-                          <TableCell className="font-mono">{mapping.creditCode}</TableCell>
-                          <TableCell>{mapping.creditName}</TableCell>
                           <TableCell className="font-mono">{mapping.swiftCode}</TableCell>
                           <TableCell className="text-sm">{mapping.swiftDescription}</TableCell>
+                          <TableCell className="font-mono">{mapping.creditCode}</TableCell>
+                          <TableCell>{mapping.creditName}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingItem(mapping);
+                                  setIsEditDialogOpen(true);
+                                }}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (confirm('Are you sure you want to delete this mapping?')) {
+                                    deleteMappingMutation.mutate(mapping.id);
+                                  }
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>

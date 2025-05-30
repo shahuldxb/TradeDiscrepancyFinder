@@ -150,7 +150,7 @@ export async function getDocumentsForSwiftMessage(swiftCode: string): Promise<Sw
     const pool = await connectToAzureSQL();
     
     const result = await pool.request()
-      .input('swiftCode', sql.NVarChar, swiftCode)
+      .input('swiftCode', swiftCode)
       .query(`
         SELECT DISTINCT
           d.DocumentID as documentId,
@@ -192,7 +192,7 @@ export async function getDocumentsForCredit(creditCode: string): Promise<any[]> 
     const pool = await connectToAzureSQL();
     
     const result = await pool.request()
-      .input('creditCode', sql.NVarChar, creditCode)
+      .input('creditCode', creditCode)
       .query(`
         SELECT DISTINCT
           d.DocumentID as documentId,
@@ -370,11 +370,11 @@ export async function updateMasterDocument(documentId: number, data: any): Promi
     const pool = await connectToAzureSQL();
     
     const result = await pool.request()
-      .input('documentId', sql.Int, documentId)
-      .input('documentCode', sql.NVarChar, data.documentCode)
-      .input('documentName', sql.NVarChar, data.documentName)
-      .input('description', sql.NVarChar, data.description)
-      .input('isActive', sql.Bit, data.isActive)
+      .input('documentId', documentId)
+      .input('documentCode', data.documentCode)
+      .input('documentName', data.documentName)
+      .input('description', data.description)
+      .input('isActive', data.isActive)
       .query(`
         UPDATE MasterDocuments 
         SET DocumentCode = @documentCode, DocumentName = @documentName, 
