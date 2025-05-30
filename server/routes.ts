@@ -547,6 +547,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // CRUD Routes for Master Documents
+  app.post('/api/trade-finance/master-documents', isAuthenticated, async (req, res) => {
+    try {
+      const { createMasterDocument } = await import('./tradeFinanceService');
+      const document = await createMasterDocument(req.body);
+      res.json(document);
+    } catch (error) {
+      console.error('Error creating master document:', error);
+      res.status(500).json({ error: 'Failed to create master document' });
+    }
+  });
+
+  app.put('/api/trade-finance/master-documents/:id', isAuthenticated, async (req, res) => {
+    try {
+      const { updateMasterDocument } = await import('./tradeFinanceService');
+      const documentId = parseInt(req.params.id);
+      const document = await updateMasterDocument(documentId, req.body);
+      res.json(document);
+    } catch (error) {
+      console.error('Error updating master document:', error);
+      res.status(500).json({ error: 'Failed to update master document' });
+    }
+  });
+
+  app.delete('/api/trade-finance/master-documents/:id', isAuthenticated, async (req, res) => {
+    try {
+      const { deleteMasterDocument } = await import('./tradeFinanceService');
+      const documentId = parseInt(req.params.id);
+      await deleteMasterDocument(documentId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting master document:', error);
+      res.status(500).json({ error: 'Failed to delete master document' });
+    }
+  });
+
+  // CRUD Routes for Documentary Credits
+  app.post('/api/trade-finance/documentary-credits', isAuthenticated, async (req, res) => {
+    try {
+      const { createDocumentaryCredit } = await import('./tradeFinanceService');
+      const credit = await createDocumentaryCredit(req.body);
+      res.json(credit);
+    } catch (error) {
+      console.error('Error creating documentary credit:', error);
+      res.status(500).json({ error: 'Failed to create documentary credit' });
+    }
+  });
+
+  app.put('/api/trade-finance/documentary-credits/:id', isAuthenticated, async (req, res) => {
+    try {
+      const { updateDocumentaryCredit } = await import('./tradeFinanceService');
+      const creditId = parseInt(req.params.id);
+      const credit = await updateDocumentaryCredit(creditId, req.body);
+      res.json(credit);
+    } catch (error) {
+      console.error('Error updating documentary credit:', error);
+      res.status(500).json({ error: 'Failed to update documentary credit' });
+    }
+  });
+
+  app.delete('/api/trade-finance/documentary-credits/:id', isAuthenticated, async (req, res) => {
+    try {
+      const { deleteDocumentaryCredit } = await import('./tradeFinanceService');
+      const creditId = parseInt(req.params.id);
+      await deleteDocumentaryCredit(creditId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting documentary credit:', error);
+      res.status(500).json({ error: 'Failed to delete documentary credit' });
+    }
+  });
+
+  // CRUD Routes for SWIFT Message Codes
+  app.post('/api/trade-finance/swift-message-codes', isAuthenticated, async (req, res) => {
+    try {
+      const { createSwiftMessageCode } = await import('./tradeFinanceService');
+      const swiftCode = await createSwiftMessageCode(req.body);
+      res.json(swiftCode);
+    } catch (error) {
+      console.error('Error creating SWIFT message code:', error);
+      res.status(500).json({ error: 'Failed to create SWIFT message code' });
+    }
+  });
+
+  app.put('/api/trade-finance/swift-message-codes/:id', isAuthenticated, async (req, res) => {
+    try {
+      const { updateSwiftMessageCode } = await import('./tradeFinanceService');
+      const swiftCodeId = parseInt(req.params.id);
+      const swiftCode = await updateSwiftMessageCode(swiftCodeId, req.body);
+      res.json(swiftCode);
+    } catch (error) {
+      console.error('Error updating SWIFT message code:', error);
+      res.status(500).json({ error: 'Failed to update SWIFT message code' });
+    }
+  });
+
+  app.delete('/api/trade-finance/swift-message-codes/:id', isAuthenticated, async (req, res) => {
+    try {
+      const { deleteSwiftMessageCode } = await import('./tradeFinanceService');
+      const swiftCodeId = parseInt(req.params.id);
+      await deleteSwiftMessageCode(swiftCodeId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting SWIFT message code:', error);
+      res.status(500).json({ error: 'Failed to delete SWIFT message code' });
+    }
+  });
+
 
 
   const httpServer = createServer(app);

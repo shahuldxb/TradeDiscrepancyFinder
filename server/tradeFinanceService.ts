@@ -1,5 +1,5 @@
 import { connectToAzureSQL } from './azureSqlConnection';
-import sql from 'mssql';
+import * as sql from 'mssql';
 
 export interface DocumentaryCredit {
   creditId: number;
@@ -335,6 +335,223 @@ export async function getTradeFinanceStatistics(): Promise<any> {
     };
   } catch (error) {
     console.error('Error fetching trade finance statistics:', error);
+    throw error;
+  }
+}
+
+// CRUD Operations for Master Documents
+export async function createMasterDocument(data: any): Promise<MasterDocument> {
+  try {
+    const pool = await connectToAzureSQL();
+    
+    const result = await pool.request()
+      .input('documentCode', sql.NVarChar, data.documentCode)
+      .input('documentName', sql.NVarChar, data.documentName)
+      .input('description', sql.NVarChar, data.description)
+      .input('isActive', sql.Bit, data.isActive)
+      .query(`
+        INSERT INTO MasterDocuments (DocumentCode, DocumentName, Description, IsActive)
+        OUTPUT INSERTED.DocumentID as documentId, INSERTED.DocumentCode as documentCode,
+               INSERTED.DocumentName as documentName, INSERTED.Description as description,
+               INSERTED.IsActive as isActive
+        VALUES (@documentCode, @documentName, @description, @isActive)
+      `);
+    
+    await pool.close();
+    return result.recordset[0];
+  } catch (error) {
+    console.error('Error creating master document:', error);
+    throw error;
+  }
+}
+
+export async function updateMasterDocument(documentId: number, data: any): Promise<MasterDocument> {
+  try {
+    const pool = await connectToAzureSQL();
+    
+    const result = await pool.request()
+      .input('documentId', sql.Int, documentId)
+      .input('documentCode', sql.NVarChar, data.documentCode)
+      .input('documentName', sql.NVarChar, data.documentName)
+      .input('description', sql.NVarChar, data.description)
+      .input('isActive', sql.Bit, data.isActive)
+      .query(`
+        UPDATE MasterDocuments 
+        SET DocumentCode = @documentCode, DocumentName = @documentName, 
+            Description = @description, IsActive = @isActive
+        OUTPUT INSERTED.DocumentID as documentId, INSERTED.DocumentCode as documentCode,
+               INSERTED.DocumentName as documentName, INSERTED.Description as description,
+               INSERTED.IsActive as isActive
+        WHERE DocumentID = @documentId
+      `);
+    
+    await pool.close();
+    return result.recordset[0];
+  } catch (error) {
+    console.error('Error updating master document:', error);
+    throw error;
+  }
+}
+
+export async function deleteMasterDocument(documentId: number): Promise<boolean> {
+  try {
+    const pool = await connectToAzureSQL();
+    
+    await pool.request()
+      .input('documentId', sql.Int, documentId)
+      .query(`
+        UPDATE MasterDocuments 
+        SET IsActive = 0
+        WHERE DocumentID = @documentId
+      `);
+    
+    await pool.close();
+    return true;
+  } catch (error) {
+    console.error('Error deleting master document:', error);
+    throw error;
+  }
+}
+
+// CRUD Operations for Documentary Credits
+export async function createDocumentaryCredit(data: any): Promise<DocumentaryCredit> {
+  try {
+    const pool = await connectToAzureSQL();
+    
+    const result = await pool.request()
+      .input('creditCode', sql.NVarChar, data.creditCode)
+      .input('creditName', sql.NVarChar, data.creditName)
+      .input('description', sql.NVarChar, data.description)
+      .input('isActive', sql.Bit, data.isActive)
+      .query(`
+        INSERT INTO DocumentaryCredits (CreditCode, CreditName, Description, IsActive)
+        OUTPUT INSERTED.CreditID as creditId, INSERTED.CreditCode as creditCode,
+               INSERTED.CreditName as creditName, INSERTED.Description as description,
+               INSERTED.IsActive as isActive
+        VALUES (@creditCode, @creditName, @description, @isActive)
+      `);
+    
+    await pool.close();
+    return result.recordset[0];
+  } catch (error) {
+    console.error('Error creating documentary credit:', error);
+    throw error;
+  }
+}
+
+export async function updateDocumentaryCredit(creditId: number, data: any): Promise<DocumentaryCredit> {
+  try {
+    const pool = await connectToAzureSQL();
+    
+    const result = await pool.request()
+      .input('creditId', sql.Int, creditId)
+      .input('creditCode', sql.NVarChar, data.creditCode)
+      .input('creditName', sql.NVarChar, data.creditName)
+      .input('description', sql.NVarChar, data.description)
+      .input('isActive', sql.Bit, data.isActive)
+      .query(`
+        UPDATE DocumentaryCredits 
+        SET CreditCode = @creditCode, CreditName = @creditName, 
+            Description = @description, IsActive = @isActive
+        OUTPUT INSERTED.CreditID as creditId, INSERTED.CreditCode as creditCode,
+               INSERTED.CreditName as creditName, INSERTED.Description as description,
+               INSERTED.IsActive as isActive
+        WHERE CreditID = @creditId
+      `);
+    
+    await pool.close();
+    return result.recordset[0];
+  } catch (error) {
+    console.error('Error updating documentary credit:', error);
+    throw error;
+  }
+}
+
+export async function deleteDocumentaryCredit(creditId: number): Promise<boolean> {
+  try {
+    const pool = await connectToAzureSQL();
+    
+    await pool.request()
+      .input('creditId', sql.Int, creditId)
+      .query(`
+        UPDATE DocumentaryCredits 
+        SET IsActive = 0
+        WHERE CreditID = @creditId
+      `);
+    
+    await pool.close();
+    return true;
+  } catch (error) {
+    console.error('Error deleting documentary credit:', error);
+    throw error;
+  }
+}
+
+// CRUD Operations for SWIFT Message Codes
+export async function createSwiftMessageCode(data: any): Promise<SwiftMessageCode> {
+  try {
+    const pool = await connectToAzureSQL();
+    
+    const result = await pool.request()
+      .input('swiftCode', sql.NVarChar, data.swiftCode)
+      .input('description', sql.NVarChar, data.description)
+      .input('isActive', sql.Bit, data.isActive)
+      .query(`
+        INSERT INTO SwiftMessageCodes (SwiftCode, Description, IsActive)
+        OUTPUT INSERTED.SwiftCodeID as swiftCodeId, INSERTED.SwiftCode as swiftCode,
+               INSERTED.Description as description, INSERTED.IsActive as isActive
+        VALUES (@swiftCode, @description, @isActive)
+      `);
+    
+    await pool.close();
+    return result.recordset[0];
+  } catch (error) {
+    console.error('Error creating SWIFT message code:', error);
+    throw error;
+  }
+}
+
+export async function updateSwiftMessageCode(swiftCodeId: number, data: any): Promise<SwiftMessageCode> {
+  try {
+    const pool = await connectToAzureSQL();
+    
+    const result = await pool.request()
+      .input('swiftCodeId', sql.Int, swiftCodeId)
+      .input('swiftCode', sql.NVarChar, data.swiftCode)
+      .input('description', sql.NVarChar, data.description)
+      .input('isActive', sql.Bit, data.isActive)
+      .query(`
+        UPDATE SwiftMessageCodes 
+        SET SwiftCode = @swiftCode, Description = @description, IsActive = @isActive
+        OUTPUT INSERTED.SwiftCodeID as swiftCodeId, INSERTED.SwiftCode as swiftCode,
+               INSERTED.Description as description, INSERTED.IsActive as isActive
+        WHERE SwiftCodeID = @swiftCodeId
+      `);
+    
+    await pool.close();
+    return result.recordset[0];
+  } catch (error) {
+    console.error('Error updating SWIFT message code:', error);
+    throw error;
+  }
+}
+
+export async function deleteSwiftMessageCode(swiftCodeId: number): Promise<boolean> {
+  try {
+    const pool = await connectToAzureSQL();
+    
+    await pool.request()
+      .input('swiftCodeId', sql.Int, swiftCodeId)
+      .query(`
+        UPDATE SwiftMessageCodes 
+        SET IsActive = 0
+        WHERE SwiftCodeID = @swiftCodeId
+      `);
+    
+    await pool.close();
+    return true;
+  } catch (error) {
+    console.error('Error deleting SWIFT message code:', error);
     throw error;
   }
 }
