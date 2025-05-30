@@ -97,11 +97,11 @@ export default function AgentDesigner() {
   });
 
   const { data: tasks = [], isLoading: tasksLoading } = useQuery({
-    queryKey: ['/api/custom-tasks'],
+    queryKey: ['/api/enhanced-tasks'],
   });
 
   const { data: crews = [], isLoading: crewsLoading } = useQuery({
-    queryKey: ['/api/custom-crews'],
+    queryKey: ['/api/enhanced-crews'],
   });
 
   // Combine system and custom agents with proper type handling
