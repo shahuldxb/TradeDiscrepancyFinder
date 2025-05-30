@@ -29,8 +29,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      res.json(user);
+      const user = await enhancedAzureAgentService.getUser(userId);
+      if (user) {
+        // Transform Azure SQL format to expected frontend format
+        const formattedUser = {
+          id: user.id,
+          email: user.email,
+          firstName: user.first_name,
+          lastName: user.last_name,
+          profileImageUrl: user.profile_image_url,
+          role: user.role,
+          customerSegment: user.customer_segment,
+          operationSegment: user.operation_segment,
+          isActive: user.is_active,
+          createdAt: user.created_at,
+          updatedAt: user.updated_at
+        };
+        res.json(formattedUser);
+      } else {
+        res.status(404).json({ message: "User not found" });
+      }
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
