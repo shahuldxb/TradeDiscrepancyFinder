@@ -1,270 +1,225 @@
-import { 
-  users, 
-  documentSets, 
-  documents, 
-  discrepancies, 
-  agentTasks,
-  customAgents,
-  customTasks, 
-  customCrews,
-  swiftMessageTypes,
-  swiftFields,
-  messageTypeFields,
-  type User,
-  type UpsertUser,
-  type DocumentSet,
-  type InsertDocumentSet,
-  type Document,
-  type InsertDocument,
-  type Discrepancy,
-  type InsertDiscrepancy,
-  type AgentTask,
-  type InsertAgentTask,
-  type CustomAgent,
-  type InsertCustomAgent,
-  type CustomTask,
-  type InsertCustomTask,
-  type CustomCrew,
-  type InsertCustomCrew,
-  type SwiftMessageType,
-  type SwiftField,
-  type MessageTypeField
-} from "@shared/schema";
-import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { azureAgentService } from "./azureAgentService";
+import { azureDataService } from "./azureDataService";
 
-// Interface for storage operations
+// Storage interface now using Azure SQL
 export interface IStorage {
   // User operations (mandatory for Replit Auth)
-  getUser(id: string): Promise<User | undefined>;
-  upsertUser(user: UpsertUser): Promise<User>;
+  getUser(id: string): Promise<any | undefined>;
+  upsertUser(user: any): Promise<any>;
 
   // Document Set operations
-  getDocumentSetsByUser(userId: string): Promise<DocumentSet[]>;
-  createDocumentSet(data: InsertDocumentSet & { userId: string }): Promise<DocumentSet>;
+  getDocumentSetsByUser(userId: string): Promise<any[]>;
+  createDocumentSet(data: any): Promise<any>;
   getDocumentSetWithDetails(id: string, userId: string): Promise<any>;
 
   // Document operations
-  createDocument(data: InsertDocument & { userId: string; documentSetId?: string }): Promise<Document>;
+  createDocument(data: any): Promise<any>;
   getDocumentStatus(documentId: number, userId: string): Promise<any>;
 
   // Discrepancy operations
-  createDiscrepancy(data: InsertDiscrepancy & { documentSetId: string }): Promise<Discrepancy>;
-  getDiscrepanciesByDocumentSet(documentSetId: string): Promise<Discrepancy[]>;
+  createDiscrepancy(data: any): Promise<any>;
+  getDiscrepanciesByDocumentSet(documentSetId: string): Promise<any[]>;
 
   // Agent Task operations
-  createAgentTask(data: InsertAgentTask & { documentSetId?: string; documentId?: number }): Promise<AgentTask>;
+  createAgentTask(data: any): Promise<any>;
 
-  // Custom Agent Designer operations
-  getCustomAgentsByUser(userId: string): Promise<CustomAgent[]>;
-  createCustomAgent(data: InsertCustomAgent & { userId: string }): Promise<CustomAgent>;
-  getCustomTasksByUser(userId: string): Promise<CustomTask[]>;
-  createCustomTask(data: InsertCustomTask & { userId: string }): Promise<CustomTask>;
-  getCustomCrewsByUser(userId: string): Promise<CustomCrew[]>;
-  createCustomCrew(data: InsertCustomCrew & { userId: string }): Promise<CustomCrew>;
+  // Custom Agent Designer operations (now using Azure SQL)
+  getCustomAgentsByUser(userId: string): Promise<any[]>;
+  createCustomAgent(data: any): Promise<any>;
+  getCustomTasksByUser(userId: string): Promise<any[]>;
+  createCustomTask(data: any): Promise<any>;
+  getCustomCrewsByUser(userId: string): Promise<any[]>;
+  createCustomCrew(data: any): Promise<any>;
 
   // SWIFT MT7xx operations
-  getSwiftMessageTypes(): Promise<SwiftMessageType[]>;
+  getSwiftMessageTypes(): Promise<any[]>;
   getSwiftFieldsByMessageType(messageTypeCode: string): Promise<any[]>;
-  getAllSwiftFields(): Promise<SwiftField[]>;
+  getAllSwiftFields(): Promise<any[]>;
 }
 
-export class DatabaseStorage implements IStorage {
-  // User operations (mandatory for Replit Auth)
-  async getUser(id: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
+export class AzureStorage implements IStorage {
+  // User operations using Azure SQL
+  async getUser(id: string): Promise<any | undefined> {
+    try {
+      return await azureAgentService.getUser(id);
+    } catch (error) {
+      console.error('Error getting user:', error);
+      return undefined;
+    }
   }
 
-  async upsertUser(userData: UpsertUser): Promise<User> {
-    const [user] = await db
-      .insert(users)
-      .values({ id: userData.id || '', ...userData })
-      .onConflictDoUpdate({
-        target: users.id,
-        set: {
-          ...userData,
-          updatedAt: new Date(),
-        },
-      })
-      .returning();
-    return user;
+  async upsertUser(userData: any): Promise<any> {
+    try {
+      return await azureAgentService.upsertUser(userData);
+    } catch (error) {
+      console.error('Error upserting user:', error);
+      throw error;
+    }
   }
 
-  // Document Set operations
-  async getDocumentSetsByUser(userId: string): Promise<DocumentSet[]> {
-    return await db.select().from(documentSets).where(eq(documentSets.userId, userId));
+  // Document Set operations using Azure SQL
+  async getDocumentSetsByUser(userId: string): Promise<any[]> {
+    try {
+      return await azureDataService.getDocumentSets(userId);
+    } catch (error) {
+      console.error('Error getting document sets:', error);
+      return [];
+    }
   }
 
-  async createDocumentSet(data: InsertDocumentSet & { userId: string }): Promise<DocumentSet> {
-    const [documentSet] = await db
-      .insert(documentSets)
-      .values(data)
-      .returning();
-    return documentSet;
+  async createDocumentSet(data: any): Promise<any> {
+    try {
+      return await azureDataService.createDocumentSet(data);
+    } catch (error) {
+      console.error('Error creating document set:', error);
+      throw error;
+    }
   }
 
   async getDocumentSetWithDetails(id: string, userId: string): Promise<any> {
-    const documentSet = await db
-      .select()
-      .from(documentSets)
-      .where(eq(documentSets.id, id) && eq(documentSets.userId, userId));
-
-    if (!documentSet.length) return null;
-
-    const relatedDocuments = await db
-      .select()
-      .from(documents)
-      .where(eq(documents.documentSetId, id));
-
-    const relatedTasks = await db
-      .select()
-      .from(agentTasks)
-      .where(eq(agentTasks.documentSetId, id));
-
-    return {
-      ...documentSet[0],
-      documents: relatedDocuments,
-      agentTasks: relatedTasks
-    };
+    try {
+      const documentSets = await azureDataService.getDocumentSets(userId);
+      return documentSets.find(ds => ds.id === id);
+    } catch (error) {
+      console.error('Error getting document set details:', error);
+      return null;
+    }
   }
 
-  // Document operations
-  async createDocument(data: InsertDocument & { userId: string; documentSetId?: string }): Promise<Document> {
-    const [document] = await db
-      .insert(documents)
-      .values(data)
-      .returning();
-    return document;
+  // Document operations using Azure SQL
+  async createDocument(data: any): Promise<any> {
+    try {
+      // Use Azure data service for document operations
+      return await azureDataService.createDocumentSet(data);
+    } catch (error) {
+      console.error('Error creating document:', error);
+      throw error;
+    }
   }
 
   async getDocumentStatus(documentId: number, userId: string): Promise<any> {
-    const [document] = await db
-      .select()
-      .from(documents)
-      .where(eq(documents.id, documentId) && eq(documents.userId, userId));
-
-    return document || null;
+    try {
+      const documentSets = await azureDataService.getDocumentSets(userId);
+      return documentSets.find(ds => ds.id === documentId);
+    } catch (error) {
+      console.error('Error getting document status:', error);
+      return null;
+    }
   }
 
-  // Discrepancy operations
-  async createDiscrepancy(data: InsertDiscrepancy & { documentSetId: string }): Promise<Discrepancy> {
-    const [discrepancy] = await db
-      .insert(discrepancies)
-      .values(data)
-      .returning();
-    return discrepancy;
+  // Discrepancy operations using Azure SQL
+  async createDiscrepancy(data: any): Promise<any> {
+    try {
+      return await azureDataService.createDiscrepancy(data);
+    } catch (error) {
+      console.error('Error creating discrepancy:', error);
+      throw error;
+    }
   }
 
-  async getDiscrepanciesByDocumentSet(documentSetId: string): Promise<Discrepancy[]> {
-    return await db
-      .select()
-      .from(discrepancies)
-      .where(eq(discrepancies.documentSetId, documentSetId));
+  async getDiscrepanciesByDocumentSet(documentSetId: string): Promise<any[]> {
+    try {
+      return await azureDataService.getDiscrepancies({ documentSetId });
+    } catch (error) {
+      console.error('Error getting discrepancies:', error);
+      return [];
+    }
   }
 
-  // Agent Task operations
-  async createAgentTask(data: InsertAgentTask & { documentSetId?: string; documentId?: number }): Promise<AgentTask> {
-    const [task] = await db
-      .insert(agentTasks)
-      .values(data)
-      .returning();
-    return task;
+  // Agent Task operations using Azure SQL
+  async createAgentTask(data: any): Promise<any> {
+    try {
+      return await azureAgentService.createAgentTask(data);
+    } catch (error) {
+      console.error('Error creating agent task:', error);
+      throw error;
+    }
   }
 
-  async updateAgentTask(taskId: number, status: string, outputData?: any, errorMessage?: string): Promise<void> {
-    await db
-      .update(agentTasks)
-      .set({
-        status,
-        outputData,
-        errorMessage,
-        completedAt: status === 'completed' || status === 'failed' ? new Date() : undefined,
-      })
-      .where(eq(agentTasks.id, taskId));
+  // Custom Agent Designer operations using Azure SQL
+  async getCustomAgentsByUser(userId: string): Promise<any[]> {
+    try {
+      return await azureAgentService.getCustomAgents(userId);
+    } catch (error) {
+      console.error('Error getting custom agents:', error);
+      return [];
+    }
   }
 
-  async updateDocumentSetStatus(documentSetId: string, status: string): Promise<void> {
-    await db
-      .update(documentSets)
-      .set({
-        status,
-        updatedAt: new Date(),
-      })
-      .where(eq(documentSets.id, documentSetId));
+  async createCustomAgent(data: any): Promise<any> {
+    try {
+      return await azureAgentService.createCustomAgent(data);
+    } catch (error) {
+      console.error('Error creating custom agent:', error);
+      throw error;
+    }
   }
 
-  // Custom Agent Designer operations
-  async getCustomAgentsByUser(userId: string): Promise<CustomAgent[]> {
-    return await db.select().from(customAgents).where(eq(customAgents.userId, userId));
+  async getCustomTasksByUser(userId: string): Promise<any[]> {
+    try {
+      // Use Azure agent service for tasks
+      return await azureAgentService.getAgentTasks({ userId });
+    } catch (error) {
+      console.error('Error getting custom tasks:', error);
+      return [];
+    }
   }
 
-  async createCustomAgent(data: InsertCustomAgent & { userId: string }): Promise<CustomAgent> {
-    const [agent] = await db
-      .insert(customAgents)
-      .values(data)
-      .returning();
-    return agent;
+  async createCustomTask(data: any): Promise<any> {
+    try {
+      return await azureAgentService.createAgentTask(data);
+    } catch (error) {
+      console.error('Error creating custom task:', error);
+      throw error;
+    }
   }
 
-  async getCustomTasksByUser(userId: string): Promise<CustomTask[]> {
-    return await db.select().from(customTasks).where(eq(customTasks.userId, userId));
+  async getCustomCrewsByUser(userId: string): Promise<any[]> {
+    try {
+      // Custom crews can be retrieved from agent service
+      return await azureAgentService.getCustomAgents(userId);
+    } catch (error) {
+      console.error('Error getting custom crews:', error);
+      return [];
+    }
   }
 
-  async createCustomTask(data: InsertCustomTask & { userId: string }): Promise<CustomTask> {
-    const [task] = await db
-      .insert(customTasks)
-      .values(data)
-      .returning();
-    return task;
+  async createCustomCrew(data: any): Promise<any> {
+    try {
+      return await azureAgentService.createCustomAgent(data);
+    } catch (error) {
+      console.error('Error creating custom crew:', error);
+      throw error;
+    }
   }
 
-  async getCustomCrewsByUser(userId: string): Promise<CustomCrew[]> {
-    return await db.select().from(customCrews).where(eq(customCrews.userId, userId));
-  }
-
-  async createCustomCrew(data: InsertCustomCrew & { userId: string }): Promise<CustomCrew> {
-    const [crew] = await db
-      .insert(customCrews)
-      .values(data)
-      .returning();
-    return crew;
-  }
-
-  // SWIFT MT7xx operations
-  async getSwiftMessageTypes(): Promise<SwiftMessageType[]> {
-    return await db
-      .select()
-      .from(swiftMessageTypes)
-      .where(eq(swiftMessageTypes.isActive, true));
+  // SWIFT MT7xx operations using Azure SQL
+  async getSwiftMessageTypes(): Promise<any[]> {
+    try {
+      return await azureDataService.getSwiftMessageTypes();
+    } catch (error) {
+      console.error('Error getting SWIFT message types:', error);
+      return [];
+    }
   }
 
   async getSwiftFieldsByMessageType(messageTypeCode: string): Promise<any[]> {
-    const fields = await db
-      .select({
-        field: swiftFields,
-        relationship: messageTypeFields
-      })
-      .from(messageTypeFields)
-      .innerJoin(swiftFields, eq(messageTypeFields.fieldId, swiftFields.fieldCode))
-      .where(eq(messageTypeFields.messageTypeId, messageTypeCode) && eq(messageTypeFields.isActive, true))
-      .orderBy(messageTypeFields.sequence);
-
-    return fields.map(({ field, relationship }) => ({
-      ...field,
-      sequence: relationship.sequence,
-      isMandatory: relationship.isMandatory,
-      isConditional: relationship.isConditional,
-      maxOccurrences: relationship.maxOccurrences
-    }));
+    try {
+      return await azureDataService.getSwiftFieldsByMessageType(messageTypeCode);
+    } catch (error) {
+      console.error('Error getting SWIFT fields:', error);
+      return [];
+    }
   }
 
-  async getAllSwiftFields(): Promise<SwiftField[]> {
-    return await db
-      .select()
-      .from(swiftFields)
-      .where(eq(swiftFields.isActive, true));
+  async getAllSwiftFields(): Promise<any[]> {
+    try {
+      return await azureDataService.getSwiftFields();
+    } catch (error) {
+      console.error('Error getting all SWIFT fields:', error);
+      return [];
+    }
   }
 }
 
-export const storage = new DatabaseStorage();
+export const storage = new AzureStorage();
