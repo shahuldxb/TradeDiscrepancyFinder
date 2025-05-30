@@ -88,10 +88,7 @@ export default function SkillsManagement() {
 
   // Create skill mutation
   const createSkillMutation = useMutation({
-    mutationFn: (skillData: NewSkill) => apiRequest("/api/skills", {
-      method: "POST",
-      body: JSON.stringify(skillData),
-    }),
+    mutationFn: (skillData: NewSkill) => apiRequest("/api/skills", "POST", skillData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/skills"] });
       toast({
