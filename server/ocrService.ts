@@ -1,10 +1,9 @@
-import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { connectToAzureSQL } from './azureSqlConnection';
 import fs from 'fs';
 import path from 'path';
 
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 interface OCRResult {
   id: string;
@@ -111,29 +110,21 @@ export class OCRService {
       const base64Image = imageBuffer.toString('base64');
       const mimeType = this.getMimeTypeFromExtension(imagePath);
 
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: "Please extract all text from this image. Maintain the original formatting and structure as much as possible. If there are tables, preserve the table structure. Return only the extracted text without any additional commentary or explanation."
-              },
-              {
-                type: "image_url",
-                image_url: {
-                  url: `data:${mimeType};base64,${base64Image}`
-                }
-              }
-            ],
-          },
-        ],
-        max_tokens: 4000,
-      });
+      // Use Gemini Pro Vision model
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-      const extractedText = response.choices[0].message.content || '';
+      const prompt = "Please extract all text from this image. Maintain the original formatting and structure as much as possible. If there are tables, preserve the table structure. Return only the extracted text without any additional commentary or explanation.";
+
+      const imagePart = {
+        inlineData: {
+          data: base64Image,
+          mimeType: mimeType,
+        },
+      };
+
+      const result = await model.generateContent([prompt, imagePart]);
+      const response = await result.response;
+      const extractedText = response.text() || '';
       
       // Calculate confidence based on response quality and length
       const confidence = this.calculateConfidence(extractedText);
@@ -144,34 +135,43 @@ export class OCRService {
       };
 
     } catch (error) {
-      console.error('Error processing image with OpenAI:', error);
+      console.error('Error processing image with Gemini:', error);
       throw new Error(`Image OCR failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
   private async processPDF(pdfPath: string): Promise<{ text: string; confidence: number }> {
     try {
-      // For PDF files, we'll convert them to images first and then process
-      // This is a simplified approach - in production, you might want to use a dedicated PDF parsing library
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-        messages: [
-          {
-            role: "user",
-            content: "I have a PDF file that needs text extraction. Since I cannot directly upload the PDF to you, I'll need to convert it to images first. For now, please acknowledge that PDF processing requires additional steps."
-          }
-        ]
-      });
+      // Convert PDF to base64
+      const pdfBuffer = fs.readFileSync(pdfPath);
+      const base64Pdf = pdfBuffer.toString('base64');
 
-      // For now, return a placeholder for PDF processing
-      // In a production system, you'd implement PDF to image conversion
+      // Use Gemini Pro model for PDF processing
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+      const prompt = "Please extract all text from this PDF document. Maintain the original formatting and structure as much as possible. If there are tables, preserve the table structure. Return only the extracted text without any additional commentary or explanation.";
+
+      const pdfPart = {
+        inlineData: {
+          data: base64Pdf,
+          mimeType: "application/pdf",
+        },
+      };
+
+      const result = await model.generateContent([prompt, pdfPart]);
+      const response = await result.response;
+      const extractedText = response.text() || '';
+      
+      // Calculate confidence based on response quality and length
+      const confidence = this.calculateConfidence(extractedText);
+      
       return {
-        text: "PDF processing requires additional conversion steps. Please convert your PDF to images for now.",
-        confidence: 0.5
+        text: extractedText,
+        confidence
       };
 
     } catch (error) {
-      console.error('Error processing PDF:', error);
+      console.error('Error processing PDF with Gemini:', error);
       throw new Error(`PDF OCR failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
