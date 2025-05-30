@@ -19,6 +19,7 @@ interface Task {
 class CrewAIOrchestrator {
   private agents: Map<string, Agent> = new Map();
   private tasks: Map<string, Task> = new Map();
+  private autonomousMode: boolean = true;
 
   constructor() {
     this.initializeAgents();
