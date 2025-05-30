@@ -162,7 +162,7 @@ export default function UCPRules() {
   const filteredRules = ucpRules?.filter((rule: any) => {
     const matchesSearch = rule.ruleCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          rule.ruleText?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesArticle = !selectedArticle || rule.articleId?.toString() === selectedArticle;
+    const matchesArticle = !selectedArticle || selectedArticle === "all" || rule.articleId?.toString() === selectedArticle;
     return matchesSearch && matchesArticle;
   }) || [];
 
@@ -289,7 +289,7 @@ export default function UCPRules() {
                   <SelectValue placeholder="Filter by article" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Articles</SelectItem>
+                  <SelectItem value="all">All Articles</SelectItem>
                   {ucpArticles?.map((article: any) => (
                     <SelectItem key={article.articleId} value={article.articleId?.toString()}>
                       Article {article.articleNumber}
