@@ -40,6 +40,25 @@ export default function AgentCode() {
     verbose: true
   });
 
+  // Available agents for crew assignment
+  const availableAgents = [
+    { id: "document_parsing_agent", name: "Document Parsing Agent", role: "Document Parser Specialist" },
+    { id: "discrepancy_detection_agent", name: "Discrepancy Detection Agent", role: "Discrepancy Detection Specialist" },
+    { id: "ucp_rules_agent", name: "UCP Rules Agent", role: "UCP 600 Rules Specialist" },
+    { id: "reporting_agent", name: "Reporting Agent", role: "Trade Finance Reporting Specialist" }
+  ];
+
+  // Available tasks for crew assignment
+  const availableTasks = [
+    { id: "document_intake_task", name: "Document Intake Task", description: "Receive and classify uploaded documents" },
+    { id: "parse_mt700_task", name: "Parse MT700 Task", description: "Parse MT700 SWIFT message" },
+    { id: "parse_commercial_documents_task", name: "Parse Commercial Documents", description: "Parse commercial documents" },
+    { id: "amount_verification_task", name: "Amount Verification Task", description: "Compare amounts across documents" },
+    { id: "discrepancy_detection_task", name: "Discrepancy Detection Task", description: "Identify document discrepancies" },
+    { id: "ucp_compliance_task", name: "UCP Compliance Task", description: "Apply UCP 600 rules" },
+    { id: "generate_report_task", name: "Generate Report Task", description: "Generate comprehensive reports" }
+  ];
+
   const agentCode = {
     document_parser: `"""
 LC Document Discrepancy Detection System - Document Parsing Agent
@@ -1340,6 +1359,56 @@ if __name__ == "__main__":
                         />
                       </div>
                       
+                      <div className="mt-4">
+                        <Label>Available Agents</Label>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+                          {availableAgents.map((agent) => (
+                            <div key={agent.id} className="flex items-center space-x-2 p-2 border rounded">
+                              <Checkbox
+                                id={`agent-${agent.id}`}
+                                checked={crewForm.agents.includes(agent.id)}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    setCrewForm(prev => ({ ...prev, agents: [...prev.agents, agent.id] }));
+                                  } else {
+                                    setCrewForm(prev => ({ ...prev, agents: prev.agents.filter(a => a !== agent.id) }));
+                                  }
+                                }}
+                              />
+                              <div className="flex-1">
+                                <Label htmlFor={`agent-${agent.id}`} className="text-sm font-medium">{agent.name}</Label>
+                                <p className="text-xs text-gray-500">{agent.role}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      <div className="mt-4">
+                        <Label>Available Tasks</Label>
+                        <div className="grid grid-cols-1 gap-2 mt-2 max-h-48 overflow-y-auto">
+                          {availableTasks.map((task) => (
+                            <div key={task.id} className="flex items-center space-x-2 p-2 border rounded">
+                              <Checkbox
+                                id={`task-${task.id}`}
+                                checked={crewForm.tasks.includes(task.id)}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    setCrewForm(prev => ({ ...prev, tasks: [...prev.tasks, task.id] }));
+                                  } else {
+                                    setCrewForm(prev => ({ ...prev, tasks: prev.tasks.filter(t => t !== task.id) }));
+                                  }
+                                }}
+                              />
+                              <div className="flex-1">
+                                <Label htmlFor={`task-${task.id}`} className="text-sm font-medium">{task.name}</Label>
+                                <p className="text-xs text-gray-500">{task.description}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
                       <div className="mt-4 space-y-3">
                         <div className="flex items-center space-x-2">
                           <Checkbox
