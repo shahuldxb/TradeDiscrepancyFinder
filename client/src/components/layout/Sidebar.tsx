@@ -196,7 +196,7 @@ export default function Sidebar() {
                         const isSubActive = location === subItem.href;
                         return (
                           <Link key={subItem.name} href={subItem.href}>
-                            <a
+                            <div
                               className={`nav-item text-sm ${
                                 isSubActive
                                   ? "bg-sidebar-primary text-sidebar-primary-foreground"
@@ -204,7 +204,7 @@ export default function Sidebar() {
                               }`}
                             >
                               <span>{subItem.name}</span>
-                            </a>
+                            </div>
                           </Link>
                         );
                       })}
