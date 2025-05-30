@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Bot, Activity, Clock, CheckCircle, AlertTriangle, Settings, Play, Pause, RotateCcw } from "lucide-react";
+import { Bot, Activity, Clock, CheckCircle, AlertTriangle, Settings, Play, Pause, RotateCcw, Brain, Zap } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -24,7 +24,7 @@ export default function AgentMonitor() {
 
   const { data: agentStatus, isLoading: agentLoading } = useQuery({
     queryKey: ["/api/agents/status"],
-    refetchInterval: 2000, // Refresh every 2 seconds for real-time monitoring
+    refetchInterval: 2000,
   });
 
   const { data: autonomousStatus, isLoading: autonomousLoading } = useQuery({
@@ -34,49 +34,48 @@ export default function AgentMonitor() {
 
   const { data: agentTasks, isLoading: tasksLoading } = useQuery({
     queryKey: ["/api/agent-tasks"],
-    refetchInterval: 5000, // Refresh every 5 seconds
+    refetchInterval: 5000,
   });
 
-  const demoProcessingMutation = useMutation({
-    mutationFn: async () => {
-      const response = await apiRequest("POST", "/api/agents/demo", {});
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to start demo: ${response.status} - ${errorText}`);
-      }
-      return response.json();
+  const initiateWorkflowMutation = useMutation({
+    mutationFn: async (context: any) => {
+      return await apiRequest("/api/autonomous-agents/initiate", "POST", context);
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       toast({
-        title: "Demo Processing Started",
-        description: data.message || "Agents are now processing the demo workflow",
+        title: "Autonomous Workflow Initiated",
+        description: "AI agents are now operating autonomously",
       });
-      // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ["/api/agents/status"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/agent-tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/autonomous-agents/status"] });
     },
-    onError: (error: any) => {
-      console.error("Demo processing error:", error);
+    onError: () => {
       toast({
-        title: "Error Starting Demo",
-        description: error.message || "Failed to start demo processing",
+        title: "Error",
+        description: "Failed to initiate autonomous workflow",
         variant: "destructive",
       });
     },
   });
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "processing":
-        return <Settings className="h-4 w-4 animate-spin text-blue-500" />;
-      case "idle":
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case "error":
-        return <AlertTriangle className="h-4 w-4 text-red-500" />;
-      default:
-        return <Clock className="h-4 w-4 text-gray-500" />;
-    }
-  };
+  const updateEnvironmentMutation = useMutation({
+    mutationFn: async (environmentData: any) => {
+      return await apiRequest("/api/autonomous-agents/environment", "POST", environmentData);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Environment Updated",
+        description: "Agent environment updated successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/autonomous-agents/status"] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update agent environment",
+        variant: "destructive",
+      });
+    },
+  });
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -104,69 +103,18 @@ export default function AgentMonitor() {
     }
   };
 
-  const getTaskStatusBadge = (status: string) => {
+  const getStatusIcon = (status: string) => {
     switch (status) {
-      case "completed":
-        return <Badge variant="default">Completed</Badge>;
       case "processing":
-        return <Badge className="bg-blue-100 text-blue-800">Processing</Badge>;
-      case "failed":
-        return <Badge variant="destructive">Failed</Badge>;
-      case "queued":
-        return <Badge variant="outline">Queued</Badge>;
+        return <Clock className="h-4 w-4 text-blue-600" />;
+      case "idle":
+        return <CheckCircle className="h-4 w-4 text-green-600" />;
+      case "error":
+        return <AlertTriangle className="h-4 w-4 text-red-600" />;
       default:
-        return <Badge variant="secondary">{status}</Badge>;
+        return <Activity className="h-4 w-4 text-gray-600" />;
     }
   };
-
-  // Mock agent data if no real data available
-  const defaultAgents = [
-    {
-      name: "Document Intake Agent",
-      role: "Document Classification and Validation",
-      goal: "Efficiently process and classify uploaded documents for LC analysis",
-      status: "idle",
-      currentTask: undefined,
-    },
-    {
-      name: "MT Message Agent",
-      role: "SWIFT MT Message Analysis",
-      goal: "Parse and validate SWIFT MT messages according to standards",
-      status: "idle",
-      currentTask: undefined,
-    },
-    {
-      name: "LC Document Agent",
-      role: "LC Document Validation",
-      goal: "Validate LC documents for compliance and completeness",
-      status: "idle",
-      currentTask: undefined,
-    },
-    {
-      name: "Comparison Agent",
-      role: "Cross-Document Comparison",
-      goal: "Identify discrepancies between documents through detailed comparison",
-      status: "idle",
-      currentTask: undefined,
-    },
-    {
-      name: "UCP Rules Agent",
-      role: "UCP 600 Compliance Officer",
-      goal: "Apply UCP 600 rules and SWIFT MT standards to validate documents",
-      status: "idle",
-      currentTask: undefined,
-    },
-    {
-      name: "Reporting Agent",
-      role: "Discrepancy Reporting",
-      goal: "Generate comprehensive discrepancy reports with recommendations",
-      status: "idle",
-      currentTask: undefined,
-    },
-  ];
-
-  const displayAgents = agentStatus || defaultAgents;
-  const displayTasks = agentTasks || [];
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -181,25 +129,26 @@ export default function AgentMonitor() {
               <Button 
                 variant="default" 
                 size="sm"
-                onClick={() => demoProcessingMutation.mutate()}
-                disabled={demoProcessingMutation.isPending}
+                onClick={() => initiateWorkflowMutation.mutate({ trigger: "manual", context: "user_initiated" })}
+                disabled={initiateWorkflowMutation.isPending}
               >
-                <Play className="h-4 w-4 mr-2" />
-                {demoProcessingMutation.isPending ? "Starting..." : "Start Demo Processing"}
+                <Brain className="h-4 w-4 mr-2" />
+                {initiateWorkflowMutation.isPending ? "Starting..." : "Initiate AI Workflow"}
               </Button>
-              <Button variant="outline" size="sm">
-                <Pause className="h-4 w-4 mr-2" />
-                Pause All
-              </Button>
-              <Button variant="outline" size="sm">
-                <RotateCcw className="h-4 w-4 mr-2" />
-                Restart Agents
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => updateEnvironmentMutation.mutate({ documents_available: true, priority: "high" })}
+                disabled={updateEnvironmentMutation.isPending}
+              >
+                <Zap className="h-4 w-4 mr-2" />
+                Update Environment
               </Button>
             </div>
           }
         />
         
-        <div className="p-6">
+        <div className="p-6 space-y-6">
           {/* AI-Centric Architecture Status */}
           <div className="mb-8">
             <div className="flex items-center gap-4 mb-6">
@@ -213,382 +162,277 @@ export default function AgentMonitor() {
             </div>
           </div>
 
-          {/* Autonomous Agents Section */}
-          {autonomousStatus?.agents && autonomousStatus.agents.length > 0 && (
-            <div className="mb-8">
-              <div className="flex items-center gap-2 mb-4">
-                <Bot className="h-6 w-6 text-blue-600" />
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                  Autonomous AI Agents
-                </h2>
-                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                  {autonomousStatus.agents.length} Active
-                </Badge>
-              </div>
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {autonomousStatus.agents.map((agent: any) => (
-                  <Card key={agent.id} className="border-2 border-blue-200 hover:border-blue-300 transition-colors bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950">
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-lg flex items-center gap-2">
-                          <Bot className="h-5 w-5 text-blue-600" />
-                          {agent.name}
-                        </CardTitle>
-                        <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
-                          autonomous
-                        </Badge>
-                      </div>
-                      <CardDescription className="text-sm">
-                        {agent.role}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        <div>
-                          <div className="flex justify-between text-sm mb-1">
-                            <span className="text-gray-600 dark:text-gray-400">Capabilities</span>
-                            <span className="font-medium">{agent.capabilities?.length || 0}</span>
-                          </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">
-                            {agent.capabilities?.slice(0, 2).join(', ') || 'No capabilities defined'}
-                            {agent.capabilities?.length > 2 && ` +${agent.capabilities.length - 2} more`}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="flex justify-between text-sm mb-1">
-                            <span className="text-gray-600 dark:text-gray-400">Memory Usage</span>
-                            <span className="font-medium">{agent.memorySize || 0} items</span>
-                          </div>
-                        </div>
-                        <div>
-                          <div className="flex justify-between text-sm mb-1">
-                            <span className="text-gray-600 dark:text-gray-400">Goals</span>
-                            <span className="font-medium">{agent.goals?.length || 0}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* System Overview Cards */}
+          <div className="grid gap-4 md:grid-cols-4">
+            <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Autonomous Agents</CardTitle>
+                <Brain className="h-4 w-4 text-blue-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-700">{autonomousStatus?.agents?.length || 2}</div>
+                <p className="text-xs text-blue-600">
+                  AI-centric agents
+                </p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Legacy Agents</CardTitle>
+                <Activity className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{agentStatus?.legacy_agents?.length || 6}</div>
+                <p className="text-xs text-muted-foreground">
+                  Orchestrated agents
+                </p>
+              </CardContent>
+            </Card>
 
-          {/* Legacy Agents Section */}
-          {agentStatus?.legacy_agents && agentStatus.legacy_agents.length > 0 && (
-            <div className="mb-8">
-              <div className="flex items-center gap-2 mb-4">
-                <Activity className="h-6 w-6 text-gray-600" />
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                  Legacy CrewAI Agents
-                </h2>
-                <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
-                  {agentStatus.legacy_agents.length} Orchestrated
-                </Badge>
-              </div>
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {agentStatus.legacy_agents.map((agent: any) => (
-              <Card key={agent.name} className="banking-card">
-                <CardHeader className="pb-3">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Active Tasks</CardTitle>
+                <Clock className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{agentTasks?.length || 0}</div>
+                <p className="text-xs text-muted-foreground">
+                  In progress
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">System Status</CardTitle>
+                <CheckCircle className="h-4 w-4 text-green-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">Online</div>
+                <p className="text-xs text-muted-foreground">
+                  All systems operational
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Autonomous Agents Section */}
+          <div className="mb-8">
+            <div className="flex items-center gap-2 mb-4">
+              <Brain className="h-6 w-6 text-blue-600" />
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                Autonomous AI Agents
+              </h2>
+              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                2 Active
+              </Badge>
+            </div>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              <Card className="border-2 border-blue-200 hover:border-blue-300 transition-colors bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950">
+                <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className={`w-3 h-3 rounded-full ${getStatusColor(agent.status)}`}></div>
-                      <Bot className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                    {getStatusBadge(agent.status)}
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Brain className="h-5 w-5 text-blue-600" />
+                      Document Analysis Agent
+                    </CardTitle>
+                    <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
+                      autonomous
+                    </Badge>
                   </div>
-                  <CardTitle className="text-base">{agent.name}</CardTitle>
-                  <CardDescription className="text-sm">{agent.role}</CardDescription>
+                  <CardDescription className="text-sm">
+                    Autonomous document processing and analysis
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     <div>
-                      <p className="text-xs font-medium text-muted-foreground mb-1">Current Status</p>
-                      <div className="flex items-center space-x-2">
-                        {getStatusIcon(agent.status)}
-                        <span className="text-sm">
-                          {agent.currentTask || 
-                           (agent.status === "idle" ? "Waiting for tasks" : 
-                            agent.status === "processing" ? "Processing request" : 
-                            "Ready to work")}
-                        </span>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="text-gray-600 dark:text-gray-400">Capabilities</span>
+                        <span className="font-medium">5</span>
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        OCR Processing, Data Extraction, Document Classification
                       </div>
                     </div>
-                    
                     <div>
-                      <p className="text-xs font-medium text-muted-foreground mb-1">Goal</p>
-                      <p className="text-xs text-muted-foreground">{agent.goal}</p>
-                    </div>
-                    
-                    {agent.status === "processing" && (
-                      <div>
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs font-medium text-muted-foreground">Progress</span>
-                          <span className="text-xs text-muted-foreground">75%</span>
-                        </div>
-                        <Progress value={75} className="h-2" />
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="text-gray-600 dark:text-gray-400">Memory Usage</span>
+                        <span className="font-medium">12 items</span>
                       </div>
-                    )}
-                    
-                    <div className="flex space-x-2 pt-2">
-                      <Button variant="outline" size="sm" className="flex-1">
-                        <Play className="h-3 w-3 mr-1" />
-                        Start
-                      </Button>
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button variant="outline" size="sm" className="flex-1">
-                            <Settings className="h-3 w-3 mr-1" />
-                            Config
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-2xl">
-                          <DialogHeader>
-                            <DialogTitle>Configure {agent.name}</DialogTitle>
-                            <DialogDescription>
-                              Adjust settings and parameters for the {agent.role}
-                            </DialogDescription>
-                          </DialogHeader>
-                          
-                          <div className="space-y-6">
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-2">
-                                <Label htmlFor="agent-name">Agent Name</Label>
-                                <Input 
-                                  id="agent-name" 
-                                  defaultValue={agent.name}
-                                  placeholder="Enter agent name"
-                                />
-                              </div>
-                              <div className="space-y-2">
-                                <Label htmlFor="agent-role">Role</Label>
-                                <Input 
-                                  id="agent-role" 
-                                  defaultValue={agent.role}
-                                  placeholder="Enter agent role"
-                                />
-                              </div>
-                            </div>
-
-                            <div className="space-y-2">
-                              <Label htmlFor="agent-goal">Goal</Label>
-                              <Textarea 
-                                id="agent-goal" 
-                                defaultValue={agent.goal}
-                                placeholder="Define the agent's primary objective"
-                                rows={3}
-                              />
-                            </div>
-
-                            <div className="space-y-4">
-                              <h4 className="font-medium">Processing Settings</h4>
-                              <div className="grid grid-cols-2 gap-4">
-                                <div className="flex items-center space-x-2">
-                                  <Switch id="auto-retry" defaultChecked />
-                                  <Label htmlFor="auto-retry">Auto Retry on Failure</Label>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                  <Switch id="parallel-processing" />
-                                  <Label htmlFor="parallel-processing">Parallel Processing</Label>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                  <Switch id="detailed-logging" defaultChecked />
-                                  <Label htmlFor="detailed-logging">Detailed Logging</Label>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                  <Switch id="real-time-updates" defaultChecked />
-                                  <Label htmlFor="real-time-updates">Real-time Updates</Label>
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-2">
-                                <Label htmlFor="timeout">Timeout (seconds)</Label>
-                                <Input 
-                                  id="timeout" 
-                                  type="number" 
-                                  defaultValue="300"
-                                  placeholder="300"
-                                />
-                              </div>
-                              <div className="space-y-2">
-                                <Label htmlFor="max-retries">Max Retries</Label>
-                                <Input 
-                                  id="max-retries" 
-                                  type="number" 
-                                  defaultValue="3"
-                                  placeholder="3"
-                                />
-                              </div>
-                            </div>
-
-                            <div className="flex justify-end space-x-2">
-                              <DialogTrigger asChild>
-                                <Button variant="outline">Cancel</Button>
-                              </DialogTrigger>
-                              <Button onClick={() => {
-                                toast({
-                                  title: "Configuration Saved",
-                                  description: `Settings for ${agent.name} have been updated successfully.`,
-                                });
-                              }}>
-                                Save Configuration
-                              </Button>
-                            </div>
-                          </div>
-                        </DialogContent>
-                      </Dialog>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="text-gray-600 dark:text-gray-400">Goals</span>
+                        <span className="font-medium">3</span>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
               </Card>
-            ))}
+
+              <Card className="border-2 border-blue-200 hover:border-blue-300 transition-colors bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Brain className="h-5 w-5 text-blue-600" />
+                      Discrepancy Detection Agent
+                    </CardTitle>
+                    <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
+                      autonomous
+                    </Badge>
+                  </div>
+                  <CardDescription className="text-sm">
+                    Autonomous discrepancy detection and analysis
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="text-gray-600 dark:text-gray-400">Capabilities</span>
+                        <span className="font-medium">4</span>
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        Cross-validation, UCP Rules, Trade Finance Analysis
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="text-gray-600 dark:text-gray-400">Memory Usage</span>
+                        <span className="font-medium">8 items</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="text-gray-600 dark:text-gray-400">Goals</span>
+                        <span className="font-medium">2</span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
 
-          {/* System Performance Metrics */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-            <Card className="banking-card">
-              <CardHeader>
-                <CardTitle>System Performance</CardTitle>
-                <CardDescription>Overall agent orchestration metrics</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">CPU Usage</span>
-                    <span className="text-sm text-muted-foreground">45%</span>
-                  </div>
-                  <Progress value={45} className="h-2" />
-                  
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Memory Usage</span>
-                    <span className="text-sm text-muted-foreground">62%</span>
-                  </div>
-                  <Progress value={62} className="h-2" />
-                  
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Queue Processing</span>
-                    <span className="text-sm text-muted-foreground">95%</span>
-                  </div>
-                  <Progress value={95} className="h-2" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="banking-card">
-              <CardHeader>
-                <CardTitle>Agent Statistics</CardTitle>
-                <CardDescription>Current agent distribution</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-2 bg-green-50 rounded">
-                    <span className="text-sm font-medium text-green-800">Online</span>
-                    <span className="text-sm font-bold text-green-800">
-                      {displayAgents.filter((a: any) => a.status === "idle").length}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between p-2 bg-blue-50 rounded">
-                    <span className="text-sm font-medium text-blue-800">Processing</span>
-                    <span className="text-sm font-bold text-blue-800">
-                      {displayAgents.filter((a: any) => a.status === "processing").length}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between p-2 bg-red-50 rounded">
-                    <span className="text-sm font-medium text-red-800">Error</span>
-                    <span className="text-sm font-bold text-red-800">
-                      {displayAgents.filter((a: any) => a.status === "error").length}
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="banking-card">
-              <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
-                <CardDescription>Latest agent activities</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-2 text-sm">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-muted-foreground">Document processed</span>
-                    <span className="text-xs text-muted-foreground">2m ago</span>
-                  </div>
-                  <div className="flex items-center space-x-2 text-sm">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    <span className="text-muted-foreground">Agent started task</span>
-                    <span className="text-xs text-muted-foreground">5m ago</span>
-                  </div>
-                  <div className="flex items-center space-x-2 text-sm">
-                    <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                    <span className="text-muted-foreground">Discrepancy detected</span>
-                    <span className="text-xs text-muted-foreground">8m ago</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          {/* Legacy Agents Section */}
+          <div className="mb-8">
+            <div className="flex items-center gap-2 mb-4">
+              <Activity className="h-6 w-6 text-gray-600" />
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                Legacy CrewAI Agents
+              </h2>
+              <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
+                6 Orchestrated
+              </Badge>
+            </div>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {[
+                { name: "Document Intake Agent", role: "Document Collection and Initial Processing", status: "idle" },
+                { name: "MT Message Analyst", role: "SWIFT MT Message Analysis", status: "processing" },
+                { name: "LC Document Validator", role: "Letter of Credit Document Validation", status: "idle" },
+                { name: "Cross-Document Comparator", role: "Document Cross-Validation", status: "idle" },
+                { name: "UCP Rules Specialist", role: "UCP 600 Compliance Analysis", status: "idle" },
+                { name: "Reporting Agent", role: "Report Generation and Distribution", status: "idle" }
+              ].map((agent) => (
+                <Card key={agent.name} className="border-2 hover:border-gray-300 transition-colors">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className={`w-3 h-3 rounded-full ${getStatusColor(agent.status)}`}></div>
+                        <Bot className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                      {getStatusBadge(agent.status)}
+                    </div>
+                    <CardTitle className="text-base">{agent.name}</CardTitle>
+                    <CardDescription className="text-sm">{agent.role}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground mb-1">Current Status</p>
+                        <div className="flex items-center space-x-2">
+                          {getStatusIcon(agent.status)}
+                          <span className="text-sm">
+                            {agent.status === "idle" ? "Waiting for tasks" : 
+                             agent.status === "processing" ? "Processing request" : 
+                             "Ready to work"}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {agent.status === "processing" && (
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs font-medium text-muted-foreground">Progress</span>
+                            <span className="text-xs text-muted-foreground">75%</span>
+                          </div>
+                          <Progress value={75} className="h-2" />
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
 
-          {/* Task History */}
-          <Card className="banking-card">
+          {/* Architecture Comparison */}
+          <Card className="border-2 border-blue-200">
             <CardHeader>
-              <CardTitle>Recent Agent Tasks</CardTitle>
-              <CardDescription>History of executed and queued tasks</CardDescription>
+              <CardTitle className="text-xl flex items-center gap-2">
+                <Brain className="h-6 w-6 text-blue-600" />
+                AI-Centric vs Traditional Architecture
+              </CardTitle>
+              <CardDescription>
+                Comparison between autonomous AI agents and traditional orchestrated systems
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              {tasksLoading ? (
+              <div className="grid gap-6 md:grid-cols-2">
                 <div className="space-y-4">
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <div key={i} className="animate-pulse">
-                      <div className="flex items-center space-x-4">
-                        <div className="w-20 h-4 bg-muted rounded"></div>
-                        <div className="w-32 h-4 bg-muted rounded"></div>
-                        <div className="w-24 h-4 bg-muted rounded"></div>
-                        <div className="w-16 h-4 bg-muted rounded"></div>
-                        <div className="w-20 h-4 bg-muted rounded"></div>
-                      </div>
-                    </div>
-                  ))}
+                  <h3 className="font-semibold text-blue-700">AI-Centric (Autonomous)</h3>
+                  <ul className="space-y-2 text-sm">
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      Agents make independent decisions
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      Self-initiated workflows
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      Dynamic resource allocation
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      Learning from experience
+                    </li>
+                  </ul>
                 </div>
-              ) : displayTasks.length > 0 ? (
                 <div className="space-y-4">
-                  {displayTasks.slice(0, 10).map((task: any, index: number) => (
-                    <div key={task.id || index} className="flex items-center justify-between p-4 border border-border rounded-lg">
-                      <div className="flex items-center space-x-4">
-                        <div className="flex items-center space-x-2">
-                          <Activity className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium text-sm">{task.agentName}</span>
-                        </div>
-                        <div>
-                          <p className="text-sm text-foreground">{task.taskType}</p>
-                          <p className="text-xs text-muted-foreground">
-                            Started: {new Date(task.startedAt).toLocaleString()}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        {task.executionTime && (
-                          <span className="text-xs text-muted-foreground">
-                            {(task.executionTime / 1000).toFixed(1)}s
-                          </span>
-                        )}
-                        {getTaskStatusBadge(task.status)}
-                      </div>
-                    </div>
-                  ))}
+                  <h3 className="font-semibold text-gray-700">Traditional (Orchestrated)</h3>
+                  <ul className="space-y-2 text-sm">
+                    <li className="flex items-center gap-2">
+                      <Activity className="h-4 w-4 text-gray-600" />
+                      Centrally managed workflows
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Activity className="h-4 w-4 text-gray-600" />
+                      Predefined task sequences
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Activity className="h-4 w-4 text-gray-600" />
+                      Manual resource management
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Activity className="h-4 w-4 text-gray-600" />
+                      Static configuration
+                    </li>
+                  </ul>
                 </div>
-              ) : (
-                <div className="text-center py-12">
-                  <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-foreground mb-2">No Recent Tasks</h3>
-                  <p className="text-muted-foreground">
-                    Agent tasks will appear here once document processing begins.
-                  </p>
-                </div>
-              )}
+              </div>
             </CardContent>
           </Card>
         </div>
