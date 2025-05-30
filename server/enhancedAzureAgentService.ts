@@ -6,19 +6,29 @@ import { connectToAzureSQL } from './azureSqlConnection';
  */
 export class EnhancedAzureAgentService {
   
-  // Custom Agents Management - Most Critical Fields Priority
+  // Custom Agents Management - Enhanced Fields Based on Refreshed Table Structure
   async createCustomAgent(agentData: {
     user_id: string;
     name: string;
     role: string;
     goal: string;
     backstory: string;
-    skills: string;
-    tools: string;
+    skills?: string;
+    tools?: string;
     status?: string;
     is_active?: boolean;
     max_execution_time?: number;
     temperature?: number;
+    agent_type?: string;
+    model_name?: string;
+    version?: string;
+    capabilities?: string;
+    allowed_document_types?: string;
+    validation_rules?: string;
+    memory_settings?: string;
+    collaboration_mode?: string;
+    error_handling?: string;
+    performance_metrics?: string;
   }) {
     try {
       const pool = await connectToAzureSQL();
@@ -28,23 +38,35 @@ export class EnhancedAzureAgentService {
         .input('role', agentData.role)
         .input('goal', agentData.goal)
         .input('backstory', agentData.backstory)
-        .input('skills', agentData.skills)
-        .input('tools', agentData.tools)
-        .input('status', agentData.status || 'active')
+        .input('skills', agentData.skills || null)
+        .input('tools', agentData.tools || null)
+        .input('status', agentData.status || 'idle')
         .input('is_active', agentData.is_active !== false)
-        .input('max_execution_time', agentData.max_execution_time || 3600)
+        .input('max_execution_time', agentData.max_execution_time || 300)
         .input('temperature', agentData.temperature || 0.7)
+        .input('agent_type', agentData.agent_type || 'LC_Validator')
+        .input('model_name', agentData.model_name || 'gpt-4o')
+        .input('version', agentData.version || '1.0')
+        .input('capabilities', agentData.capabilities || 'document_analysis,discrepancy_detection')
+        .input('allowed_document_types', agentData.allowed_document_types || 'MT700,Commercial_Invoice,Bill_of_Lading')
+        .input('validation_rules', agentData.validation_rules || '{}')
+        .input('memory_settings', agentData.memory_settings || '{"context_window": 4000}')
+        .input('collaboration_mode', agentData.collaboration_mode || 'sequential')
+        .input('error_handling', agentData.error_handling || 'retry_on_failure')
+        .input('performance_metrics', agentData.performance_metrics || '{}')
         .query(`
           INSERT INTO custom_agents (
-            user_id, name, role, goal, backstory, skills, tools,
-            status, is_active, max_execution_time, temperature,
-            created_at, updated_at
+            user_id, name, role, goal, backstory, skills, tools, status, is_active,
+            max_execution_time, temperature, agent_type, model_name, version,
+            capabilities, allowed_document_types, validation_rules, memory_settings,
+            collaboration_mode, error_handling, performance_metrics
           ) VALUES (
-            @user_id, @name, @role, @goal, @backstory, @skills, @tools,
-            @status, @is_active, @max_execution_time, @temperature,
-            GETDATE(), GETDATE()
+            @user_id, @name, @role, @goal, @backstory, @skills, @tools, @status, @is_active,
+            @max_execution_time, @temperature, @agent_type, @model_name, @version,
+            @capabilities, @allowed_document_types, @validation_rules, @memory_settings,
+            @collaboration_mode, @error_handling, @performance_metrics
           );
-          SELECT SCOPE_IDENTITY() as id;
+          SELECT CAST(id as nvarchar(50)) as id;
         `);
       return result.recordset[0];
     } catch (error) {
@@ -60,8 +82,10 @@ export class EnhancedAzureAgentService {
         .input('user_id', userId)
         .query(`
           SELECT 
-            id, user_id, name, role, goal, backstory, skills, tools,
-            status, is_active, max_execution_time, temperature,
+            id, user_id, name, role, goal, backstory, skills, tools, status, is_active,
+            max_execution_time, temperature, agent_type, model_name, version,
+            capabilities, allowed_document_types, validation_rules, memory_settings,
+            collaboration_mode, error_handling, performance_metrics,
             created_at, updated_at
           FROM custom_agents 
           WHERE user_id = @user_id

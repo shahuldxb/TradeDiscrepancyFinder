@@ -104,32 +104,49 @@ export default function AgentDesigner() {
     queryKey: ['/api/custom-crews'],
   });
 
-  // Combine system and custom agents
+  // Combine system and custom agents with proper type handling
   const allAgents = [
-    ...systemAgents.map((agent: any) => ({ 
+    ...(Array.isArray(systemAgents) ? systemAgents.map((agent: any) => ({ 
       ...agent, 
       type: 'system',
       id: agent.name,
       skills: ['System Agent'],
       tools: ['Built-in Tools'],
       isActive: agent.status !== 'error'
-    })),
-    ...customAgents.map((agent: any) => ({ ...agent, type: 'custom' }))
+    })) : []),
+    ...(Array.isArray(customAgents) ? customAgents.map((agent: any) => ({ 
+      ...agent, 
+      type: 'custom',
+      skills: agent.skills ? agent.skills.split(',') : [],
+      tools: agent.tools ? agent.tools.split(',') : [],
+      isActive: agent.is_active
+    })) : [])
   ];
 
-  // Mutations
+  // Mutations for enhanced agent system
   const createAgentMutation = useMutation({
     mutationFn: async (agent: Agent) => {
-      const response = await fetch('/api/agents', {
+      const response = await fetch('/api/enhanced-agents', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(agent),
+        body: JSON.stringify({
+          name: agent.name,
+          role: agent.role,
+          goal: agent.goal,
+          backstory: agent.backstory,
+          skills: Array.isArray(agent.skills) ? agent.skills.join(',') : agent.skills,
+          tools: Array.isArray(agent.tools) ? agent.tools.join(',') : agent.tools,
+          agent_type: agent.agentType || 'LC_Validator',
+          model_name: agent.modelName || 'gpt-4o',
+          capabilities: agent.capabilities || 'document_analysis,discrepancy_detection',
+          allowed_document_types: agent.allowedDocumentTypes || 'MT700,Commercial_Invoice,Bill_of_Lading'
+        }),
       });
       if (!response.ok) throw new Error('Failed to create agent');
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/custom-agents'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/enhanced-agents'] });
       toast({ title: "Agent created successfully!" });
       setSelectedAgent(null);
       setIsEditMode(false);
