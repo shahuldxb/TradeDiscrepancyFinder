@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import Sidebar from "@/components/layout/Sidebar";
 import TopHeader from "@/components/layout/TopHeader";
@@ -6,10 +6,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import { Bot, Activity, Clock, CheckCircle, AlertTriangle, Settings, Play, Pause, RotateCcw } from "lucide-react";
 
 export default function AgentMonitor() {
   const { user } = useAuth();
+  const { toast } = useToast();
 
   const { data: agentStatus, isLoading: agentLoading } = useQuery({
     queryKey: ["/api/agents/status"],
@@ -19,6 +22,26 @@ export default function AgentMonitor() {
   const { data: agentTasks, isLoading: tasksLoading } = useQuery({
     queryKey: ["/api/agent-tasks"],
     refetchInterval: 5000, // Refresh every 5 seconds
+  });
+
+  const demoProcessingMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/agents/demo", {});
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Demo Processing Started",
+        description: data.message,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to start demo processing",
+        variant: "destructive",
+      });
+    },
   });
 
   const getStatusIcon = (status: string) => {
@@ -134,6 +157,15 @@ export default function AgentMonitor() {
           subtitle="Real-time monitoring and management of AI agents"
           actions={
             <div className="flex space-x-2">
+              <Button 
+                variant="default" 
+                size="sm"
+                onClick={() => demoProcessingMutation.mutate()}
+                disabled={demoProcessingMutation.isPending}
+              >
+                <Play className="h-4 w-4 mr-2" />
+                {demoProcessingMutation.isPending ? "Starting..." : "Start Demo Processing"}
+              </Button>
               <Button variant="outline" size="sm">
                 <Pause className="h-4 w-4 mr-2" />
                 Pause All
