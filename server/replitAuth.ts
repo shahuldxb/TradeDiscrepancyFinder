@@ -7,6 +7,7 @@ import type { Express, RequestHandler } from "express";
 import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
+import { enhancedAzureAgentService } from "./enhancedAzureAgentService";
 
 if (!process.env.REPLIT_DOMAINS) {
   throw new Error("Environment variable REPLIT_DOMAINS not provided");
@@ -22,18 +23,52 @@ const getOidcConfig = memoize(
   { maxAge: 3600 * 1000 }
 );
 
+// Azure SQL Session Store Implementation
+class AzureSessionStore extends session.Store {
+  constructor() {
+    super();
+  }
+
+  async get(sid: string, callback: (err?: any, session?: any) => void) {
+    try {
+      const sessionData = await enhancedAzureAgentService.getSession(sid);
+      if (sessionData) {
+        callback(null, JSON.parse(sessionData.sess));
+      } else {
+        callback(null, null);
+      }
+    } catch (error) {
+      callback(error);
+    }
+  }
+
+  async set(sid: string, session: any, callback?: (err?: any) => void) {
+    try {
+      const expire = new Date(Date.now() + (session.cookie?.maxAge || 604800000)); // 1 week default
+      await enhancedAzureAgentService.setSession(sid, session, expire);
+      callback?.();
+    } catch (error) {
+      callback?.(error);
+    }
+  }
+
+  async destroy(sid: string, callback?: (err?: any) => void) {
+    try {
+      await enhancedAzureAgentService.destroySession(sid);
+      callback?.();
+    } catch (error) {
+      callback?.(error);
+    }
+  }
+}
+
 export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
-  const pgStore = connectPg(session);
-  const sessionStore = new pgStore({
-    conString: process.env.DATABASE_URL,
-    createTableIfMissing: false,
-    ttl: sessionTtl,
-    tableName: "sessions",
-  });
+  const azureStore = new AzureSessionStore();
+  
   return session({
     secret: process.env.SESSION_SECRET!,
-    store: sessionStore,
+    store: azureStore,
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -57,7 +92,7 @@ function updateUserSession(
 async function upsertUser(
   claims: any,
 ) {
-  await storage.upsertUser({
+  await enhancedAzureAgentService.upsertUser({
     id: claims["sub"],
     email: claims["email"],
     firstName: claims["first_name"],

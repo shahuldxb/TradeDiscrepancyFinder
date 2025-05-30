@@ -1,4 +1,4 @@
-import { fullAuthMigration } from './server/migrateAuthToAzure.js';
+import { fullAuthMigration } from './server/migrateAuthToAzure.ts';
 
 async function runMigration() {
   try {
