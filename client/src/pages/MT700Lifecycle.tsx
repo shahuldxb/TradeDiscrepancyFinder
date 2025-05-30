@@ -363,7 +363,7 @@ export default function MT700Lifecycle() {
 
                 <TabsContent value="documents" className="space-y-4">
                   <div className="grid gap-4">
-                    {(documentsData || []).map((doc: any) => (
+                    {Array.isArray(documentsData) && documentsData.map((doc: any) => (
                       <Card key={doc.id} className="p-4">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
@@ -399,7 +399,7 @@ export default function MT700Lifecycle() {
 
                 <TabsContent value="agents" className="space-y-4">
                   <div className="grid gap-4">
-                    {(agentTasksData || []).map((task: any) => (
+                    {Array.isArray(agentTasksData) && agentTasksData.map((task: any) => (
                       <Card key={task.id} className="p-4">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center space-x-3">

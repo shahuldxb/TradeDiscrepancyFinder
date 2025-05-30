@@ -1010,6 +1010,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/mt700-lifecycle', isAuthenticated, async (req, res) => {
     try {
       // Get lifecycle data from Azure SQL with real SWIFT message flow
+      const { azureDataService } = await import('./azureDataService');
       const lifecycleData = await azureDataService.getMT700LifecycleData();
       res.json(lifecycleData);
     } catch (error) {
@@ -1021,6 +1022,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/mt700-lifecycle/documents/:nodeId', isAuthenticated, async (req, res) => {
     try {
       const { nodeId } = req.params;
+      const { azureDataService } = await import('./azureDataService');
       const documents = await azureDataService.getLifecycleDocuments(nodeId);
       res.json(documents);
     } catch (error) {
@@ -1032,6 +1034,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/mt700-lifecycle/agents/:nodeId', isAuthenticated, async (req, res) => {
     try {
       const { nodeId } = req.params;
+      const { azureAgentService } = await import('./azureAgentService');
       const agentTasks = await azureAgentService.getLifecycleAgentTasks(nodeId);
       res.json(agentTasks);
     } catch (error) {
@@ -1044,6 +1047,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { nodeId } = req.params;
       const userId = req.user?.claims?.sub;
+      const { crewAI } = await import('./crewai');
       const result = await crewAI.processLifecycleNode(nodeId, userId);
       res.json(result);
     } catch (error) {
