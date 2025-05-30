@@ -18,7 +18,9 @@ import {
   MessageCircle,
   Zap,
   Brain,
-  Scale
+  Scale,
+  ChevronDown,
+  ChevronRight
 } from "lucide-react";
 
 const navigationItems = [
@@ -29,58 +31,84 @@ const navigationItems = [
     description: "Overview and metrics",
   },
   {
-    name: "Document Upload",
-    href: "/documents",
+    name: "Document Processing",
     icon: Upload,
-    description: "Upload LC documents",
+    description: "Document management",
+    subItems: [
+      {
+        name: "Document Upload",
+        href: "/documents",
+        description: "Upload LC documents",
+      },
+      {
+        name: "Trade Finance Docs",
+        href: "/trade-finance-documents",
+        description: "Document management system",
+      },
+    ],
   },
   {
-    name: "CrewAI Agents",
-    href: "/agents",
+    name: "AI & Automation",
     icon: Bot,
-    description: "Agent monitoring",
+    description: "AI-powered tools",
+    subItems: [
+      {
+        name: "CrewAI Agents",
+        href: "/agents",
+        description: "Agent monitoring",
+      },
+      {
+        name: "Agent Designer",
+        href: "/agent-designer",
+        description: "Create custom agents",
+      },
+    ],
   },
   {
-    name: "Agent Designer",
-    href: "/agent-designer",
-    icon: Wrench,
-    description: "Create custom agents",
-  },
-  {
-    name: "Message Builder",
-    href: "/message-builder",
+    name: "SWIFT & Messaging",
     icon: MessageCircle,
-    description: "Create MT 700 messages",
+    description: "SWIFT message tools",
+    subItems: [
+      {
+        name: "Message Builder",
+        href: "/message-builder",
+        description: "Create MT 700 messages",
+      },
+      {
+        name: "MT Intelligence",
+        href: "/mt-intelligence",
+        description: "SWIFT MT7xx intelligence system",
+      },
+    ],
   },
   {
-    name: "MT Intelligence",
-    href: "/mt-intelligence",
-    icon: Brain,
-    description: "SWIFT MT7xx intelligence system",
-  },
-  {
-    name: "Trade Finance Docs",
-    href: "/trade-finance-documents",
-    icon: FileText,
-    description: "Document management system",
-  },
-  {
-    name: "UCP Rule Engine",
-    href: "/ucp-rules",
+    name: "Compliance & Rules",
     icon: Scale,
-    description: "UCP 600 validation rules",
+    description: "UCP and validation rules",
+    subItems: [
+      {
+        name: "UCP Rule Engine",
+        href: "/ucp-rules",
+        description: "UCP 600 validation rules",
+      },
+      {
+        name: "Discrepancy Analysis",
+        href: "/analysis",
+        description: "Review discrepancies",
+      },
+    ],
   },
   {
-    name: "Discrepancy Analysis",
-    href: "/analysis",
-    icon: AlertTriangle,
-    description: "Review discrepancies",
-  },
-  {
-    name: "Reports",
-    href: "/reports",
+    name: "Reports & Analytics",
     icon: FileText,
-    description: "Generate reports",
+    description: "Reporting tools",
+    subItems: [
+      {
+        name: "Reports",
+        href: "/reports",
+        description: "Generate reports",
+      },
+    ],
   },
   {
     name: "Settings",
@@ -99,6 +127,17 @@ const systemStatusItems = [
 export default function Sidebar() {
   const [location] = useLocation();
   const { user } = useAuth();
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+
+  const toggleExpanded = (itemName: string) => {
+    const newExpanded = new Set(expandedItems);
+    if (newExpanded.has(itemName)) {
+      newExpanded.delete(itemName);
+    } else {
+      newExpanded.add(itemName);
+    }
+    setExpandedItems(newExpanded);
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -132,8 +171,48 @@ export default function Sidebar() {
       <div className="p-4">
         <div className="space-y-2">
           {navigationItems.map((item) => {
-            const isActive = location === item.href;
             const Icon = item.icon;
+            const isActive = item.href && location === item.href;
+            const isExpanded = expandedItems.has(item.name);
+            
+            if (item.subItems) {
+              return (
+                <div key={item.name}>
+                  <button
+                    onClick={() => toggleExpanded(item.name)}
+                    className="w-full nav-item text-sidebar-foreground hover:bg-sidebar-accent"
+                  >
+                    <Icon className="h-5 w-5" />
+                    <span className="flex-1 text-left">{item.name}</span>
+                    {isExpanded ? (
+                      <ChevronDown className="h-4 w-4" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4" />
+                    )}
+                  </button>
+                  {isExpanded && (
+                    <div className="ml-6 mt-1 space-y-1">
+                      {item.subItems.map((subItem) => {
+                        const isSubActive = location === subItem.href;
+                        return (
+                          <Link key={subItem.name} href={subItem.href}>
+                            <a
+                              className={`nav-item text-sm ${
+                                isSubActive
+                                  ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                                  : "text-sidebar-foreground hover:bg-sidebar-accent"
+                              }`}
+                            >
+                              <span>{subItem.name}</span>
+                            </a>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            }
 
             return (
               <Link key={item.name} href={item.href}>
