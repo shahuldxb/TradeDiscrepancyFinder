@@ -30,23 +30,23 @@ import json
 class DocumentParsingTool(BaseTool):
     name = "document_parser"
     description = "Parses different types of LC documents and extracts structured data"
-    
+
     def _run(self, document_path: str, document_type: str) -> Dict[str, Any]:
         """
         Parses a document and extracts structured data
-        
+
         Args:
             document_path: Path to the document file
             document_type: Type of document (commercial_invoice, bill_of_lading, mt700, etc.)
-            
+
         Returns:
             Dictionary of extracted fields and values
         """
-        
+
         # Read document content
         with open(document_path, 'r', encoding='utf-8') as file:
             content = file.read()
-        
+
         if document_type == "mt700":
             return self._parse_mt700(content)
         elif document_type == "commercial_invoice":
@@ -55,11 +55,11 @@ class DocumentParsingTool(BaseTool):
             return self._parse_bill_of_lading(content)
         else:
             return self._parse_generic_document(content)
-    
+
     def _parse_mt700(self, content: str) -> Dict[str, Any]:
         """Parse SWIFT MT700 message"""
         fields = {}
-        
+
         # Extract standard MT700 fields
         field_patterns = {
             "lc_number": r":20:([A-Z0-9]+)",
@@ -71,7 +71,7 @@ class DocumentParsingTool(BaseTool):
             "expiry_date": r":31D:(\\d{6})",
             "description_goods": r":45A:(.+?)(?=:|$)"
         }
-        
+
         for field, pattern in field_patterns.items():
             match = re.search(pattern, content, re.MULTILINE | re.DOTALL)
             if match:
@@ -80,7 +80,7 @@ class DocumentParsingTool(BaseTool):
                     fields["amount"] = match.group(2).replace(",", "")
                 else:
                     fields[field] = match.group(1).strip()
-        
+
         return {
             "document_type": "mt700",
             "fields": fields,
@@ -117,19 +117,19 @@ import difflib
 class DiscrepancyDetectionTool(BaseTool):
     name = "discrepancy_detector"
     description = "Detects discrepancies between LC documents based on UCP 600 rules"
-    
+
     def _run(self, documents: Dict[str, Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
         Detects discrepancies between documents
-        
+
         Args:
             documents: Dictionary of document types and their extracted fields
-            
+
         Returns:
             List of detected discrepancies
         """
         discrepancies = []
-        
+
         # Check for missing documents
         required_docs = ["mt700", "commercial_invoice", "bill_of_lading"]
         for doc_type in required_docs:
@@ -142,7 +142,7 @@ class DiscrepancyDetectionTool(BaseTool):
                     "expected": doc_type,
                     "actual": "missing"
                 })
-        
+
         return discrepancies
 
 # Discrepancy Detection Agent Configuration
@@ -172,23 +172,23 @@ from typing import Dict, Any, List
 class UcpRuleApplicationTool(BaseTool):
     name = "ucp_rule_applier"
     description = "Applies UCP 600 rules to detected discrepancies"
-    
+
     def _run(self, discrepancies: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
         Applies UCP 600 rules to discrepancies and adds explanations
-        
+
         Args:
             discrepancies: List of detected discrepancies
-            
+
         Returns:
             Enhanced discrepancies with UCP rule explanations
         """
         enhanced_discrepancies = []
-        
+
         for discrepancy in discrepancies:
             enhanced = discrepancy.copy()
             rule_info = self._get_ucp_rule(discrepancy["type"])
-            
+
             enhanced.update({
                 "ucp_article": rule_info["article"],
                 "ucp_rule": rule_info["rule"],
@@ -196,9 +196,9 @@ class UcpRuleApplicationTool(BaseTool):
                 "recommendation": rule_info["recommendation"],
                 "is_waivable": rule_info["waivable"]
             })
-            
+
             enhanced_discrepancies.append(enhanced)
-        
+
         return enhanced_discrepancies
 
 # UCP Rules Specialist Agent Configuration  
@@ -231,23 +231,23 @@ from datetime import datetime
 class ReportGenerationTool(BaseTool):
     name = "report_generator"
     description = "Generates comprehensive discrepancy analysis reports"
-    
+
     def _run(self, discrepancies: List[Dict[str, Any]], document_info: Dict[str, Any]) -> Dict[str, Any]:
         """
         Generates a comprehensive discrepancy report
-        
+
         Args:
             discrepancies: List of enhanced discrepancies with UCP rules
             document_info: Information about the processed documents
-            
+
         Returns:
             Comprehensive report dictionary
         """
-        
+
         # Calculate summary statistics
         total_discrepancies = len(discrepancies)
         critical_count = len([d for d in discrepancies if d.get("severity") == "critical"])
-        
+
         # Generate recommendation
         if critical_count > 0:
             recommendation = "REJECT - Critical discrepancies present"
@@ -255,7 +255,7 @@ class ReportGenerationTool(BaseTool):
         else:
             recommendation = "CLEAN PRESENTATION - Accept documents"
             risk_level = "MINIMAL"
-        
+
         report = {
             "report_metadata": {
                 "generated_at": datetime.now().isoformat(),
@@ -269,7 +269,7 @@ class ReportGenerationTool(BaseTool):
                 "overall_status": "COMPLIANT" if total_discrepancies == 0 else "NON-COMPLIANT"
             }
         }
-        
+
         return report
 
 # Reporting Agent Configuration
@@ -328,7 +328,7 @@ reporting_agent = Agent(
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    
+
     toast({
       title: "Download started",
       description: `${agentName}_agent.py has been downloaded.`,
@@ -429,7 +429,7 @@ reporting_agent = Agent(
                     Features
                   </TabsTrigger>
                 </TabsList>
-                
+
                 <TabsContent value="code" className="mt-4">
                   <div className="border rounded-lg overflow-hidden">
                     <div className="bg-gray-800 text-gray-200 p-3 flex items-center justify-between">
@@ -448,7 +448,7 @@ reporting_agent = Agent(
                     </ScrollArea>
                   </div>
                 </TabsContent>
-                
+
                 <TabsContent value="features" className="mt-4">
                   <div className="space-y-4">
                     <div>
@@ -462,33 +462,33 @@ reporting_agent = Agent(
                         ))}
                       </div>
                     </div>
-                    
+
                     <Separator />
-                    
+
                     <div>
                       <h3 className="text-lg font-semibold mb-3">Implementation Details</h3>
                       <div className="space-y-3 text-sm text-gray-600 dark:text-gray-400">
-                        <div>
-                          <strong>Framework:</strong> CrewAI with custom tools
+                              <div>
+                                <strong>Framework:</strong> CrewAI with custom tools
+                              </div>
+                              <div>
+                                <strong>Language:</strong> Python 3.8+
+                              </div>
+                              <div>
+                                <strong>Dependencies:</strong> crewai, crewai-tools, re, json, difflib
+                              </div>
+                              <div>
+                                <strong>Execution:</strong> Supports verbose logging and delegation control
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <strong>Language:</strong> Python 3.8+
-                        </div>
-                        <div>
-                          <strong>Dependencies:</strong> crewai, crewai-tools, re, json, difflib
-                        </div>
-                        <div>
-                          <strong>Execution:</strong> Supports verbose logging and delegation control
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    </div>
+                      </TabsContent>
+                    </Tabs>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </div>
   );
 }
