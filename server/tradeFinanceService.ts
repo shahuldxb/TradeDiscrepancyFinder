@@ -444,10 +444,10 @@ export async function updateDocumentaryCredit(creditId: number, data: any): Prom
     const pool = await connectToAzureSQL();
     
     const result = await pool.request()
-      .input('creditId', sql.Int, creditId)
-      .input('creditCode', sql.NVarChar, data.creditCode)
-      .input('creditName', sql.NVarChar, data.creditName)
-      .input('description', sql.NVarChar, data.description)
+      .input('creditId', creditId)
+      .input('creditCode', data.creditCode)
+      .input('creditName', data.creditName)
+      .input('description', data.description)
       .input('isActive', sql.Bit, data.isActive)
       .query(`
         UPDATE DocumentaryCredits 

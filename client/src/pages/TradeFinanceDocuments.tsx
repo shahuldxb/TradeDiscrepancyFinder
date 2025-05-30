@@ -54,6 +54,11 @@ const swiftMessageSchema = z.object({
   isActive: z.boolean()
 });
 
+const swiftCreditMappingSchema = z.object({
+  creditCode: z.string().min(1, "Credit code is required"),
+  swiftCode: z.string().min(1, "SWIFT code is required")
+});
+
 // Form component for Master Documents
 function MasterDocumentForm({ onSubmit, isLoading, defaultValues }: {
   onSubmit: (data: any) => void;
@@ -309,6 +314,59 @@ function SwiftMessageForm({ onSubmit, isLoading, defaultValues }: {
   );
 }
 
+// Form component for SWIFT Credit Mappings
+function SwiftCreditMappingForm({ onSubmit, isLoading, defaultValues }: {
+  onSubmit: (data: any) => void;
+  isLoading: boolean;
+  defaultValues?: any;
+}) {
+  const form = useForm({
+    resolver: zodResolver(swiftCreditMappingSchema),
+    defaultValues: defaultValues || {
+      creditCode: "",
+      swiftCode: ""
+    }
+  });
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="creditCode"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Credit Code</FormLabel>
+              <FormControl>
+                <Input placeholder="LC001" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="swiftCode"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>SWIFT Code</FormLabel>
+              <FormControl>
+                <Input placeholder="MT700" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <Button type="submit" disabled={isLoading} className="w-full">
+          {isLoading ? "Saving..." : "Save Mapping"}
+        </Button>
+      </form>
+    </Form>
+  );
+}
+
 export default function TradeFinanceDocuments() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedView, setSelectedView] = useState("documents");
@@ -460,6 +518,52 @@ export default function TradeFinanceDocuments() {
     },
     onError: () => {
       toast({ title: "Failed to delete SWIFT code", variant: "destructive" });
+    }
+  });
+
+  // CRUD mutations for SWIFT Credit Mappings
+  const createMappingMutation = useMutation({
+    mutationFn: (data: any) => fetch('/api/trade-finance/swift-credit-mappings', {
+      method: 'POST',
+      body: JSON.stringify(data),
+      headers: { 'Content-Type': 'application/json' }
+    }).then(res => res.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/trade-finance/swift-credit-mappings'] });
+      toast({ title: "Mapping created successfully" });
+      setIsCreateDialogOpen(false);
+    },
+    onError: () => {
+      toast({ title: "Failed to create mapping", variant: "destructive" });
+    }
+  });
+
+  const updateMappingMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: any }) => fetch(`/api/trade-finance/swift-credit-mappings/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+      headers: { 'Content-Type': 'application/json' }
+    }).then(res => res.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/trade-finance/swift-credit-mappings'] });
+      toast({ title: "Mapping updated successfully" });
+      setIsEditDialogOpen(false);
+    },
+    onError: () => {
+      toast({ title: "Failed to update mapping", variant: "destructive" });
+    }
+  });
+
+  const deleteMappingMutation = useMutation({
+    mutationFn: (id: number) => fetch(`/api/trade-finance/swift-credit-mappings/${id}`, {
+      method: 'DELETE'
+    }).then(res => res.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/trade-finance/swift-credit-mappings'] });
+      toast({ title: "Mapping deleted successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete mapping", variant: "destructive" });
     }
   });
 
@@ -1320,30 +1424,88 @@ export default function TradeFinanceDocuments() {
 
               {/* Document SWIFT Relationships */}
               <Card>
-                <CardHeader>
-                  <CardTitle>Document-SWIFT Relationships</CardTitle>
-                  <CardDescription>
-                    How documents relate to SWIFT messages through credit types
-                  </CardDescription>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle>Document-SWIFT Relationships ({documentRelationships?.length || 0})</CardTitle>
+                    <CardDescription>
+                      How documents relate to SWIFT messages through credit types. Ordered by SWIFT code and document code.
+                    </CardDescription>
+                  </div>
+                  <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button className="flex items-center gap-2">
+                        <Plus className="h-4 w-4" />
+                        Add Relationship
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Create Document-SWIFT Relationship</DialogTitle>
+                        <DialogDescription>
+                          Link a document with a SWIFT message through credit types
+                        </DialogDescription>
+                      </DialogHeader>
+                      <DocumentRelationshipForm 
+                        onSubmit={(data) => createRelationshipMutation.mutate(data)}
+                        isLoading={createRelationshipMutation.isPending}
+                      />
+                    </DialogContent>
+                  </Dialog>
                 </CardHeader>
                 <CardContent>
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead>SWIFT Code</TableHead>
                         <TableHead>Document Code</TableHead>
                         <TableHead>Document Name</TableHead>
-                        <TableHead>SWIFT Code</TableHead>
+                        <TableHead>Description</TableHead>
                         <TableHead>Credit Types</TableHead>
+                        <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {documentRelationships?.slice(0, 20).map((rel: any, index: number) => (
+                      {documentRelationships
+                        ?.sort((a: any, b: any) => {
+                          const swiftCompare = a.swiftCode.localeCompare(b.swiftCode);
+                          return swiftCompare !== 0 ? swiftCompare : a.documentCode.localeCompare(b.documentCode);
+                        })
+                        .slice(0, 20)
+                        .map((rel: any, index: number) => (
                         <TableRow key={index}>
+                          <TableCell className="font-mono">{rel.swiftCode}</TableCell>
                           <TableCell className="font-mono">{rel.documentCode}</TableCell>
                           <TableCell>{rel.documentName}</TableCell>
-                          <TableCell className="font-mono">{rel.swiftCode}</TableCell>
+                          <TableCell className="text-sm">{rel.description || 'N/A'}</TableCell>
                           <TableCell>
                             <Badge variant="outline">{rel.numberOfCreditTypes}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingItem(rel);
+                                  setIsEditDialogOpen(true);
+                                }}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (confirm('Are you sure you want to delete this relationship?')) {
+                                    deleteRelationshipMutation.mutate(rel.id);
+                                  }
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
