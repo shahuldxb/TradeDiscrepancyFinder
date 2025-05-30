@@ -21,6 +21,23 @@ import path from "path";
 import fs from "fs";
 import { nanoid } from "nanoid";
 
+// Configure multer for file uploads
+const upload = multer({
+  dest: 'uploads/',
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    // Allow only specific file types
+    const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf'];
+    if (allowedMimes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only PDF, JPEG, PNG, and GIF files are allowed.'));
+    }
+  }
+});
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
@@ -1252,6 +1269,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching skill statistics:', error);
       res.status(500).json({ error: 'Failed to fetch skill statistics' });
+    }
+  });
+
+  // OCR Processing API - Test Drive Feature
+  app.get('/api/ocr-results', isAuthenticated, async (req, res) => {
+    try {
+      const { ocrService } = await import('./ocrService');
+      const results = await ocrService.getOCRResults();
+      res.json(results);
+    } catch (error) {
+      console.error('Error fetching OCR results:', error);
+      res.status(500).json({ error: 'Failed to fetch OCR results' });
+    }
+  });
+
+  app.get('/api/ocr-results/:id', isAuthenticated, async (req, res) => {
+    try {
+      const { ocrService } = await import('./ocrService');
+      const result = await ocrService.getOCRResult(req.params.id);
+      if (result) {
+        res.json(result);
+      } else {
+        res.status(404).json({ error: 'OCR result not found' });
+      }
+    } catch (error) {
+      console.error('Error fetching OCR result:', error);
+      res.status(500).json({ error: 'Failed to fetch OCR result' });
+    }
+  });
+
+  app.post('/api/ocr/upload', isAuthenticated, upload.single('file'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+      }
+
+      const { ocrService } = await import('./ocrService');
+      
+      // Process the document asynchronously
+      const result = await ocrService.processDocument(
+        req.file.path,
+        req.file.originalname,
+        req.file.mimetype,
+        req.file.size
+      );
+
+      res.json(result);
+    } catch (error) {
+      console.error('Error processing OCR upload:', error);
+      res.status(500).json({ 
+        error: 'Failed to process document',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 
