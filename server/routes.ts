@@ -655,7 +655,173 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // UCP Rule Engine API Routes
+  // UCP Articles
+  app.get('/api/ucp/articles', isAuthenticated, async (req, res) => {
+    try {
+      const { getUCPArticles } = await import('./ucpService');
+      const articles = await getUCPArticles();
+      res.json(articles);
+    } catch (error) {
+      console.error('Error fetching UCP articles:', error);
+      res.status(500).json({ error: 'Failed to fetch UCP articles' });
+    }
+  });
 
+  app.post('/api/ucp/articles', isAuthenticated, async (req, res) => {
+    try {
+      const { createUCPArticle } = await import('./ucpService');
+      const article = await createUCPArticle(req.body);
+      res.json(article);
+    } catch (error) {
+      console.error('Error creating UCP article:', error);
+      res.status(500).json({ error: 'Failed to create UCP article' });
+    }
+  });
+
+  app.patch('/api/ucp/articles/:id', isAuthenticated, async (req, res) => {
+    try {
+      const { updateUCPArticle } = await import('./ucpService');
+      const articleId = parseInt(req.params.id);
+      const article = await updateUCPArticle(articleId, req.body);
+      res.json(article);
+    } catch (error) {
+      console.error('Error updating UCP article:', error);
+      res.status(500).json({ error: 'Failed to update UCP article' });
+    }
+  });
+
+  app.delete('/api/ucp/articles/:id', isAuthenticated, async (req, res) => {
+    try {
+      const { deleteUCPArticle } = await import('./ucpService');
+      const articleId = parseInt(req.params.id);
+      await deleteUCPArticle(articleId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting UCP article:', error);
+      res.status(500).json({ error: 'Failed to delete UCP article' });
+    }
+  });
+
+  // UCP Rules
+  app.get('/api/ucp/rules', isAuthenticated, async (req, res) => {
+    try {
+      const { getUCPRules } = await import('./ucpService');
+      const rules = await getUCPRules();
+      res.json(rules);
+    } catch (error) {
+      console.error('Error fetching UCP rules:', error);
+      res.status(500).json({ error: 'Failed to fetch UCP rules' });
+    }
+  });
+
+  app.post('/api/ucp/rules', isAuthenticated, async (req, res) => {
+    try {
+      const { createUCPRule } = await import('./ucpService');
+      const rule = await createUCPRule(req.body);
+      res.json(rule);
+    } catch (error) {
+      console.error('Error creating UCP rule:', error);
+      res.status(500).json({ error: 'Failed to create UCP rule' });
+    }
+  });
+
+  app.patch('/api/ucp/rules/:id', isAuthenticated, async (req, res) => {
+    try {
+      const { updateUCPRule } = await import('./ucpService');
+      const ruleId = parseInt(req.params.id);
+      const rule = await updateUCPRule(ruleId, req.body);
+      res.json(rule);
+    } catch (error) {
+      console.error('Error updating UCP rule:', error);
+      res.status(500).json({ error: 'Failed to update UCP rule' });
+    }
+  });
+
+  app.delete('/api/ucp/rules/:id', isAuthenticated, async (req, res) => {
+    try {
+      const { deleteUCPRule } = await import('./ucpService');
+      const ruleId = parseInt(req.params.id);
+      await deleteUCPRule(ruleId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting UCP rule:', error);
+      res.status(500).json({ error: 'Failed to delete UCP rule' });
+    }
+  });
+
+  // Rule Document Mappings
+  app.get('/api/ucp/rule-document-mappings', isAuthenticated, async (req, res) => {
+    try {
+      const { getRuleDocumentMappings } = await import('./ucpService');
+      const mappings = await getRuleDocumentMappings();
+      res.json(mappings);
+    } catch (error) {
+      console.error('Error fetching rule document mappings:', error);
+      res.status(500).json({ error: 'Failed to fetch rule document mappings' });
+    }
+  });
+
+  // Rule MT Message Mappings
+  app.get('/api/ucp/rule-mt-mappings', isAuthenticated, async (req, res) => {
+    try {
+      const { getRuleMTMessageMappings } = await import('./ucpService');
+      const mappings = await getRuleMTMessageMappings();
+      res.json(mappings);
+    } catch (error) {
+      console.error('Error fetching rule MT message mappings:', error);
+      res.status(500).json({ error: 'Failed to fetch rule MT message mappings' });
+    }
+  });
+
+  // Discrepancy Types
+  app.get('/api/ucp/discrepancy-types', isAuthenticated, async (req, res) => {
+    try {
+      const { getDiscrepancyTypes } = await import('./ucpService');
+      const types = await getDiscrepancyTypes();
+      res.json(types);
+    } catch (error) {
+      console.error('Error fetching discrepancy types:', error);
+      res.status(500).json({ error: 'Failed to fetch discrepancy types' });
+    }
+  });
+
+  // Validation History
+  app.get('/api/ucp/validation-history', isAuthenticated, async (req, res) => {
+    try {
+      const { getRuleExecutionHistory } = await import('./ucpService');
+      const history = await getRuleExecutionHistory();
+      res.json(history);
+    } catch (error) {
+      console.error('Error fetching validation history:', error);
+      res.status(500).json({ error: 'Failed to fetch validation history' });
+    }
+  });
+
+  // UCP Statistics
+  app.get('/api/ucp/statistics', isAuthenticated, async (req, res) => {
+    try {
+      const { getUCPStatistics } = await import('./ucpService');
+      const stats = await getUCPStatistics();
+      res.json(stats);
+    } catch (error) {
+      console.error('Error fetching UCP statistics:', error);
+      res.status(500).json({ error: 'Failed to fetch UCP statistics' });
+    }
+  });
+
+  // Document Validation
+  app.post('/api/ucp/validate-document', isAuthenticated, async (req, res) => {
+    try {
+      const { validateDocumentAgainstUCP } = await import('./ucpService');
+      const { documentData, documentType } = req.body;
+      const validation = await validateDocumentAgainstUCP(documentData, documentType);
+      res.json(validation);
+    } catch (error) {
+      console.error('Error validating document:', error);
+      res.status(500).json({ error: 'Failed to validate document' });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;
