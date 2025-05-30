@@ -32,8 +32,8 @@ export default function AgentCode() {
   const [crewForm, setCrewForm] = useState({
     name: "",
     description: "",
-    agents: [],
-    tasks: [],
+    agents: [] as string[],
+    tasks: [] as string[],
     process: "sequential",
     memory: false,
     planning: false,
@@ -1138,7 +1138,79 @@ if __name__ == "__main__":
 
                 <TabsContent value="features" className="mt-4">
                   <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Key Features</h3>
+                    <h3 className="text-lg font-semibold">Agent Details & Configuration</h3>
+                    
+                    {/* Current Agent Information */}
+                    <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                      <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Current Agent: {agentDescriptions[selectedAgent as keyof typeof agentDescriptions].title}</h4>
+                      <p className="text-sm text-blue-800 dark:text-blue-200">{agentDescriptions[selectedAgent as keyof typeof agentDescriptions].description}</p>
+                    </div>
+
+                    {/* Agent Status and Configuration */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="p-4 border rounded-lg">
+                        <h4 className="font-medium mb-2">Agent Configuration</h4>
+                        <div className="space-y-2 text-sm">
+                          <div><strong>Role:</strong> {
+                            selectedAgent === 'document_parser' ? 'Document Parser Specialist' :
+                            selectedAgent === 'discrepancy_detector' ? 'Discrepancy Detection Specialist' :
+                            selectedAgent === 'ucp_rules_specialist' ? 'UCP 600 Rules Specialist' :
+                            selectedAgent === 'reporting_agent' ? 'Trade Finance Reporting Specialist' :
+                            'Specialist Agent'
+                          }</div>
+                          <div><strong>Status:</strong> <span className="text-green-600">Ready</span></div>
+                          <div><strong>Execution Time:</strong> {
+                            selectedAgent === 'document_parser' ? '300 seconds' :
+                            selectedAgent === 'discrepancy_detector' ? '400 seconds' :
+                            selectedAgent === 'ucp_rules_specialist' ? '300 seconds' :
+                            selectedAgent === 'reporting_agent' ? '200 seconds' :
+                            'Variable'
+                          }</div>
+                          <div><strong>Delegation:</strong> Disabled</div>
+                          <div><strong>Verbose Mode:</strong> Enabled</div>
+                        </div>
+                      </div>
+                      
+                      <div className="p-4 border rounded-lg">
+                        <h4 className="font-medium mb-2">Tools & Capabilities</h4>
+                        <div className="space-y-2 text-sm">
+                          {selectedAgent === 'document_parser' && (
+                            <>
+                              <div>• DocumentParsingTool</div>
+                              <div>• MT700 Message Parser</div>
+                              <div>• Commercial Invoice Parser</div>
+                              <div>• Bill of Lading Parser</div>
+                            </>
+                          )}
+                          {selectedAgent === 'discrepancy_detector' && (
+                            <>
+                              <div>• DiscrepancyDetectionTool</div>
+                              <div>• Amount Comparison Engine</div>
+                              <div>• Date Consistency Checker</div>
+                              <div>• Party Information Validator</div>
+                            </>
+                          )}
+                          {selectedAgent === 'ucp_rules_specialist' && (
+                            <>
+                              <div>• UCPRulesApplicationTool</div>
+                              <div>• UCP 600 Rules Database</div>
+                              <div>• Waivability Assessment</div>
+                              <div>• Remediation Advice Generator</div>
+                            </>
+                          )}
+                          {selectedAgent === 'reporting_agent' && (
+                            <>
+                              <div>• ReportGenerationTool</div>
+                              <div>• Executive Summary Generator</div>
+                              <div>• Risk Assessment Engine</div>
+                              <div>• Next Actions Planner</div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <h4 className="text-md font-semibold">Key Features</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {agentDescriptions[selectedAgent as keyof typeof agentDescriptions].features.map((feature, index) => (
                         <div key={index} className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
