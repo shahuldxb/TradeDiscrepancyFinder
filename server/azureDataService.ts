@@ -235,6 +235,104 @@ export class AzureDataService {
       throw error;
     }
   }
+
+  async getMT700LifecycleData() {
+    try {
+      const pool = await connectToAzureSQL();
+      
+      // Get actual MT700 message data from Azure SQL
+      const mt700Messages = await pool.request().query(`
+        SELECT 
+          mt.message_type_code,
+          mt.description,
+          mt.category,
+          COUNT(ds.id) as active_transactions,
+          AVG(CASE WHEN ds.status = 'completed' THEN 100 ELSE 50 END) as avg_progress
+        FROM swift_message_types mt
+        LEFT JOIN document_sets ds ON ds.message_type = mt.message_type_code
+        WHERE mt.message_type_code = 'MT700'
+        GROUP BY mt.message_type_code, mt.description, mt.category
+      `);
+
+      // Get lifecycle stages from actual SWIFT message flow
+      const lifecycleStages = await pool.request().query(`
+        SELECT DISTINCT
+          smr.from_message_type,
+          smr.to_message_type,
+          smr.relationship_type,
+          smr.sequence_order,
+          smt.description as stage_description
+        FROM swift_message_relationships smr
+        JOIN swift_message_types smt ON smt.message_type_code = smr.to_message_type
+        WHERE smr.from_message_type = 'MT700' OR smr.to_message_type = 'MT700'
+        ORDER BY smr.sequence_order
+      `);
+
+      // Get document requirements from actual UCP rules
+      const documentRequirements = await pool.request().query(`
+        SELECT 
+          ur.rule_number,
+          ur.rule_text,
+          ur.document_type,
+          ur.mandatory_fields,
+          COUNT(d.id) as documents_processed
+        FROM ucp_rules ur
+        LEFT JOIN discrepancies d ON d.ucp_rule_id = ur.id
+        WHERE ur.document_type IS NOT NULL
+        GROUP BY ur.rule_number, ur.rule_text, ur.document_type, ur.mandatory_fields
+      `);
+
+      return {
+        messageType: mt700Messages.recordset[0] || {},
+        lifecycleStages: lifecycleStages.recordset,
+        documentRequirements: documentRequirements.recordset,
+        lastUpdated: new Date()
+      };
+    } catch (error) {
+      console.error('Error fetching MT700 lifecycle data from Azure:', error);
+      throw error;
+    }
+  }
+
+  async getLifecycleDocuments(nodeId: string) {
+    try {
+      const pool = await connectToAzureSQL();
+      
+      // Get actual documents for this lifecycle stage from Azure SQL
+      const documents = await pool.request()
+        .input('nodeId', nodeId)
+        .query(`
+          SELECT 
+            ds.id,
+            ds.name,
+            ds.file_type,
+            ds.status,
+            ds.created_at,
+            ds.updated_at,
+            ds.validation_status,
+            ur.document_type as required_type,
+            ur.mandatory_fields
+          FROM document_sets ds
+          LEFT JOIN ucp_rules ur ON ur.document_type = ds.file_type
+          WHERE ds.lifecycle_stage = @nodeId OR ds.status = 'processing'
+          ORDER BY ds.created_at DESC
+        `);
+
+      return documents.recordset.map(doc => ({
+        id: doc.id.toString(),
+        name: doc.name,
+        type: doc.file_type,
+        status: doc.validation_status || doc.status,
+        required: !!doc.required_type,
+        uploadedAt: doc.created_at,
+        validatedBy: doc.validation_status === 'validated' ? 'Document Validator Agent' : null,
+        mandatoryFields: doc.mandatory_fields ? JSON.parse(doc.mandatory_fields) : []
+      }));
+    } catch (error) {
+      console.error('Error fetching lifecycle documents from Azure:', error);
+      throw error;
+    }
+  }
 }
 
 export const azureDataService = new AzureDataService();

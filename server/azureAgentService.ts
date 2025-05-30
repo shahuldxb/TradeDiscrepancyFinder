@@ -242,6 +242,51 @@ export class AzureAgentService {
       throw error;
     }
   }
+
+  async getLifecycleAgentTasks(nodeId: string) {
+    try {
+      const pool = await connectToAzureSQL();
+      
+      // Get actual agent tasks for this lifecycle stage from Azure SQL
+      const tasks = await pool.request()
+        .input('nodeId', nodeId)
+        .query(`
+          SELECT 
+            at.id,
+            at.agent_name,
+            at.task_type,
+            at.status,
+            at.started_at,
+            at.completed_at,
+            at.execution_time,
+            at.input_data,
+            at.output_data,
+            at.error_message,
+            ca.configuration
+          FROM agent_tasks at
+          LEFT JOIN custom_agents ca ON ca.agent_name = at.agent_name
+          WHERE at.lifecycle_stage = @nodeId OR at.status IN ('running', 'pending')
+          ORDER BY at.created_at DESC
+        `);
+
+      return tasks.recordset.map(task => ({
+        id: task.id.toString(),
+        agentId: task.agent_name,
+        description: task.task_type,
+        status: task.status,
+        estimatedTime: task.execution_time ? `${task.execution_time}ms` : '5 minutes',
+        startedAt: task.started_at,
+        completedAt: task.completed_at,
+        progress: task.status === 'completed' ? 100 : task.status === 'running' ? 65 : 0,
+        inputData: task.input_data ? JSON.parse(task.input_data) : null,
+        outputData: task.output_data ? JSON.parse(task.output_data) : null,
+        errorMessage: task.error_message
+      }));
+    } catch (error) {
+      console.error('Error fetching lifecycle agent tasks from Azure:', error);
+      throw error;
+    }
+  }
 }
 
 export const azureAgentService = new AzureAgentService();

@@ -14,6 +14,8 @@ import {
 import { processDocument } from "./documentProcessor";
 import { crewAI, processDocumentSetWithAgents } from "./crewai";
 import { runDiscrepancyAnalysis, getDiscrepancies } from "./discrepancyEngine";
+import { azureDataService } from "./azureDataService";
+import { azureAgentService } from "./azureAgentService";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
