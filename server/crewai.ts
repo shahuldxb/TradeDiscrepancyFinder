@@ -492,6 +492,51 @@ class CrewAIOrchestrator {
   async getTaskStatus(taskId: string): Promise<Task | undefined> {
     return this.tasks.get(taskId);
   }
+
+  startDemoWorkflow(documentSetId: string): void {
+    // Immediately update all agents to processing status
+    this.agents.forEach((agent, name) => {
+      agent.status = 'processing';
+      agent.currentTask = `Processing demo document set ${documentSetId}`;
+    });
+
+    // Simulate sequential agent processing
+    setTimeout(() => {
+      const agentNames = Array.from(this.agents.keys());
+      let currentAgentIndex = 0;
+
+      const processNextAgent = () => {
+        if (currentAgentIndex > 0) {
+          // Set previous agent to idle
+          const prevAgent = this.agents.get(agentNames[currentAgentIndex - 1]);
+          if (prevAgent) {
+            prevAgent.status = 'idle';
+            prevAgent.currentTask = undefined;
+          }
+        }
+
+        if (currentAgentIndex < agentNames.length) {
+          // Keep current agent processing
+          const currentAgent = this.agents.get(agentNames[currentAgentIndex]);
+          if (currentAgent) {
+            currentAgent.status = 'processing';
+            currentAgent.currentTask = `Active processing step ${currentAgentIndex + 1}`;
+          }
+
+          currentAgentIndex++;
+          setTimeout(processNextAgent, 4000); // 4 seconds per agent
+        } else {
+          // All agents completed - set all to idle
+          this.agents.forEach(agent => {
+            agent.status = 'idle';
+            agent.currentTask = undefined;
+          });
+        }
+      };
+
+      processNextAgent();
+    }, 1000);
+  }
 }
 
 export const crewAI = new CrewAIOrchestrator();

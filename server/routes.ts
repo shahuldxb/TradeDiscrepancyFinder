@@ -201,18 +201,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create a demo document set
       const demoDocumentSet = await storage.createDocumentSet({
         setName: "Demo Processing - Agent Test",
-        description: "Demonstration of agent processing capabilities",
         userId
       });
 
-      // Start processing with agents
-      const taskId = await processDocumentSetWithAgents(demoDocumentSet.id);
+      // Start agent workflow immediately
+      crewAI.startDemoWorkflow(demoDocumentSet.id);
       
       res.json({ 
         success: true,
-        taskId, 
         documentSetId: demoDocumentSet.id,
-        message: "Demo agent processing started - watch the agents change from idle to processing"
+        message: "Demo processing started! Watch the agents change status from idle to processing."
       });
     } catch (error) {
       console.error("Error starting demo processing:", error);

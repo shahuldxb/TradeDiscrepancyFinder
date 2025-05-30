@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Bot, Activity, Clock, CheckCircle, AlertTriangle, Settings, Play, Pause, RotateCcw } from "lucide-react";
 
 export default function AgentMonitor() {
@@ -27,18 +27,26 @@ export default function AgentMonitor() {
   const demoProcessingMutation = useMutation({
     mutationFn: async () => {
       const response = await apiRequest("POST", "/api/agents/demo", {});
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to start demo: ${response.status} - ${errorText}`);
+      }
       return response.json();
     },
     onSuccess: (data) => {
       toast({
         title: "Demo Processing Started",
-        description: data.message,
+        description: data.message || "Agents are now processing the demo workflow",
       });
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ["/api/agents/status"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/agent-tasks"] });
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      console.error("Demo processing error:", error);
       toast({
-        title: "Error",
-        description: "Failed to start demo processing",
+        title: "Error Starting Demo",
+        description: error.message || "Failed to start demo processing",
         variant: "destructive",
       });
     },
