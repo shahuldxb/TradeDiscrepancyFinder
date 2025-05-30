@@ -193,6 +193,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test agent demo endpoint
+  app.post("/api/agents/demo", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      // Create a demo document set
+      const demoDocumentSet = await storage.createDocumentSet({
+        name: "Demo Processing - Agent Test",
+        description: "Demonstration of agent processing capabilities",
+        userId
+      });
+
+      // Start processing with agents
+      const taskId = await processDocumentSetWithAgents(demoDocumentSet.id);
+      
+      res.json({ 
+        success: true,
+        taskId, 
+        documentSetId: demoDocumentSet.id,
+        message: "Demo agent processing started - watch the agents change from idle to processing"
+      });
+    } catch (error) {
+      console.error("Error starting demo processing:", error);
+      res.status(500).json({ message: "Failed to start demo processing" });
+    }
+  });
+
   // Custom Agent Designer routes
   app.get("/api/custom-agents", isAuthenticated, async (req: any, res) => {
     try {
