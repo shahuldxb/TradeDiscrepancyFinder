@@ -283,7 +283,138 @@ reporting_agent = Agent(
     verbose=True,
     allow_delegation=False,
     max_execution_time=300
-)`
+)`,
+
+    task_definitions: `# CrewAI Task Definitions for LC Processing
+from crewai import Task
+
+# Document Analysis Tasks
+document_parsing_task = Task(
+    description="""Parse and extract structured data from uploaded documents.
+    Analyze each document type (MT700, commercial invoice, bill of lading) and
+    extract key fields including:
+    - Document identifiers and dates
+    - Parties involved (applicant, beneficiary, etc.)
+    - Financial amounts and currencies
+    - Shipment details and terms
+    
+    Provide confidence scores for each extraction.""",
+    expected_output="""Structured JSON containing extracted fields for each document,
+    with confidence scores and document classification.""",
+    agent=None,  # Will be assigned when creating the crew
+    tools=None   # Will inherit from agent
+)
+
+discrepancy_detection_task = Task(
+    description="""Compare extracted document data to identify discrepancies.
+    Perform cross-document validation checking for:
+    - Amount mismatches between LC and invoice
+    - Currency inconsistencies  
+    - Date violations (shipment vs. expiry dates)
+    - Party name discrepancies
+    - Missing required documents
+    
+    Classify each discrepancy by severity level.""",
+    expected_output="""List of detected discrepancies with severity classification,
+    affected fields, and detailed comparison results.""",
+    agent=None,
+    tools=None
+)
+
+report_generation_task = Task(
+    description="""Generate comprehensive analysis report for decision makers.
+    Create executive summary with:
+    - Overall recommendation (accept/reject/conditional)
+    - Risk assessment and compliance score
+    - Detailed findings with UCP references
+    - Prioritized action items
+    
+    Format for trade finance professionals.""",
+    expected_output="""Professional report in JSON format suitable for
+    bank operations teams and trade finance decision makers.""",
+    agent=None,
+    tools=None
+)`,
+
+    crew_definition: `# CrewAI Crew Configuration for LC System
+from crewai import Crew, Process
+from crewai.project import CrewBase, agent, crew, task
+
+@CrewBase
+class LCDiscrepancyDetectionCrew():
+    """LC Discrepancy Detection Crew"""
+    
+    agents_config = 'config/agents.yaml'
+    tasks_config = 'config/tasks.yaml'
+    
+    @agent
+    def document_parser(self) -> Agent:
+        return Agent(
+            config=self.agents_config['document_parser'],
+            tools=[DocumentParsingTool()],
+            verbose=True
+        )
+    
+    @agent 
+    def discrepancy_detector(self) -> Agent:
+        return Agent(
+            config=self.agents_config['discrepancy_detector'],
+            tools=[DiscrepancyDetectionTool()],
+            verbose=True
+        )
+    
+    @crew
+    def crew(self) -> Crew:
+        """Creates the LC Discrepancy Detection crew"""
+        return Crew(
+            agents=self.agents,
+            tasks=self.tasks,
+            process=Process.sequential,
+            verbose=2,
+            memory=True,
+            planning=True
+        )
+
+# Simple Crew Creation Function
+def create_lc_discrepancy_crew():
+    """Alternative simple crew creation"""
+    
+    # Create agents
+    parser = document_parsing_agent
+    detector = discrepancy_detection_agent  
+    specialist = ucp_rules_agent
+    reporter = reporting_agent
+    
+    # Create tasks with agent assignments
+    parsing_task = document_parsing_task
+    parsing_task.agent = parser
+    
+    detection_task = discrepancy_detection_task
+    detection_task.agent = detector
+    
+    # Create crew
+    crew = Crew(
+        agents=[parser, detector, specialist, reporter],
+        tasks=[parsing_task, detection_task],
+        process=Process.sequential,
+        verbose=True,
+        memory=True
+    )
+    
+    return crew
+
+# Usage Example
+if __name__ == "__main__":
+    lc_crew = LCDiscrepancyDetectionCrew()
+    
+    inputs = {
+        'document_set_id': 'DS_001',
+        'lc_reference': 'LC2024001',
+        'analysis_type': 'full_compliance_check'
+    }
+    
+    result = lc_crew.crew().kickoff(inputs=inputs)
+    print("Analysis Complete:", result)`
   };
 
   const agentDescriptions = {
@@ -306,6 +437,16 @@ reporting_agent = Agent(
       title: "Reporting Agent",
       description: "Generates comprehensive analysis reports with actionable recommendations",
       features: ["Executive summaries", "Risk assessments", "Action item generation", "Compliance scoring"]
+    },
+    task_definitions: {
+      title: "Task Definitions",
+      description: "Complete task configurations for CrewAI workflow orchestration",
+      features: ["Document parsing tasks", "Discrepancy detection tasks", "UCP compliance tasks", "Report generation tasks"]
+    },
+    crew_definition: {
+      title: "Crew Configuration",
+      description: "Complete crew setup with agent assignments and workflow management",
+      features: ["Agent orchestration", "Task sequencing", "Memory management", "Process configuration"]
     }
   };
 
