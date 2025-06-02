@@ -52,41 +52,19 @@ export default function IncotermsDataGrid() {
     retry: false,
   });
 
-  // Complete Incoterms 2020 responsibility matrix with authentic data for all 11 terms
+  // Authentic Incoterms 2020 responsibility matrix - one key responsibility per term
   const completeMatrix = [
-    // EXW - Ex Works
-    { id: 1, incoterm_code: 'EXW', responsibility_category: 'Export Licensing', seller_responsibility: 'Not required', buyer_responsibility: 'All export permits and licenses', cost_bearer: 'Buyer', risk_bearer: 'Buyer' },
-    { id: 2, incoterm_code: 'EXW', responsibility_category: 'Transport', seller_responsibility: 'Not required', buyer_responsibility: 'Arrange and pay for all transport', cost_bearer: 'Buyer', risk_bearer: 'Buyer' },
-    // FCA - Free Carrier
-    { id: 3, incoterm_code: 'FCA', responsibility_category: 'Export Licensing', seller_responsibility: 'All export permits and licenses', buyer_responsibility: 'Import permits only', cost_bearer: 'Seller', risk_bearer: 'Seller' },
-    { id: 4, incoterm_code: 'FCA', responsibility_category: 'Transport to Carrier', seller_responsibility: 'Deliver to named place/carrier', buyer_responsibility: 'Main carriage from named place', cost_bearer: 'Seller', risk_bearer: 'Seller' },
-    // CPT - Carriage Paid To
-    { id: 5, incoterm_code: 'CPT', responsibility_category: 'Main Carriage', seller_responsibility: 'Arrange and pay main carriage', buyer_responsibility: 'Unloading at destination', cost_bearer: 'Seller', risk_bearer: 'Buyer' },
-    { id: 6, incoterm_code: 'CPT', responsibility_category: 'Export Licensing', seller_responsibility: 'All export permits and licenses', buyer_responsibility: 'Import permits only', cost_bearer: 'Seller', risk_bearer: 'Seller' },
-    // CIP - Carriage and Insurance Paid
-    { id: 7, incoterm_code: 'CIP', responsibility_category: 'Insurance', seller_responsibility: 'Minimum coverage required', buyer_responsibility: 'Additional coverage optional', cost_bearer: 'Seller', risk_bearer: 'Buyer' },
-    { id: 8, incoterm_code: 'CIP', responsibility_category: 'Main Carriage', seller_responsibility: 'Arrange and pay main carriage', buyer_responsibility: 'Unloading at destination', cost_bearer: 'Seller', risk_bearer: 'Buyer' },
-    // DAP - Delivered at Place
-    { id: 9, incoterm_code: 'DAP', responsibility_category: 'Delivery', seller_responsibility: 'Deliver to named place', buyer_responsibility: 'Unloading and import formalities', cost_bearer: 'Seller', risk_bearer: 'Seller' },
-    { id: 10, incoterm_code: 'DAP', responsibility_category: 'Import Duties', seller_responsibility: 'Not required', buyer_responsibility: 'All import duties and taxes', cost_bearer: 'Buyer', risk_bearer: 'Buyer' },
-    // DPU - Delivered at Place Unloaded
-    { id: 11, incoterm_code: 'DPU', responsibility_category: 'Unloading', seller_responsibility: 'Unload at named place', buyer_responsibility: 'Import formalities only', cost_bearer: 'Seller', risk_bearer: 'Seller' },
-    { id: 12, incoterm_code: 'DPU', responsibility_category: 'Import Duties', seller_responsibility: 'Not required', buyer_responsibility: 'All import duties and taxes', cost_bearer: 'Buyer', risk_bearer: 'Buyer' },
-    // DDP - Delivered Duty Paid
-    { id: 13, incoterm_code: 'DDP', responsibility_category: 'Import Duties', seller_responsibility: 'All import duties and taxes', buyer_responsibility: 'None', cost_bearer: 'Seller', risk_bearer: 'Seller' },
-    { id: 14, incoterm_code: 'DDP', responsibility_category: 'Delivery', seller_responsibility: 'Deliver to named place', buyer_responsibility: 'Receive goods only', cost_bearer: 'Seller', risk_bearer: 'Seller' },
-    // FAS - Free Alongside Ship
-    { id: 15, incoterm_code: 'FAS', responsibility_category: 'Export Licensing', seller_responsibility: 'All export permits and licenses', buyer_responsibility: 'Import permits only', cost_bearer: 'Seller', risk_bearer: 'Seller' },
-    { id: 16, incoterm_code: 'FAS', responsibility_category: 'Loading', seller_responsibility: 'Deliver alongside ship', buyer_responsibility: 'Loading on board ship', cost_bearer: 'Seller', risk_bearer: 'Buyer' },
-    // FOB - Free on Board
-    { id: 17, incoterm_code: 'FOB', responsibility_category: 'Export Licensing', seller_responsibility: 'All export permits and licenses', buyer_responsibility: 'Import permits only', cost_bearer: 'Seller', risk_bearer: 'Seller' },
-    { id: 18, incoterm_code: 'FOB', responsibility_category: 'Loading on Ship', seller_responsibility: 'Load goods on board ship', buyer_responsibility: 'Main carriage from ship', cost_bearer: 'Seller', risk_bearer: 'Buyer' },
-    // CFR - Cost and Freight
-    { id: 19, incoterm_code: 'CFR', responsibility_category: 'Marine Transport', seller_responsibility: 'Arrange and pay sea freight', buyer_responsibility: 'Unloading at destination port', cost_bearer: 'Seller', risk_bearer: 'Buyer' },
-    { id: 20, incoterm_code: 'CFR', responsibility_category: 'Export Licensing', seller_responsibility: 'All export permits and licenses', buyer_responsibility: 'Import permits only', cost_bearer: 'Seller', risk_bearer: 'Seller' },
-    // CIF - Cost, Insurance and Freight
-    { id: 21, incoterm_code: 'CIF', responsibility_category: 'Marine Insurance', seller_responsibility: 'Minimum coverage required', buyer_responsibility: 'Additional coverage optional', cost_bearer: 'Seller', risk_bearer: 'Buyer' },
-    { id: 22, incoterm_code: 'CIF', responsibility_category: 'Marine Transport', seller_responsibility: 'Arrange and pay sea freight', buyer_responsibility: 'Unloading at destination port', cost_bearer: 'Seller', risk_bearer: 'Buyer' }
+    { id: 1, incoterm_code: 'EXW', responsibility_category: 'All Transport & Export', seller_responsibility: 'Make goods available at premises', buyer_responsibility: 'All transport, export/import formalities, duties', cost_bearer: 'Buyer', risk_bearer: 'Buyer' },
+    { id: 2, incoterm_code: 'FCA', responsibility_category: 'Export & Delivery to Carrier', seller_responsibility: 'Export formalities, deliver to carrier', buyer_responsibility: 'Main carriage, import formalities', cost_bearer: 'Shared', risk_bearer: 'Buyer' },
+    { id: 3, incoterm_code: 'CPT', responsibility_category: 'Main Carriage Paid', seller_responsibility: 'Export formalities, main carriage cost', buyer_responsibility: 'Import formalities, unloading', cost_bearer: 'Seller', risk_bearer: 'Buyer' },
+    { id: 4, incoterm_code: 'CIP', responsibility_category: 'Carriage & Insurance Paid', seller_responsibility: 'Main carriage, minimum insurance', buyer_responsibility: 'Import formalities, unloading', cost_bearer: 'Seller', risk_bearer: 'Buyer' },
+    { id: 5, incoterm_code: 'DAP', responsibility_category: 'Delivered at Place', seller_responsibility: 'All transport to destination', buyer_responsibility: 'Unloading, import duties', cost_bearer: 'Seller', risk_bearer: 'Seller' },
+    { id: 6, incoterm_code: 'DPU', responsibility_category: 'Delivered & Unloaded', seller_responsibility: 'Transport and unload at destination', buyer_responsibility: 'Import duties only', cost_bearer: 'Seller', risk_bearer: 'Seller' },
+    { id: 7, incoterm_code: 'DDP', responsibility_category: 'Delivered Duty Paid', seller_responsibility: 'All costs including import duties', buyer_responsibility: 'Receive goods only', cost_bearer: 'Seller', risk_bearer: 'Seller' },
+    { id: 8, incoterm_code: 'FAS', responsibility_category: 'Free Alongside Ship', seller_responsibility: 'Deliver alongside ship, export', buyer_responsibility: 'Loading, main carriage, import', cost_bearer: 'Shared', risk_bearer: 'Buyer' },
+    { id: 9, incoterm_code: 'FOB', responsibility_category: 'Free on Board', seller_responsibility: 'Load on ship, export formalities', buyer_responsibility: 'Main carriage, import formalities', cost_bearer: 'Shared', risk_bearer: 'Buyer' },
+    { id: 10, incoterm_code: 'CFR', responsibility_category: 'Cost & Freight', seller_responsibility: 'Sea freight, export formalities', buyer_responsibility: 'Marine insurance, import duties', cost_bearer: 'Seller', risk_bearer: 'Buyer' },
+    { id: 11, incoterm_code: 'CIF', responsibility_category: 'Cost, Insurance & Freight', seller_responsibility: 'Sea freight, marine insurance', buyer_responsibility: 'Import duties, unloading', cost_bearer: 'Seller', risk_bearer: 'Buyer' }
   ];
 
   const displayMatrix = Array.isArray(responsibilityMatrix) && responsibilityMatrix.length > 0 ? responsibilityMatrix : completeMatrix;
@@ -306,7 +284,7 @@ export default function IncotermsDataGrid() {
                       <TableCell className="text-sm">{matrix.seller_responsibility}</TableCell>
                       <TableCell className="text-sm">{matrix.buyer_responsibility}</TableCell>
                       <TableCell>
-                        <Badge variant={matrix.cost_bearer === 'Seller' ? 'default' : 'secondary'}>
+                        <Badge variant={matrix.cost_bearer === 'Seller' ? 'default' : matrix.cost_bearer === 'Shared' ? 'outline' : 'secondary'}>
                           {matrix.cost_bearer}
                         </Badge>
                       </TableCell>
