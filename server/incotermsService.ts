@@ -148,6 +148,30 @@ export class IncotermsService {
     }
   }
 
+  async getAllResponsibilityMatrix(): Promise<ResponsibilityMatrix[]> {
+    try {
+      const pool = await connectToAzureSQL();
+      const result = await pool.request()
+        .query(`
+          SELECT 
+            id,
+            incoterm_code,
+            responsibility_category,
+            seller_responsibility,
+            buyer_responsibility,
+            cost_bearer,
+            risk_bearer
+          FROM incoterms_responsibility_matrix
+          ORDER BY incoterm_code, responsibility_category
+        `);
+      
+      return result.recordset as ResponsibilityMatrix[];
+    } catch (error) {
+      console.error('Error fetching all responsibility matrix:', error);
+      throw new Error('Failed to fetch responsibility matrix');
+    }
+  }
+
   async getResponsibilityMatrix(incotermCode: string): Promise<ResponsibilityMatrix[]> {
     try {
       const pool = await connectToAzureSQL();
@@ -160,10 +184,11 @@ export class IncotermsService {
             responsibility_category,
             seller_responsibility,
             buyer_responsibility,
-            critical_point
+            cost_bearer,
+            risk_bearer
           FROM incoterms_responsibility_matrix
           WHERE incoterm_code = @incoterm_code
-          ORDER BY critical_point DESC, responsibility_category
+          ORDER BY responsibility_category
         `);
       
       return result.recordset as ResponsibilityMatrix[];
