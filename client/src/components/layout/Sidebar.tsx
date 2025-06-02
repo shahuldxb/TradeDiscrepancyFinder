@@ -21,7 +21,8 @@ import {
   Scale,
   ChevronDown,
   ChevronRight,
-  Beaker
+  Beaker,
+  Globe
 } from "lucide-react";
 
 const navigationItems = [
@@ -101,6 +102,33 @@ const navigationItems = [
         name: "Agent Code",
         href: "/test-drive/agent-code",
         description: "View CrewAI agent implementations",
+      },
+    ],
+  },
+  {
+    name: "Incoterms Management",
+    icon: Globe,
+    description: "Incoterms 2020 rules and validation",
+    subItems: [
+      {
+        name: "Incoterms Grid",
+        href: "/incoterms",
+        description: "View and manage Incoterms 2020",
+      },
+      {
+        name: "Responsibility Matrix",
+        href: "/incoterms/matrix",
+        description: "Seller and buyer responsibilities",
+      },
+      {
+        name: "LC Validation",
+        href: "/incoterms/validation",
+        description: "Validate LC against Incoterms",
+      },
+      {
+        name: "AI Agents",
+        href: "/incoterms/agents",
+        description: "Autonomous Incoterms validation",
       },
     ],
   },

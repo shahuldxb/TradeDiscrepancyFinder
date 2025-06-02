@@ -1134,6 +1134,110 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Incoterms Management Routes
+  app.get('/api/incoterms', isAuthenticated, async (req, res) => {
+    try {
+      const { incotermsService } = await import('./incotermsService');
+      const incoterms = await incotermsService.getAllIncoterms();
+      res.json(incoterms);
+    } catch (error) {
+      console.error('Error fetching Incoterms:', error);
+      res.status(500).json({ error: 'Failed to fetch Incoterms' });
+    }
+  });
+
+  app.get('/api/incoterms/:id', isAuthenticated, async (req, res) => {
+    try {
+      const { incotermsService } = await import('./incotermsService');
+      const incoterm = await incotermsService.getIncoterm(parseInt(req.params.id));
+      if (!incoterm) {
+        return res.status(404).json({ error: 'Incoterm not found' });
+      }
+      res.json(incoterm);
+    } catch (error) {
+      console.error('Error fetching Incoterm:', error);
+      res.status(500).json({ error: 'Failed to fetch Incoterm' });
+    }
+  });
+
+  app.get('/api/incoterms/code/:code', isAuthenticated, async (req, res) => {
+    try {
+      const { incotermsService } = await import('./incotermsService');
+      const incoterm = await incotermsService.getIncotermByCode(req.params.code.toUpperCase());
+      if (!incoterm) {
+        return res.status(404).json({ error: 'Incoterm not found' });
+      }
+      res.json(incoterm);
+    } catch (error) {
+      console.error('Error fetching Incoterm by code:', error);
+      res.status(500).json({ error: 'Failed to fetch Incoterm' });
+    }
+  });
+
+  app.put('/api/incoterms/:id', isAuthenticated, async (req, res) => {
+    try {
+      const { incotermsService } = await import('./incotermsService');
+      const updated = await incotermsService.updateIncoterm(parseInt(req.params.id), req.body);
+      if (!updated) {
+        return res.status(404).json({ error: 'Incoterm not found' });
+      }
+      res.json({ success: true, message: 'Incoterm updated successfully' });
+    } catch (error) {
+      console.error('Error updating Incoterm:', error);
+      res.status(500).json({ error: 'Failed to update Incoterm' });
+    }
+  });
+
+  app.get('/api/incoterms/:id/responsibility-matrix', isAuthenticated, async (req, res) => {
+    try {
+      const { incotermsService } = await import('./incotermsService');
+      const matrix = await incotermsService.getResponsibilityMatrix(parseInt(req.params.id));
+      res.json(matrix);
+    } catch (error) {
+      console.error('Error fetching responsibility matrix:', error);
+      res.status(500).json({ error: 'Failed to fetch responsibility matrix' });
+    }
+  });
+
+  app.post('/api/incoterms/validate-lc', isAuthenticated, async (req, res) => {
+    try {
+      const { lcNumber, incotermCode } = req.body;
+      const { incotermsService } = await import('./incotermsService');
+      const validation = await incotermsService.validateLCIncoterms(lcNumber, incotermCode);
+      res.json(validation);
+    } catch (error) {
+      console.error('Error validating LC Incoterms:', error);
+      res.status(500).json({ error: 'Failed to validate LC Incoterms' });
+    }
+  });
+
+  app.get('/api/incoterms/statistics/overview', isAuthenticated, async (req, res) => {
+    try {
+      const { incotermsService } = await import('./incotermsService');
+      const statistics = await incotermsService.getIncotermsStatistics();
+      res.json(statistics);
+    } catch (error) {
+      console.error('Error fetching Incoterms statistics:', error);
+      res.status(500).json({ error: 'Failed to fetch statistics' });
+    }
+  });
+
+  // AI-Centric Incoterms Agent Status
+  app.get('/api/incoterms/agents/status', isAuthenticated, async (req, res) => {
+    try {
+      const { incotermsAgentCoordinator } = await import('./incotermsAIAgents');
+      const agents = await incotermsAgentCoordinator.getAgentStatus();
+      res.json({
+        agents,
+        mode: 'ai_centric_incoterms',
+        note: 'Autonomous Incoterms validation agents running independently'
+      });
+    } catch (error) {
+      console.error('Error fetching Incoterms agent status:', error);
+      res.status(500).json({ error: 'Failed to fetch agent status' });
+    }
+  });
+
   // Enhanced Agent Management Routes - Based on Field Classification
   
   // Custom Agents API
