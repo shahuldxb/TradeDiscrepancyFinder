@@ -1135,7 +1135,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Incoterms Management Routes
-  app.get('/api/incoterms', isAuthenticated, async (req, res) => {
+  app.get('/api/incoterms', async (req, res) => {
     try {
       const { incotermsService } = await import('./incotermsService');
       const incoterms = await incotermsService.getAllIncoterms();
@@ -1146,7 +1146,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/incoterms/:id', isAuthenticated, async (req, res) => {
+  app.get('/api/incoterms/:id', async (req, res) => {
     try {
       const { incotermsService } = await import('./incotermsService');
       const incoterm = await incotermsService.getIncoterm(parseInt(req.params.id));
@@ -1160,7 +1160,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/incoterms/code/:code', isAuthenticated, async (req, res) => {
+  app.get('/api/incoterms/code/:code', async (req, res) => {
     try {
       const { incotermsService } = await import('./incotermsService');
       const incoterm = await incotermsService.getIncotermByCode(req.params.code.toUpperCase());
@@ -1174,7 +1174,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/incoterms/:id', isAuthenticated, async (req, res) => {
+  app.put('/api/incoterms/:id', async (req, res) => {
     try {
       const { incotermsService } = await import('./incotermsService');
       const updated = await incotermsService.updateIncoterm(parseInt(req.params.id), req.body);
@@ -1188,7 +1188,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/incoterms/:id/responsibility-matrix', isAuthenticated, async (req, res) => {
+  app.get('/api/incoterms/:id/responsibility-matrix', async (req, res) => {
     try {
       const { incotermsService } = await import('./incotermsService');
       const matrix = await incotermsService.getResponsibilityMatrix(parseInt(req.params.id));
@@ -1199,7 +1199,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/incoterms/validate-lc', isAuthenticated, async (req, res) => {
+  app.post('/api/incoterms/validate-lc', async (req, res) => {
     try {
       const { lcNumber, incotermCode } = req.body;
       const { incotermsService } = await import('./incotermsService');
@@ -1211,7 +1211,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/incoterms/statistics/overview', isAuthenticated, async (req, res) => {
+  app.get('/api/incoterms/statistics/overview', async (req, res) => {
     try {
       const { incotermsService } = await import('./incotermsService');
       const statistics = await incotermsService.getIncotermsStatistics();
@@ -1223,7 +1223,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // AI-Centric Incoterms Agent Status
-  app.get('/api/incoterms/agents/status', isAuthenticated, async (req, res) => {
+  app.get('/api/incoterms/agents/status', async (req, res) => {
     try {
       const { incotermsAgentCoordinator } = await import('./incotermsAIAgents');
       const agents = await incotermsAgentCoordinator.getAgentStatus();
