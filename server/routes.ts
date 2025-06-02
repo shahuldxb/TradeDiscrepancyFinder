@@ -1146,10 +1146,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/incoterms/:id', async (req, res) => {
+  app.get('/api/incoterms/:code', async (req, res) => {
     try {
       const { incotermsService } = await import('./incotermsService');
-      const incoterm = await incotermsService.getIncoterm(parseInt(req.params.id));
+      const incoterm = await incotermsService.getIncoterm(req.params.code.toUpperCase());
       if (!incoterm) {
         return res.status(404).json({ error: 'Incoterm not found' });
       }
@@ -1160,14 +1160,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/incoterms/code/:code', async (req, res) => {
+  app.get('/api/incoterms/:code/matrix', async (req, res) => {
     try {
       const { incotermsService } = await import('./incotermsService');
-      const incoterm = await incotermsService.getIncotermByCode(req.params.code.toUpperCase());
-      if (!incoterm) {
-        return res.status(404).json({ error: 'Incoterm not found' });
-      }
-      res.json(incoterm);
+      const matrix = await incotermsService.getResponsibilityMatrix(req.params.code.toUpperCase());
+      res.json(matrix);
+    } catch (error) {
+      console.error('Error fetching responsibility matrix:', error);
+      res.status(500).json({ error: 'Failed to fetch responsibility matrix' });
+    }
+  });
+
+  app.get('/api/incoterms/statistics', async (req, res) => {
+    try {
+      const { incotermsService } = await import('./incotermsService');
+      const statistics = await incotermsService.getIncotermsStatistics();
+      res.json(statistics);
     } catch (error) {
       console.error('Error fetching Incoterm by code:', error);
       res.status(500).json({ error: 'Failed to fetch Incoterm' });

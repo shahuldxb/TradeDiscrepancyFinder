@@ -137,8 +137,8 @@ export default function IncotermsManagement() {
   });
 
   const filteredIncoterms = incoterms.filter((incoterm: Incoterm) => {
-    const matchesSearch = incoterm.term_code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         incoterm.term_name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = incoterm.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         incoterm.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesTransport = selectedTransportMode === "all" || 
                             incoterm.transport_mode === selectedTransportMode;
     return matchesSearch && matchesTransport;
