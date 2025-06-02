@@ -1318,6 +1318,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Dashboard metrics endpoint (working reference)
+  app.get('/api/dashboard/metrics', async (req, res) => {
+    try {
+      const { azureDataService } = await import('./azureDataService');
+      const metrics = await azureDataService.getDashboardMetrics();
+      res.json(metrics);
+    } catch (error) {
+      console.error('Error fetching dashboard metrics:', error);
+      res.status(500).json({ error: 'Failed to fetch dashboard metrics' });
+    }
+  });
+
   // Incoterms Management API - Comprehensive System (Public Access for Testing)
   app.get('/api/incoterms', async (req, res) => {
     try {
