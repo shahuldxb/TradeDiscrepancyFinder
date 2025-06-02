@@ -1318,7 +1318,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Incoterms Management API - Comprehensive System
+  // Incoterms Management API - Comprehensive System (Public Access for Testing)
   app.get('/api/incoterms', async (req, res) => {
     try {
       const { incotermsService } = await import('./incotermsService');

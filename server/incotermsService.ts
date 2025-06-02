@@ -59,10 +59,11 @@ class IncotermsService {
         ORDER BY term_code
       `);
       
+      console.log('Successfully fetched Incoterms from Azure SQL:', result.recordset.length);
       return result.recordset;
     } catch (error) {
-      console.error('Error fetching Incoterms:', error);
-      // Return sample data if database connection fails
+      console.error('Azure SQL connection failed, using sample data:', error.message);
+      // Return comprehensive sample data when database isn't available
       return this.getSampleIncoterms();
     }
   }

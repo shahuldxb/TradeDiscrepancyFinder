@@ -1,11 +1,11 @@
 import sql from 'mssql';
 
 const config = {
-  server: 'shahulmi.database.windows.net',
+  server: process.env.AZURE_SQL_SERVER || 'shahulmi.database.windows.net',
   port: 1433,
-  database: 'TF_genie',
-  user: 'shahul',
-  password: 'Apple123!@#',
+  database: process.env.AZURE_SQL_DATABASE || 'TF_genie',
+  user: process.env.AZURE_SQL_USERNAME || 'shahul',
+  password: process.env.AZURE_SQL_PASSWORD || 'Apple123!@#',
   options: {
     encrypt: true,
     trustServerCertificate: false
