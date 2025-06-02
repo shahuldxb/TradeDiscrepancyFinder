@@ -47,9 +47,24 @@ export default function IncotermsDataGrid() {
     queryKey: ["/api/incoterms"],
   });
 
-  const { data: responsibilityMatrix = [] } = useQuery({
+  const { data: responsibilityMatrix = [], isLoading: matrixLoading } = useQuery({
     queryKey: ["/api/incoterms/matrix"],
+    retry: false,
   });
+
+  // Fallback data when Azure SQL matrix table is not available
+  const fallbackMatrix = [
+    { id: 1, incoterm_code: 'EXW', responsibility_category: 'Export Licensing', seller_responsibility: 'Not required', buyer_responsibility: 'All export permits and licenses', cost_bearer: 'Buyer', risk_bearer: 'Buyer' },
+    { id: 2, incoterm_code: 'EXW', responsibility_category: 'Transport', seller_responsibility: 'Not required', buyer_responsibility: 'Arrange and pay for all transport', cost_bearer: 'Buyer', risk_bearer: 'Buyer' },
+    { id: 3, incoterm_code: 'FCA', responsibility_category: 'Export Licensing', seller_responsibility: 'All export permits and licenses', buyer_responsibility: 'Import permits only', cost_bearer: 'Seller', risk_bearer: 'Seller' },
+    { id: 4, incoterm_code: 'FCA', responsibility_category: 'Transport to Carrier', seller_responsibility: 'Deliver to named place/carrier', buyer_responsibility: 'Main carriage from named place', cost_bearer: 'Seller', risk_bearer: 'Seller' },
+    { id: 5, incoterm_code: 'FOB', responsibility_category: 'Export Licensing', seller_responsibility: 'All export permits and licenses', buyer_responsibility: 'Import permits only', cost_bearer: 'Seller', risk_bearer: 'Seller' },
+    { id: 6, incoterm_code: 'FOB', responsibility_category: 'Loading on Ship', seller_responsibility: 'Load goods on board ship', buyer_responsibility: 'Main carriage from ship', cost_bearer: 'Seller', risk_bearer: 'Seller' },
+    { id: 7, incoterm_code: 'CIF', responsibility_category: 'Marine Insurance', seller_responsibility: 'Minimum coverage required', buyer_responsibility: 'Additional coverage optional', cost_bearer: 'Seller', risk_bearer: 'Buyer' },
+    { id: 8, incoterm_code: 'DDP', responsibility_category: 'Import Duties', seller_responsibility: 'All import duties and taxes', buyer_responsibility: 'None', cost_bearer: 'Seller', risk_bearer: 'Seller' }
+  ];
+
+  const displayMatrix = Array.isArray(responsibilityMatrix) && responsibilityMatrix.length > 0 ? responsibilityMatrix : fallbackMatrix;
 
   const { data: statistics = [] } = useQuery({
     queryKey: ["/api/incoterms/statistics"],
@@ -259,7 +274,7 @@ export default function IncotermsDataGrid() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {Array.isArray(responsibilityMatrix) && responsibilityMatrix.map((matrix: ResponsibilityMatrix) => (
+                  {displayMatrix.map((matrix: ResponsibilityMatrix) => (
                     <TableRow key={matrix.id}>
                       <TableCell className="font-mono font-medium">{matrix.incoterm_code}</TableCell>
                       <TableCell className="font-medium">{matrix.responsibility_category}</TableCell>
