@@ -40,6 +40,7 @@ function Router() {
             {/* Incoterms Management Routes */}
             <Route path="/incoterms" component={IncotermsManagement} />
             <Route path="/incoterms-grid" component={IncotermsDataGrid} />
+            <Route path="/incoterms/matrix" component={IncotermsMatrix} />
             
             {/* Document Management Routes */}
             <Route path="/document-upload" component={DocumentUpload} />
