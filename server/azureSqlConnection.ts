@@ -1,8 +1,12 @@
 import sql from 'mssql';
 
+const serverWithPort = process.env.AZURE_SQL_SERVER || 'shahulmi.database.windows.net';
+const [server, portStr] = serverWithPort.includes(',') ? serverWithPort.split(',') : [serverWithPort, '1433'];
+const port = parseInt(portStr) || 1433;
+
 const config = {
-  server: process.env.AZURE_SQL_SERVER || 'shahulmi.database.windows.net',
-  port: 1433,
+  server: server,
+  port: port,
   database: process.env.AZURE_SQL_DATABASE || 'TF_genie',
   user: process.env.AZURE_SQL_USERNAME || 'shahul',
   password: process.env.AZURE_SQL_PASSWORD || 'Apple123!@#',
