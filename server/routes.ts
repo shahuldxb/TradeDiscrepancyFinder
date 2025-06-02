@@ -1318,6 +1318,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Incoterms Management API - Comprehensive System
+  app.get('/api/incoterms', async (req, res) => {
+    try {
+      const { incotermsService } = await import('./incotermsService');
+      const incoterms = await incotermsService.getAllIncoterms();
+      res.json(incoterms);
+    } catch (error) {
+      console.error('Error fetching Incoterms:', error);
+      res.status(500).json({ error: 'Failed to fetch Incoterms' });
+    }
+  });
+
+  app.get('/api/incoterms/:id/responsibility-matrix', async (req, res) => {
+    try {
+      const incotermId = parseInt(req.params.id);
+      const { incotermsService } = await import('./incotermsService');
+      const matrix = await incotermsService.getResponsibilityMatrix(incotermId);
+      res.json(matrix);
+    } catch (error) {
+      console.error('Error fetching responsibility matrix:', error);
+      res.status(500).json({ error: 'Failed to fetch responsibility matrix' });
+    }
+  });
+
+  app.get('/api/incoterms/statistics/overview', async (req, res) => {
+    try {
+      const { incotermsService } = await import('./incotermsService');
+      const stats = await incotermsService.getIncotermStatistics();
+      res.json(stats);
+    } catch (error) {
+      console.error('Error fetching Incoterms statistics:', error);
+      res.status(500).json({ error: 'Failed to fetch statistics' });
+    }
+  });
+
+  app.get('/api/incoterms/agents/status', async (req, res) => {
+    try {
+      const { incotermsAgentCoordinator } = await import('./incotermsAIAgents');
+      const agentStatus = await incotermsAgentCoordinator.getAgentStatus();
+      res.json({ agents: agentStatus });
+    } catch (error) {
+      console.error('Error fetching agent status:', error);
+      res.status(500).json({ error: 'Failed to fetch agent status' });
+    }
+  });
+
+  app.post('/api/incoterms/validate-lc', async (req, res) => {
+    try {
+      const { lcNumber, incotermCode } = req.body;
+      const { incotermsService } = await import('./incotermsService');
+      const validation = await incotermsService.validateLCAgainstIncoterm(lcNumber, incotermCode);
+      res.json(validation);
+    } catch (error) {
+      console.error('Error validating LC:', error);
+      res.status(500).json({ error: 'Failed to validate LC' });
+    }
+  });
+
+  app.get('/api/incoterms/terms/:code', async (req, res) => {
+    try {
+      const termCode = req.params.code.toUpperCase();
+      const { incotermsService } = await import('./incotermsService');
+      const incoterm = await incotermsService.getIncotermByCode(termCode);
+      if (!incoterm) {
+        return res.status(404).json({ error: 'Incoterm not found' });
+      }
+      res.json(incoterm);
+    } catch (error) {
+      console.error('Error fetching Incoterm by code:', error);
+      res.status(500).json({ error: 'Failed to fetch Incoterm' });
+    }
+  });
+
+  app.post('/api/incoterms/validate-documents', async (req, res) => {
+    try {
+      const { documents, incotermCode } = req.body;
+      const { incotermsService } = await import('./incotermsService');
+      const validation = await incotermsService.validateDocumentsAgainstIncoterm(documents, incotermCode);
+      res.json(validation);
+    } catch (error) {
+      console.error('Error validating documents:', error);
+      res.status(500).json({ error: 'Failed to validate documents' });
+    }
+  });
+
   // Skills Management API - Azure SQL Integration
   app.get('/api/skills', isAuthenticated, async (req, res) => {
     try {

@@ -9,7 +9,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { isUnauthorizedError } from "@/lib/authUtils";
 import { 
   Globe, 
   Search, 
@@ -88,19 +87,7 @@ export default function IncotermsManagement() {
   // Fetch all Incoterms
   const { data: incoterms = [], isLoading: incotermsLoading } = useQuery({
     queryKey: ['/api/incoterms'],
-    retry: false,
-    onError: (error: Error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-      }
-    }
+    retry: false
   });
 
   // Fetch responsibility matrix for selected Incoterm
