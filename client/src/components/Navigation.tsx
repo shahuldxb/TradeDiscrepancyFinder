@@ -46,10 +46,11 @@ const navigationItems: NavItem[] = [
     icon: Globe,
     children: [
       { title: "Data Grid", href: "/incoterms-grid", icon: Database },
+      { title: "Management Portal", href: "/incoterms", icon: Settings },
       { title: "Responsibility Matrix", href: "/incoterms/matrix", icon: FileText },
       { title: "Validation Rules", href: "/incoterms/validation", icon: CheckCircle },
       { title: "Comparison Tool", href: "/incoterms/comparison", icon: BarChart3 },
-      { title: "Statistics", href: "/incoterms/statistics", icon: TrendingUp },
+      { title: "Statistics & Analytics", href: "/incoterms/statistics", icon: TrendingUp },
     ]
   },
   {
@@ -62,6 +63,7 @@ const navigationItems: NavItem[] = [
       { title: "OCR Processing", href: "/documents/ocr", icon: Bot },
       { title: "Validation Results", href: "/documents/validation", icon: CheckCircle },
       { title: "Trade Finance Docs", href: "/trade-finance-documents", icon: FileText },
+      { title: "Document Workflow", href: "/documents/workflow", icon: Workflow },
     ]
   },
   {
@@ -75,6 +77,8 @@ const navigationItems: NavItem[] = [
       { title: "Agent Code", href: "/agent-code", icon: FileText },
       { title: "Skills Management", href: "/skills-management", icon: BookOpen },
       { title: "OCR Agent", href: "/ocr-agent", icon: Search },
+      { title: "Autonomous Agents", href: "/agents/autonomous", icon: Bot },
+      { title: "Agent Performance", href: "/agents/performance", icon: TrendingUp },
     ]
   },
   {
@@ -86,6 +90,8 @@ const navigationItems: NavItem[] = [
       { title: "Message Builder", href: "/message-builder", icon: Settings },
       { title: "MT Intelligence", href: "/mt-intelligence", icon: Bot },
       { title: "Message Details", href: "/swift-message-details", icon: FileText },
+      { title: "Message Validation", href: "/swift/validation", icon: CheckCircle },
+      { title: "Category 7 Messages", href: "/swift/category7", icon: MessageSquare },
     ]
   },
   {
@@ -97,6 +103,21 @@ const navigationItems: NavItem[] = [
       { title: "Performance Metrics", href: "/analysis/performance", icon: TrendingUp },
       { title: "Compliance Reports", href: "/analysis/compliance", icon: Shield },
       { title: "Business Intelligence", href: "/analysis/business", icon: BarChart3 },
+      { title: "Risk Assessment", href: "/analysis/risk", icon: AlertTriangle },
+      { title: "Audit Reports", href: "/analysis/audit", icon: Clock },
+    ]
+  },
+  {
+    title: "Test Drive",
+    href: "/test-drive",
+    icon: Bot,
+    badge: "Demo",
+    children: [
+      { title: "OCR Demo", href: "/test-drive/ocr", icon: Search },
+      { title: "Agent Code Demo", href: "/test-drive/agent-code", icon: FileText },
+      { title: "AI Validation Demo", href: "/test-drive/validation", icon: CheckCircle },
+      { title: "Document Processing", href: "/test-drive/documents", icon: Upload },
+      { title: "SWIFT Processing", href: "/test-drive/swift", icon: MessageSquare },
     ]
   },
   {
@@ -112,8 +133,10 @@ const navigationItems: NavItem[] = [
       { title: "User Management", href: "/admin/users", icon: Users },
       { title: "System Settings", href: "/admin/settings", icon: Settings },
       { title: "Audit Logs", href: "/admin/audit", icon: Clock },
-      { title: "Security", href: "/admin/security", icon: Shield },
-      { title: "Backups", href: "/admin/backups", icon: Archive },
+      { title: "Security Management", href: "/admin/security", icon: Shield },
+      { title: "Backup & Recovery", href: "/admin/backups", icon: Archive },
+      { title: "Database Management", href: "/admin/database", icon: Database },
+      { title: "API Management", href: "/admin/api", icon: Settings },
     ]
   }
 ];

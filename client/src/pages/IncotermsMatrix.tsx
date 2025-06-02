@@ -60,8 +60,8 @@ export default function IncotermsMatrix() {
     return matchesSearch && matchesTerm && matchesCategory;
   });
 
-  const uniqueTerms = [...new Set(displayMatrix.map(item => item.incoterm_code))];
-  const categories = [...new Set(displayMatrix.map(item => item.responsibility_category))];
+  const uniqueTerms = Array.from(new Set(displayMatrix.map(item => item.incoterm_code)));
+  const categories = Array.from(new Set(displayMatrix.map(item => item.responsibility_category)));
 
   const getTransportIcon = (termCode: string) => {
     const seaTerms = ['FAS', 'FOB', 'CFR', 'CIF'];
@@ -122,7 +122,7 @@ export default function IncotermsMatrix() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Terms</SelectItem>
-              {uniqueTerms.map(term => (
+              {uniqueTerms.map(term => term && (
                 <SelectItem key={term} value={term}>{term}</SelectItem>
               ))}
             </SelectContent>

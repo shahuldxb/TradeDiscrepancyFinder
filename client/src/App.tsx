@@ -41,10 +41,17 @@ function Router() {
             <Route path="/incoterms" component={IncotermsManagement} />
             <Route path="/incoterms-grid" component={IncotermsDataGrid} />
             <Route path="/incoterms/matrix" component={IncotermsMatrix} />
+            <Route path="/incoterms/validation" component={IncotermsDataGrid} />
+            <Route path="/incoterms/comparison" component={IncotermsDataGrid} />
+            <Route path="/incoterms/statistics" component={IncotermsDataGrid} />
             
             {/* Document Management Routes */}
             <Route path="/document-upload" component={DocumentUpload} />
             <Route path="/documents" component={DocumentUpload} />
+            <Route path="/documents/library" component={DocumentUpload} />
+            <Route path="/documents/ocr" component={OCRAgent} />
+            <Route path="/documents/validation" component={DocumentUpload} />
+            <Route path="/documents/workflow" component={DocumentUpload} />
             <Route path="/trade-finance-documents" component={TradeFinanceDocuments} />
             
             {/* AI Agents Routes */}
@@ -54,21 +61,44 @@ function Router() {
             <Route path="/agent-code" component={AgentCode} />
             <Route path="/skills-management" component={SkillsManagement} />
             <Route path="/ocr-agent" component={OCRAgent} />
+            <Route path="/agents/autonomous" component={AgentMonitor} />
+            <Route path="/agents/performance" component={AgentMonitor} />
+            
+            {/* Test Drive Routes */}
             <Route path="/test-drive/ocr" component={OCRAgent} />
             <Route path="/test-drive/agent-code" component={AgentCode} />
+            <Route path="/test-drive/validation" component={DiscrepancyAnalysis} />
+            <Route path="/test-drive/documents" component={DocumentUpload} />
+            <Route path="/test-drive/swift" component={MT700Lifecycle} />
             
             {/* SWIFT Messages Routes */}
             <Route path="/mt700-lifecycle" component={MT700Lifecycle} />
             <Route path="/message-builder" component={MessageBuilder} />
             <Route path="/mt-intelligence" component={MTIntelligence} />
             <Route path="/swift-message/:messageType" component={SwiftMessageDetails} />
+            <Route path="/swift/validation" component={SwiftMessageDetails} />
+            <Route path="/swift/category7" component={SwiftMessageDetails} />
             
             {/* Analysis & Reporting Routes */}
             <Route path="/discrepancy-analysis" component={DiscrepancyAnalysis} />
             <Route path="/analysis" component={DiscrepancyAnalysis} />
+            <Route path="/analysis/performance" component={DiscrepancyAnalysis} />
+            <Route path="/analysis/compliance" component={DiscrepancyAnalysis} />
+            <Route path="/analysis/business" component={DiscrepancyAnalysis} />
+            <Route path="/analysis/risk" component={DiscrepancyAnalysis} />
+            <Route path="/analysis/audit" component={DiscrepancyAnalysis} />
             
             {/* UCP Rules */}
             <Route path="/ucp-rules" component={UCPRules} />
+            
+            {/* System Admin Routes */}
+            <Route path="/admin/users" component={AgentMonitor} />
+            <Route path="/admin/settings" component={AgentMonitor} />
+            <Route path="/admin/audit" component={DiscrepancyAnalysis} />
+            <Route path="/admin/security" component={AgentMonitor} />
+            <Route path="/admin/backups" component={AgentMonitor} />
+            <Route path="/admin/database" component={IncotermsDataGrid} />
+            <Route path="/admin/api" component={AgentMonitor} />
             
             <Route component={NotFound} />
           </Switch>
