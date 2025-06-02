@@ -31,8 +31,8 @@ import {
 
 interface Incoterm {
   id: number;
-  term_code: string;
-  term_name: string;
+  code: string;
+  name: string;
   full_description?: string;
   transport_mode: string;
   risk_transfer_point?: string;
