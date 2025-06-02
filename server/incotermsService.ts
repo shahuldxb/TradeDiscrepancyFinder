@@ -47,7 +47,7 @@ export interface LCValidationResult {
 class IncotermsService {
   async getAllIncoterms(): Promise<Incoterm[]> {
     try {
-      const pool = await getAzureConnection();
+      const pool = await connectToAzureSQL();
       const result = await pool.request().query(`
         SELECT 
           id, term_code, term_name, full_description, transport_mode,
@@ -69,7 +69,7 @@ class IncotermsService {
 
   async getIncotermByCode(termCode: string): Promise<Incoterm | null> {
     try {
-      const pool = await getAzureConnection();
+      const pool = await connectToAzureSQL();
       const result = await pool.request()
         .input('termCode', termCode.toUpperCase())
         .query(`
@@ -92,7 +92,7 @@ class IncotermsService {
 
   async getResponsibilityMatrix(incotermId: number): Promise<ResponsibilityMatrix[]> {
     try {
-      const pool = await getAzureConnection();
+      const pool = await connectToAzureSQL();
       const result = await pool.request()
         .input('incotermId', incotermId)
         .query(`
@@ -113,7 +113,7 @@ class IncotermsService {
 
   async getIncotermStatistics(): Promise<IncotermStatistics[]> {
     try {
-      const pool = await getAzureConnection();
+      const pool = await connectToAzureSQL();
       const result = await pool.request().query(`
         SELECT 
           transport_mode,
