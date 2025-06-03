@@ -259,10 +259,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/library/documents/:id', async (req, res) => {
     try {
       const { id } = req.params;
-      console.log(`Deleting document from library: ${id}`);
+      console.log(`Deleting document from Azure SQL library: ${id}`);
       
-      // Simulate document deletion from Azure SQL and file system
-      // In real implementation, delete from Azure SQL and remove file
+      const { azureDataService } = await import('./azureDataService');
+      const result = await azureDataService.deleteLibraryDocument(id);
+      
+      // Remove file from filesystem
+      if (result.filePath) {
+        const fs = await import('fs');
+        try {
+          fs.unlinkSync(result.filePath);
+        } catch (fileError) {
+          console.warn('File already deleted or not found:', fileError);
+        }
+      }
       
       res.json({
         success: true,
@@ -271,6 +281,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error deleting document from library:', error);
       res.status(500).json({ error: 'Failed to delete document from library' });
+    }
+  });
+
+  // View document endpoint
+  app.get('/api/library/documents/:id/view', async (req, res) => {
+    try {
+      const { id } = req.params;
+      console.log(`Viewing document from Azure SQL library: ${id}`);
+      
+      const { azureDataService } = await import('./azureDataService');
+      const document = await azureDataService.getDocumentById(id);
+      
+      if (!document) {
+        return res.status(404).json({ error: 'Document not found' });
+      }
+      
+      res.json({
+        success: true,
+        document,
+        message: 'Document retrieved successfully'
+      });
+    } catch (error) {
+      console.error('Error viewing document:', error);
+      res.status(500).json({ error: 'Failed to view document' });
+    }
+  });
+
+  // Download document endpoint
+  app.get('/api/library/documents/:id/download', async (req, res) => {
+    try {
+      const { id } = req.params;
+      console.log(`Downloading document from Azure SQL library: ${id}`);
+      
+      const { azureDataService } = await import('./azureDataService');
+      const document = await azureDataService.getDocumentById(id);
+      
+      if (!document) {
+        return res.status(404).json({ error: 'Document not found' });
+      }
+      
+      const fs = await import('fs');
+      const path = await import('path');
+      
+      if (!document.filePath || !fs.existsSync(document.filePath)) {
+        return res.status(404).json({ error: 'File not found on disk' });
+      }
+      
+      // Set appropriate headers for download
+      res.setHeader('Content-Disposition', `attachment; filename="${document.fileName}"`);
+      res.setHeader('Content-Type', document.mimeType || 'application/octet-stream');
+      
+      // Stream the file
+      const fileStream = fs.createReadStream(document.filePath);
+      fileStream.pipe(res);
+      
+    } catch (error) {
+      console.error('Error downloading document:', error);
+      res.status(500).json({ error: 'Failed to download document' });
     }
   });
 

@@ -1,4 +1,5 @@
 import { connectToAzureSQL } from './azureSqlConnection';
+import * as sql from 'mssql';
 
 export class AzureDataService {
   
@@ -434,8 +435,7 @@ export class AzureDataService {
 
   async getLibraryDocuments(userId: string = 'demo-user') {
     try {
-      await connectToAzureSQL();
-      const pool = sql.getCurrentPool();
+      const pool = await connectToAzureSQL();
       const result = await pool.request()
         .query(`
           SELECT 
@@ -475,8 +475,7 @@ export class AzureDataService {
 
   async createLibraryDocument(documentData: any) {
     try {
-      await connectToAzureSQL();
-      const pool = sql.getCurrentPool();
+      const pool = await connectToAzureSQL();
       await pool.request()
         .input('id', sql.VarChar, documentData.id)
         .input('fileName', sql.VarChar, documentData.fileName)
@@ -516,8 +515,7 @@ export class AzureDataService {
 
   async deleteLibraryDocument(documentId: string) {
     try {
-      await connectToAzureSQL();
-      const pool = sql.getCurrentPool();
+      const pool = await connectToAzureSQL();
       
       const getResult = await pool.request()
         .input('documentId', sql.VarChar, documentId)
@@ -543,8 +541,7 @@ export class AzureDataService {
 
   async getDocumentById(documentId: string) {
     try {
-      await connectToAzureSQL();
-      const pool = sql.getCurrentPool();
+      const pool = await connectToAzureSQL();
       const result = await pool.request()
         .input('documentId', sql.VarChar, documentId)
         .query(`

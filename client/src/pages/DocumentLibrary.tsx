@@ -174,6 +174,55 @@ export default function DocumentLibrary() {
     uploadMutation.mutate({ ...data, file: selectedFile });
   };
 
+  // View document handler
+  const handleViewDocument = async (documentId: string) => {
+    try {
+      const response = await fetch(`/api/library/documents/${documentId}/view`);
+      if (!response.ok) throw new Error('Failed to view document');
+      
+      const result = await response.json();
+      toast({
+        title: "Document Details",
+        description: `${result.document.fileName} - ${result.document.documentType}`,
+      });
+    } catch (error) {
+      toast({
+        title: "View failed",
+        description: "Unable to view document details",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Download document handler
+  const handleDownloadDocument = async (documentId: string, fileName: string) => {
+    try {
+      const response = await fetch(`/api/library/documents/${documentId}/download`);
+      if (!response.ok) throw new Error('Failed to download document');
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast({
+        title: "Download started",
+        description: `${fileName} is being downloaded`,
+      });
+    } catch (error) {
+      toast({
+        title: "Download failed",
+        description: "Unable to download document",
+        variant: "destructive",
+      });
+    }
+  };
+
   const formatFileSize = (bytes: number) => {
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     if (bytes === 0) return '0 Bytes';
@@ -428,11 +477,21 @@ export default function DocumentLibrary() {
                   )}
                   
                   <div className="flex gap-2 pt-2">
-                    <Button variant="outline" size="sm" className="flex-1">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1"
+                      onClick={() => handleViewDocument(doc.id)}
+                    >
                       <Eye className="mr-1 h-3 w-3" />
                       View
                     </Button>
-                    <Button variant="outline" size="sm" className="flex-1">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1"
+                      onClick={() => handleDownloadDocument(doc.id, doc.fileName)}
+                    >
                       <Download className="mr-1 h-3 w-3" />
                       Download
                     </Button>
