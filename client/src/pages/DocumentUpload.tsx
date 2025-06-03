@@ -356,10 +356,10 @@ export default function DocumentUpload() {
                           <div className="flex items-center justify-between">
                             <div>
                               <p className="font-medium text-foreground">
-                                {set.setName || `Set ${set.id.slice(0, 8)}`}
+                                {set.set_name || set.setName || `Set ${set.id.slice(0, 8)}`}
                               </p>
                               <p className="text-sm text-muted-foreground">
-                                {set.lcReference || 'No LC reference'}
+                                {set.lc_reference || set.lcReference || 'No LC reference'}
                               </p>
                             </div>
                             <Badge variant={
