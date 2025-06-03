@@ -444,32 +444,39 @@ export class AzureDataService {
         WHERE TABLE_NAME = 'documents' AND TABLE_SCHEMA = 'dbo'
       `);
       
-      if (tableCheck.recordset.length === 0) {
-        // Create documents table if it doesn't exist
+      // Always check if we need to add sample data
+      const dataCount = await pool.request().query('SELECT COUNT(*) as count FROM dbo.documents');
+      
+      if (dataCount.recordset[0].count === 0) {
+        console.log('Adding sample documents to Azure SQL database...');
+        
+        // Insert sample documents using individual INSERT statements
         await pool.request().query(`
-          CREATE TABLE dbo.documents (
-            id NVARCHAR(100) PRIMARY KEY,
-            file_name NVARCHAR(255) NOT NULL,
-            document_type NVARCHAR(100),
-            file_size INT,
-            status NVARCHAR(50) DEFAULT 'uploaded',
-            document_set_id NVARCHAR(100),
-            file_path NVARCHAR(500),
-            mime_type NVARCHAR(100),
-            extracted_data NVARCHAR(MAX),
-            created_at DATETIME2 DEFAULT GETDATE()
-          )
+          INSERT INTO dbo.documents (id, file_name, document_type, file_size, status, document_set_id, file_path, mime_type) 
+          VALUES ('doc_1748942001', 'Commercial_Invoice_LC001.pdf', 'Commercial Invoice', 245760, 'analyzed', 'ds_1748941845210_sotbdw18g', 'uploads/commercial_invoice_1.pdf', 'application/pdf')
         `);
         
-        // Insert sample documents
         await pool.request().query(`
-          INSERT INTO dbo.documents (id, file_name, document_type, file_size, status, document_set_id, file_path, mime_type) VALUES
-          ('doc_1748942001', 'Commercial_Invoice_LC001.pdf', 'Commercial Invoice', 245760, 'analyzed', 'ds_1748941845210_sotbdw18g', 'uploads/commercial_invoice_1.pdf', 'application/pdf'),
-          ('doc_1748942002', 'Bill_of_Lading_LC001.pdf', 'Bill of Lading', 189440, 'processing', 'ds_1748941845210_sotbdw18g', 'uploads/bill_of_lading_1.pdf', 'application/pdf'),
-          ('doc_1748942003', 'Letter_of_Credit_LC002.pdf', 'Letter of Credit', 156672, 'uploaded', 'ds_1748942115715_ftjz4kqkt', 'uploads/letter_of_credit_1.pdf', 'application/pdf'),
-          ('doc_1748942004', 'Insurance_Certificate_LC001.pdf', 'Insurance Certificate', 98304, 'analyzed', NULL, 'uploads/insurance_cert_1.pdf', 'application/pdf'),
-          ('doc_1748942005', 'Packing_List_LC002.pdf', 'Packing List', 134217, 'error', NULL, 'uploads/packing_list_1.pdf', 'application/pdf')
+          INSERT INTO dbo.documents (id, file_name, document_type, file_size, status, document_set_id, file_path, mime_type) 
+          VALUES ('doc_1748942002', 'Bill_of_Lading_LC001.pdf', 'Bill of Lading', 189440, 'processing', 'ds_1748941845210_sotbdw18g', 'uploads/bill_of_lading_1.pdf', 'application/pdf')
         `);
+        
+        await pool.request().query(`
+          INSERT INTO dbo.documents (id, file_name, document_type, file_size, status, document_set_id, file_path, mime_type) 
+          VALUES ('doc_1748942003', 'Letter_of_Credit_LC002.pdf', 'Letter of Credit', 156672, 'uploaded', 'ds_1748942115715_ftjz4kqkt', 'uploads/letter_of_credit_1.pdf', 'application/pdf')
+        `);
+        
+        await pool.request().query(`
+          INSERT INTO dbo.documents (id, file_name, document_type, file_size, status, file_path, mime_type) 
+          VALUES ('doc_1748942004', 'Insurance_Certificate_LC001.pdf', 'Insurance Certificate', 98304, 'analyzed', 'uploads/insurance_cert_1.pdf', 'application/pdf')
+        `);
+        
+        await pool.request().query(`
+          INSERT INTO dbo.documents (id, file_name, document_type, file_size, status, file_path, mime_type) 
+          VALUES ('doc_1748942005', 'Packing_List_LC002.pdf', 'Packing List', 134217, 'error', 'uploads/packing_list_1.pdf', 'application/pdf')
+        `);
+        
+        console.log('Sample documents inserted successfully');
       }
       
       const result = await pool.request()
