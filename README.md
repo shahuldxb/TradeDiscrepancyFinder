@@ -101,13 +101,23 @@ The application connects to your Azure SQL Server database with the following ta
 
 ### 5. Run the Application
 
+**Option A: Standard Development (Replit-style)**
 ```bash
 npm run dev
 ```
 
+**Option B: Local Development (Recommended)**
+```bash
+node start-local.js
+```
+
 The application will start on:
-- **Frontend**: http://localhost:5173
-- **Backend**: http://localhost:5173 (served together)
+- **Full Application**: http://localhost:5000 (frontend + backend together)
+
+**Important for Local Development:**
+- The server runs on port 5000 and serves both frontend and backend
+- All API requests go to the same port (no proxy needed)
+- Authentication is automatically bypassed in local development mode
 
 ## Authentication
 
