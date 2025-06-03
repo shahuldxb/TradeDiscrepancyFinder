@@ -194,12 +194,10 @@ export default function MT700Lifecycle() {
         });
         formData.append('nodeId', selectedNode?.id || 'default');
         
-        const response = await fetch('/api/mt700-lifecycle/documents', {
+        const response = await apiRequest('/api/mt700-lifecycle/documents', {
           method: 'POST',
           body: formData,
         });
-        
-        if (!response.ok) throw new Error('Upload failed');
         
         queryClient.invalidateQueries({ queryKey: ['/api/mt700-lifecycle/documents'] });
         
