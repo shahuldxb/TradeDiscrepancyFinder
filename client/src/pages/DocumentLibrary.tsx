@@ -35,19 +35,12 @@ const uploadFormSchema = z.object({
 
 type UploadFormData = z.infer<typeof uploadFormSchema>;
 
-// Document type options
-const documentTypes = [
-  "Commercial Invoice",
-  "Bill of Lading", 
-  "Packing List",
-  "Certificate of Origin",
-  "Insurance Certificate",
-  "Inspection Certificate",
-  "Letter of Credit",
-  "Draft/Bill of Exchange",
-  "Banking Documents",
-  "Other Trade Documents"
-];
+// Document types fetched from Azure database
+const { data: documentTypesData } = useQuery({
+  queryKey: ['/api/document-types'],
+});
+
+const documentTypes = documentTypesData?.map((type: any) => type.document_type) || [];
 
 export default function DocumentLibrary() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
