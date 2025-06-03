@@ -27,112 +27,7 @@ export async function getAllMessageTypes() {
   }
 }
 
-export async function validateSwiftMessage(messageText: string, messageType: string) {
-  try {
-    // Basic SWIFT message validation
-    const validationResult = {
-      success: false,
-      errors: [] as string[],
-      warnings: [] as string[],
-      messageType,
-      validatedFields: [] as any[]
-    };
 
-    // Check if message text is provided
-    if (!messageText || messageText.trim().length === 0) {
-      validationResult.errors.push("Message text is required");
-      return validationResult;
-    }
-
-    // Check if message type is provided
-    if (!messageType) {
-      validationResult.errors.push("Message type is required");
-      return validationResult;
-    }
-
-    // Parse SWIFT fields from message text
-    const swiftFields = parseSwiftFields(messageText);
-    
-    // Validate based on message type
-    if (messageType === "700") {
-      validateMT700Fields(swiftFields, validationResult);
-    } else if (messageType === "701") {
-      validateMT701Fields(swiftFields, validationResult);
-    } else {
-      validationResult.warnings.push(`Basic validation for MT${messageType} - comprehensive rules not implemented`);
-    }
-
-    // Check for mandatory field :20: (Reference) in all messages
-    if (!swiftFields.find(f => f.tag === "20")) {
-      validationResult.errors.push("Mandatory field :20: (Reference) is missing");
-    }
-
-    // Set success based on errors
-    validationResult.success = validationResult.errors.length === 0;
-    
-    return validationResult;
-  } catch (error) {
-    console.error('Error validating SWIFT message:', error);
-    return {
-      success: false,
-      errors: ['Internal validation error occurred'],
-      warnings: [],
-      messageType,
-      validatedFields: []
-    };
-  }
-}
-
-function parseSwiftFields(messageText: string) {
-  const fields = [];
-  const lines = messageText.split('\n');
-  
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (trimmed.startsWith(':') && trimmed.includes(':')) {
-      const match = trimmed.match(/^:(\w+):(.*)/);
-      if (match) {
-        fields.push({
-          tag: match[1],
-          content: match[2]
-        });
-      }
-    }
-  }
-  
-  return fields;
-}
-
-function validateMT700Fields(fields: any[], result: any) {
-  const mandatoryFields = ["20", "23", "31C", "40A", "50", "59", "32B"];
-  
-  for (const mandatoryField of mandatoryFields) {
-    if (!fields.find(f => f.tag === mandatoryField)) {
-      result.errors.push(`Mandatory field :${mandatoryField}: is missing for MT700`);
-    }
-  }
-  
-  // Validate specific field formats
-  const field20 = fields.find(f => f.tag === "20");
-  if (field20 && field20.content.length > 16) {
-    result.errors.push("Field :20: Reference cannot exceed 16 characters");
-  }
-  
-  const field31C = fields.find(f => f.tag === "31C");
-  if (field31C && !/^\d{6}$/.test(field31C.content)) {
-    result.errors.push("Field :31C: Date must be in YYMMDD format");
-  }
-}
-
-function validateMT701Fields(fields: any[], result: any) {
-  const mandatoryFields = ["20", "21", "31C", "23"];
-  
-  for (const mandatoryField of mandatoryFields) {
-    if (!fields.find(f => f.tag === mandatoryField)) {
-      result.errors.push(`Mandatory field :${mandatoryField}: is missing for MT701`);
-    }
-  }
-}
 
 export async function getSwiftStatistics() {
   try {
@@ -188,89 +83,131 @@ export async function validateSwiftMessage(messageText: string, messageType: str
   try {
     const pool = await connectToAzureSQL();
     
-    // Get message type specifications
+    // Check if message type exists in database
     const messageTypeResult = await pool.request()
       .input('messageType', sql.NVarChar, messageType)
       .query(`
-        SELECT * FROM swift.message_types 
+        SELECT message_type_code, message_type_name, purpose
+        FROM dbo.SwiftMessageTypes 
         WHERE message_type_code = @messageType
       `);
     
+    const validationResult = {
+      success: false,
+      errors: [] as string[],
+      warnings: [] as string[],
+      messageType,
+      validatedFields: [] as any[]
+    };
+
+    // Basic validation if message type not found in database
     if (messageTypeResult.recordset.length === 0) {
-      return {
-        isValid: false,
-        errors: [{ field: 'messageType', message: 'Invalid message type' }]
-      };
+      validationResult.warnings.push(`Message type MT${messageType} not found in database - performing basic validation`);
     }
+
+    // Check if message text is provided
+    if (!messageText || messageText.trim().length === 0) {
+      validationResult.errors.push("Message text is required");
+      await pool.close();
+      return validationResult;
+    }
+
+    // Parse SWIFT fields from message text
+    const swiftFields = parseSwiftMessage(messageText);
     
-    // Get field specifications for this message type
-    const fieldsResult = await pool.request()
-      .input('messageType', sql.NVarChar, messageType)
-      .query(`
-        SELECT 
-          mf.*,
-          fs.format_specification,
-          fs.validation_rules
-        FROM swift.message_fields mf
-        LEFT JOIN swift.field_specifications fs ON mf.field_tag = fs.field_tag
-        WHERE mf.message_type_code = @messageType
-        ORDER BY mf.sequence
-      `);
+    // Get field specifications from database if available
+    try {
+      const fieldsResult = await pool.request()
+        .input('messageType', sql.NVarChar, messageType)
+        .query(`
+          SELECT field_tag, field_name, is_mandatory, format_specification
+          FROM dbo.SwiftFieldDefinitions 
+          WHERE message_type_code = @messageType
+        `);
+      
+      // Validate against database fields if found
+      if (fieldsResult.recordset.length > 0) {
+        for (const fieldDef of fieldsResult.recordset) {
+          if (fieldDef.is_mandatory && !swiftFields.has(fieldDef.field_tag)) {
+            validationResult.errors.push(`Mandatory field :${fieldDef.field_tag}: (${fieldDef.field_name}) is missing`);
+          }
+        }
+      } else {
+        // Fallback to basic validation rules
+        performBasicValidation(swiftFields, messageType, validationResult);
+      }
+    } catch (dbError) {
+      // If database lookup fails, perform basic validation
+      performBasicValidation(swiftFields, messageType, validationResult);
+      validationResult.warnings.push("Using basic validation rules - database field definitions not accessible");
+    }
+
+    // Store validation result in database
+    try {
+      await pool.request()
+        .input('messageType', sql.NVarChar, messageType)
+        .input('messageContent', sql.NVarChar, messageText)
+        .input('validationStatus', sql.NVarChar, validationResult.errors.length === 0 ? 'valid' : 'invalid')
+        .input('validationErrors', sql.NVarChar, JSON.stringify(validationResult.errors))
+        .input('validatedAt', sql.DateTime, new Date())
+        .query(`
+          INSERT INTO dbo.SwiftValidationHistory 
+          (message_type_code, message_content, validation_status, validation_errors, validated_at)
+          VALUES (@messageType, @messageContent, @validationStatus, @validationErrors, @validatedAt)
+        `);
+    } catch (insertError) {
+      console.log('Could not store validation result:', insertError.message);
+      validationResult.warnings.push("Validation completed but result not stored in database");
+    }
+
+    validationResult.success = validationResult.errors.length === 0;
+    await pool.close();
+    return validationResult;
     
-    const fields = fieldsResult.recordset;
-    const errors = [];
-    
-    // Parse the SWIFT message
-    const parsedFields = parseSwiftMessage(messageText);
-    
-    // Validate mandatory fields
-    for (const field of fields) {
-      if (field.is_mandatory && !parsedFields.has(field.field_tag)) {
-        errors.push({
-          field: field.field_tag,
-          message: `Mandatory field ${field.field_tag} is missing`
-        });
+  } catch (error) {
+    console.error('Error validating SWIFT message:', error);
+    return {
+      success: false,
+      errors: ['Database connection error - validation could not be completed'],
+      warnings: [],
+      messageType,
+      validatedFields: []
+    };
+  }
+}
+
+function performBasicValidation(swiftFields: Map<string, string>, messageType: string, result: any) {
+  // Check for mandatory field :20: (Reference) in all messages
+  if (!swiftFields.has("20")) {
+    result.errors.push("Mandatory field :20: (Reference) is missing");
+  }
+
+  // Message type specific validation
+  if (messageType === "700") {
+    const mandatoryFields = ["23", "31C", "40A", "50", "59", "32B"];
+    for (const field of mandatoryFields) {
+      if (!swiftFields.has(field)) {
+        result.errors.push(`Mandatory field :${field}: is missing for MT700`);
       }
     }
     
     // Validate field formats
-    parsedFields.forEach((fieldValue, fieldTag) => {
-      const fieldSpec = fields.find(f => f.field_tag === fieldTag);
-      if (fieldSpec && fieldSpec.format_specification) {
-        const formatValid = validateFieldFormat(fieldValue, fieldSpec.format_specification);
-        if (!formatValid) {
-          errors.push({
-            field: fieldTag,
-            message: `Field ${fieldTag} format is invalid`
-          });
-        }
+    const field20 = swiftFields.get("20");
+    if (field20 && field20.length > 16) {
+      result.errors.push("Field :20: Reference cannot exceed 16 characters");
+    }
+    
+    const field31C = swiftFields.get("31C");
+    if (field31C && !/^\d{6}$/.test(field31C)) {
+      result.errors.push("Field :31C: Date must be in YYMMDD format");
+    }
+  } else if (messageType === "701") {
+    const mandatoryFields = ["21", "31C", "23"];
+    for (const field of mandatoryFields) {
+      if (!swiftFields.has(field)) {
+        result.errors.push(`Mandatory field :${field}: is missing for MT701`);
       }
-    });
-    
-    // Store validation result
-    await pool.request()
-      .input('messageType', sql.NVarChar, messageType)
-      .input('messageContent', sql.NVarChar, messageText)
-      .input('validationStatus', sql.NVarChar, errors.length === 0 ? 'valid' : 'invalid')
-      .input('validationErrors', sql.NVarChar, JSON.stringify(errors))
-      .query(`
-        INSERT INTO swift.message_instances 
-        (message_type_code, message_content, validation_status, validation_errors, created_at)
-        VALUES (@messageType, @messageContent, @validationStatus, @validationErrors, GETDATE())
-      `);
-    
-    await pool.close();
-    
-    return {
-      isValid: errors.length === 0,
-      errors: errors,
-      messageType: messageType,
-      fieldCount: parsedFields.size
-    };
-    
-  } catch (error) {
-    console.error('Error validating SWIFT message:', error);
-    throw error;
+    }
   }
 }
 
