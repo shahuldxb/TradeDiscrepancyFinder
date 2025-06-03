@@ -1,5 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -150,6 +152,11 @@ export default function MT700Lifecycle() {
   const [selectedNode, setSelectedNode] = useState<LifecycleNode | null>(null);
   const [selectedView, setSelectedView] = useState<'overview' | 'documents' | 'agents' | 'timeline'>('overview');
   const [lifecycleStages, setLifecycleStages] = useState<LifecycleNode[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [agentStatus, setAgentStatus] = useState<'stopped' | 'running' | 'paused'>('stopped');
+  
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: lifecycleData, isLoading } = useQuery({
     queryKey: ['/api/mt700-lifecycle'],
@@ -165,6 +172,106 @@ export default function MT700Lifecycle() {
     queryKey: ['/api/mt700-lifecycle/agents', selectedNode?.id],
     enabled: !!selectedNode
   });
+
+  // Button handlers
+  const handleUploadDocuments = useCallback(() => {
+    setIsUploading(true);
+    
+    // Create file input element
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.multiple = true;
+    input.accept = '.pdf,.doc,.docx,.jpg,.jpeg,.png';
+    
+    input.onchange = async (e) => {
+      const files = (e.target as HTMLInputElement).files;
+      if (!files) return;
+      
+      try {
+        const formData = new FormData();
+        Array.from(files).forEach((file) => {
+          formData.append('documents', file);
+        });
+        formData.append('nodeId', selectedNode?.id || 'default');
+        
+        const response = await fetch('/api/mt700-lifecycle/documents', {
+          method: 'POST',
+          body: formData,
+        });
+        
+        if (!response.ok) throw new Error('Upload failed');
+        
+        queryClient.invalidateQueries({ queryKey: ['/api/mt700-lifecycle/documents'] });
+        
+        toast({
+          title: "Documents Uploaded",
+          description: `Successfully uploaded ${files.length} document(s) to the lifecycle stage.`,
+        });
+      } catch (error) {
+        toast({
+          title: "Upload Failed",
+          description: "Failed to upload documents. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsUploading(false);
+      }
+    };
+    
+    input.click();
+  }, [selectedNode, queryClient, toast]);
+
+  const handleAgentControl = useCallback((action: 'start' | 'pause' | 'restart') => {
+    const actionMessages = {
+      start: { title: "Agents Started", description: "All lifecycle agents are now running." },
+      pause: { title: "Agents Paused", description: "All lifecycle agents have been paused." },
+      restart: { title: "Agents Restarted", description: "All lifecycle agents have been restarted." }
+    };
+    
+    setAgentStatus(action === 'start' ? 'running' : action === 'pause' ? 'paused' : 'running');
+    
+    toast({
+      title: actionMessages[action].title,
+      description: actionMessages[action].description,
+    });
+  }, [toast]);
+
+  const handleExportReport = useCallback(async () => {
+    try {
+      const response = await fetch('/api/mt700-lifecycle/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          includeDocuments: true, 
+          includeAgentTasks: true,
+          format: 'pdf'
+        }),
+      });
+      
+      if (!response.ok) throw new Error('Export failed');
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `MT700_Lifecycle_Report_${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast({
+        title: "Report Exported",
+        description: "MT700 lifecycle report has been downloaded successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Export Failed",
+        description: "Failed to generate report. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [toast]);
 
   // Update lifecycle stages when data is loaded
   useEffect(() => {
@@ -492,9 +599,13 @@ export default function MT700Lifecycle() {
               <p className="text-sm text-gray-600 mb-4">
                 Upload required documents for the current lifecycle stage
               </p>
-              <Button className="w-full">
+              <Button 
+                className="w-full" 
+                onClick={handleUploadDocuments}
+                disabled={isUploading}
+              >
                 <Upload className="w-4 h-4 mr-2" />
-                Upload Documents
+                {isUploading ? 'Uploading...' : 'Upload Documents'}
               </Button>
             </CardContent>
           </Card>
@@ -511,13 +622,27 @@ export default function MT700Lifecycle() {
                 Monitor and control automated agent tasks
               </p>
               <div className="flex space-x-2">
-                <Button variant="outline" size="sm">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => handleAgentControl('start')}
+                  disabled={agentStatus === 'running'}
+                >
                   <Play className="w-4 h-4" />
                 </Button>
-                <Button variant="outline" size="sm">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => handleAgentControl('pause')}
+                  disabled={agentStatus === 'paused' || agentStatus === 'stopped'}
+                >
                   <Pause className="w-4 h-4" />
                 </Button>
-                <Button variant="outline" size="sm">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => handleAgentControl('restart')}
+                >
                   <RotateCcw className="w-4 h-4" />
                 </Button>
               </div>
@@ -535,7 +660,11 @@ export default function MT700Lifecycle() {
               <p className="text-sm text-gray-600 mb-4">
                 Generate lifecycle reports and documentation
               </p>
-              <Button variant="outline" className="w-full">
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={handleExportReport}
+              >
                 <Download className="w-4 h-4 mr-2" />
                 Export Report
               </Button>
