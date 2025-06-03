@@ -937,6 +937,50 @@ export class AzureDataService {
       throw error;
     }
   }
+
+  async getSwiftMessageCounts() {
+    try {
+      const pool = await connectToAzureSQL();
+      
+      // Count SWIFT message types
+      const messageTypesResult = await pool.request().query(`
+        SELECT COUNT(*) as total_message_types FROM SwiftMessageTypes
+      `);
+      
+      // Count SWIFT fields
+      const fieldsResult = await pool.request().query(`
+        SELECT COUNT(*) as total_fields FROM SwiftFields
+      `);
+      
+      // Get Category 7 messages specifically
+      const category7Result = await pool.request().query(`
+        SELECT COUNT(*) as category7_count 
+        FROM SwiftMessageTypes 
+        WHERE message_type_code LIKE 'MT7%'
+      `);
+      
+      // Get all message types with details
+      const allMessages = await pool.request().query(`
+        SELECT 
+          message_type_code,
+          message_type_name,
+          description,
+          category
+        FROM SwiftMessageTypes 
+        ORDER BY message_type_code
+      `);
+      
+      return {
+        totalMessageTypes: messageTypesResult.recordset[0].total_message_types,
+        totalFields: fieldsResult.recordset[0].total_fields,
+        category7Count: category7Result.recordset[0].category7_count,
+        allMessages: allMessages.recordset
+      };
+    } catch (error) {
+      console.error('Error fetching SWIFT message counts from Azure:', error);
+      throw error;
+    }
+  }
 }
 
 export const azureDataService = new AzureDataService();

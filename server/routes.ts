@@ -143,6 +143,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // SWIFT Message Counts API
+  app.get('/api/swift/message-counts', async (req, res) => {
+    try {
+      console.log('Fetching SWIFT message counts from Azure database...');
+      const { azureDataService } = await import('./azureDataService');
+      const counts = await azureDataService.getSwiftMessageCounts();
+      console.log('SWIFT message counts fetched from Azure:', counts);
+      res.json(counts);
+    } catch (error) {
+      console.error('Error fetching SWIFT message counts from Azure:', error);
+      res.status(500).json({ error: 'Failed to fetch SWIFT message counts from Azure database' });
+    }
+  });
+
   // Document Sets - Azure Database Connection
   app.get('/api/document-sets', async (req, res) => {
     try {
