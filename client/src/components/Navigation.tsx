@@ -89,7 +89,7 @@ const navigationItems: NavItem[] = [
       { title: "MT700 Lifecycle", href: "/mt700-lifecycle", icon: Workflow },
       { title: "Message Builder", href: "/message-builder", icon: Settings },
       { title: "MT Intelligence", href: "/mt-intelligence", icon: Bot },
-      { title: "Message Details", href: "/swift-message-details", icon: FileText },
+      { title: "Message Details", href: "/swift-message/700", icon: FileText },
       { title: "Message Validation", href: "/swift/validation", icon: CheckCircle },
       { title: "Category 7 Messages", href: "/swift/category7", icon: MessageSquare },
     ]
