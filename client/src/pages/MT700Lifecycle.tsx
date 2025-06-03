@@ -593,6 +593,55 @@ export default function MT700Lifecycle() {
           </Dialog>
         )}
 
+        {/* Uploaded Documents Section */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              Uploaded Documents
+            </CardTitle>
+            <CardDescription>
+              View and manage documents uploaded to the MT700 lifecycle stages
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {Array.isArray(documentsData) && documentsData.length > 0 ? (
+              <div className="space-y-4">
+                {documentsData.map((doc: any, index: number) => (
+                  <div key={doc.id || index} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <FileText className="w-5 h-5 text-blue-500" />
+                      <div>
+                        <h4 className="font-medium">{doc.document_name || doc.name || `Document ${index + 1}`}</h4>
+                        <p className="text-sm text-gray-600">
+                          Type: {doc.document_type || doc.type || 'Trade Finance Document'} | 
+                          Uploaded: {doc.uploaded_at ? new Date(doc.uploaded_at).toLocaleDateString() : new Date().toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Badge className={doc.status === 'validated' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}>
+                        {doc.validation_status || doc.status || 'uploaded'}
+                      </Badge>
+                      <Button variant="outline" size="sm">
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No Documents Uploaded</h3>
+                <p className="text-gray-600 dark:text-gray-300 mb-4">
+                  Upload documents using the "Upload Documents" button below to see them here.
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card>

@@ -353,6 +353,37 @@ export class MT700LifecycleService {
     }
   }
 
+  async storeDocumentUpload(documentData: any) {
+    try {
+      const pool = await connectToAzureSQL();
+      const request = pool.request();
+      
+      const query = `
+        INSERT INTO mt700_lifecycle_documents 
+        (node_id, document_name, document_type, status, uploaded_at, validation_status)
+        VALUES (@nodeId, @documentName, @documentType, @status, @uploadedAt, @validationStatus);
+        SELECT SCOPE_IDENTITY() as id;
+      `;
+      
+      request.input('nodeId', sql.NVarChar, documentData.nodeId);
+      request.input('documentName', sql.NVarChar, documentData.documentName);
+      request.input('documentType', sql.NVarChar, documentData.documentType);
+      request.input('status', sql.NVarChar, documentData.status);
+      request.input('uploadedAt', sql.DateTime, new Date(documentData.uploadedAt));
+      request.input('validationStatus', sql.NVarChar, documentData.validationStatus);
+      
+      const result = await request.query(query);
+      
+      return {
+        id: result.recordset[0].id,
+        ...documentData
+      };
+    } catch (error) {
+      console.error('Error storing document upload:', error);
+      throw error;
+    }
+  }
+
   async uploadDocument(nodeId: string, documentData: any) {
     try {
       const pool = await connectToAzureSQL();
