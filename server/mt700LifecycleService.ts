@@ -23,11 +23,27 @@ export class MT700LifecycleService {
         );
       `);
 
-      // Create MT700 lifecycle documents table
+      // Handle MT700 lifecycle documents table creation/modification
+      try {
+        // Check if table exists and drop it if the schema is incorrect
+        const tableCheck = await pool.request().query(`
+          SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS 
+          WHERE TABLE_NAME = 'mt700_lifecycle_documents' AND COLUMN_NAME = 'id'
+        `);
+        
+        if (tableCheck.recordset.length > 0 && tableCheck.recordset[0].DATA_TYPE === 'nvarchar') {
+          await pool.request().query(`DROP TABLE mt700_lifecycle_documents`);
+          console.log('Dropped existing table with incorrect schema');
+        }
+      } catch (error) {
+        // Table doesn't exist, which is fine
+      }
+
+      // Create table with correct schema
       await pool.request().query(`
         IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='mt700_lifecycle_documents' AND xtype='U')
         CREATE TABLE mt700_lifecycle_documents (
-          id NVARCHAR(255) PRIMARY KEY,
+          id INT IDENTITY(1,1) PRIMARY KEY,
           node_id NVARCHAR(255) NOT NULL,
           document_name NVARCHAR(500) NOT NULL,
           document_type NVARCHAR(100),
