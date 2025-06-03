@@ -1568,6 +1568,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // MT700 lifecycle export report - Public for demo
+  app.post('/api/mt700-lifecycle/export', async (req, res) => {
+    try {
+      const { mt700LifecycleService } = await import('./mt700LifecycleService');
+      
+      const reportData = {
+        title: 'MT700 Documentary Credit Lifecycle Report',
+        generatedAt: new Date().toISOString(),
+        summary: {
+          totalStages: 6,
+          completedStages: 3,
+          activeStages: 1,
+          pendingStages: 2,
+          overallProgress: 65
+        },
+        stages: [
+          {
+            name: 'LC Issuance',
+            status: 'completed',
+            progress: 100,
+            completedAt: '2025-06-01T10:00:00Z',
+            documents: ['MT700 Message', 'LC Application']
+          },
+          {
+            name: 'Document Submission',
+            status: 'completed', 
+            progress: 100,
+            completedAt: '2025-06-02T14:30:00Z',
+            documents: ['Commercial Invoice', 'Bill of Lading', 'Insurance Certificate']
+          },
+          {
+            name: 'Document Examination',
+            status: 'active',
+            progress: 65,
+            documents: ['Examination Report', 'Discrepancy Notice']
+          }
+        ],
+        metrics: {
+          totalDocuments: 12,
+          processedDocuments: 8,
+          discrepanciesFound: 2,
+          averageProcessingTime: '2.5 hours',
+          complianceScore: 92
+        }
+      };
+
+      // Set headers for PDF download simulation
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', `attachment; filename="MT700_Lifecycle_Report_${new Date().toISOString().split('T')[0]}.json"`);
+      
+      res.json(reportData);
+    } catch (error) {
+      console.error('Error exporting MT700 lifecycle report:', error);
+      res.status(500).json({ error: 'Failed to generate report' });
+    }
+  });
+
   app.post('/api/mt700-lifecycle/process/:nodeId', isAuthenticated, async (req, res) => {
     try {
       const { nodeId } = req.params;
