@@ -167,7 +167,68 @@ export class AzureDataService {
     }
   }
 
-  // Document Operations - Replace PostgreSQL
+  // Document Operations - Azure Database Connection
+  async getDocuments(filters: any = {}) {
+    try {
+      const pool = await connectToAzureSQL();
+      let query = 'SELECT * FROM documents WHERE 1=1';
+      const request = pool.request();
+      
+      if (filters.document_type) {
+        query += ' AND document_type = @document_type';
+        request.input('document_type', filters.document_type);
+      }
+      
+      if (filters.status) {
+        query += ' AND status = @status';
+        request.input('status', filters.status);
+      }
+      
+      query += ' ORDER BY created_at DESC';
+      
+      const result = await request.query(query);
+      return result.recordset;
+    } catch (error) {
+      console.error('Error fetching documents from Azure:', error);
+      throw error;
+    }
+  }
+
+  async getDocumentTypes() {
+    try {
+      const pool = await connectToAzureSQL();
+      const result = await pool.request().query(`
+        SELECT DISTINCT document_type, COUNT(*) as count 
+        FROM documents 
+        GROUP BY document_type 
+        ORDER BY document_type
+      `);
+      return result.recordset;
+    } catch (error) {
+      console.error('Error fetching document types from Azure:', error);
+      throw error;
+    }
+  }
+
+  async getDocumentStatistics() {
+    try {
+      const pool = await connectToAzureSQL();
+      const result = await pool.request().query(`
+        SELECT 
+          COUNT(*) as total_documents,
+          COUNT(DISTINCT document_type) as total_types,
+          SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved_count,
+          SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_count,
+          SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected_count
+        FROM documents
+      `);
+      return result.recordset[0];
+    } catch (error) {
+      console.error('Error fetching document statistics from Azure:', error);
+      throw error;
+    }
+  }
+
   async getDocumentSets(userId: string) {
     try {
       const pool = await connectToAzureSQL();
@@ -181,12 +242,6 @@ export class AzureDataService {
       return result.recordset;
     } catch (error) {
       console.error('Error fetching document sets from Azure:', error);
-      
-      // If table doesn't exist, return empty array for demo
-      if (error.message?.includes('Invalid object name') || error.message?.includes('document_sets')) {
-        console.log('Document sets table not found, returning empty array');
-        return [];
-      }
       throw error;
     }
   }

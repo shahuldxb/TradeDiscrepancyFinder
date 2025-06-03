@@ -52,17 +52,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     await setupAuth(app);
   }
 
-  // Document Sets - Public routes for demo (before auth routes)
+  // Document Routes - Azure Database Connection
+  app.get('/api/documents', async (req, res) => {
+    try {
+      console.log('Fetching documents from Azure database...');
+      const { azureDataService } = await import('./azureDataService');
+      const filters = {
+        document_type: req.query.type,
+        status: req.query.status
+      };
+      const documents = await azureDataService.getDocuments(filters);
+      console.log(`Fetched ${documents.length} documents from Azure`);
+      res.json(documents);
+    } catch (error) {
+      console.error('Error fetching documents from Azure:', error);
+      res.status(500).json({ error: 'Failed to fetch documents from Azure database' });
+    }
+  });
+
+  app.get('/api/document-types', async (req, res) => {
+    try {
+      console.log('Fetching document types from Azure database...');
+      const { azureDataService } = await import('./azureDataService');
+      const documentTypes = await azureDataService.getDocumentTypes();
+      console.log(`Fetched ${documentTypes.length} document types from Azure`);
+      res.json(documentTypes);
+    } catch (error) {
+      console.error('Error fetching document types from Azure:', error);
+      res.status(500).json({ error: 'Failed to fetch document types from Azure database' });
+    }
+  });
+
+  app.get('/api/document-statistics', async (req, res) => {
+    try {
+      console.log('Fetching document statistics from Azure database...');
+      const { azureDataService } = await import('./azureDataService');
+      const statistics = await azureDataService.getDocumentStatistics();
+      console.log('Document statistics fetched from Azure:', statistics);
+      res.json(statistics);
+    } catch (error) {
+      console.error('Error fetching document statistics from Azure:', error);
+      res.status(500).json({ error: 'Failed to fetch document statistics from Azure database' });
+    }
+  });
+
+  // Document Sets - Azure Database Connection
   app.get('/api/document-sets', async (req, res) => {
     try {
-      console.log('Fetching document sets...');
+      console.log('Fetching document sets from Azure database...');
       const { azureDataService } = await import('./azureDataService');
       const documentSets = await azureDataService.getDocumentSets('demo-user');
-      console.log('Document sets fetched:', documentSets);
+      console.log(`Document sets fetched from Azure: ${documentSets.length}`);
       res.json(documentSets);
     } catch (error) {
-      console.error('Error fetching document sets:', error);
-      res.status(500).json({ error: 'Failed to fetch document sets' });
+      console.error('Error fetching document sets from Azure:', error);
+      res.status(500).json({ error: 'Failed to fetch document sets from Azure database' });
     }
   });
 
