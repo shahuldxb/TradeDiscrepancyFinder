@@ -431,6 +431,152 @@ export class AzureDataService {
     
     return statusMap[status] || 'missing';
   }
+
+  async getLibraryDocuments(userId: string = 'demo-user') {
+    try {
+      await connectToAzureSQL();
+      const pool = sql.getCurrentPool();
+      const result = await pool.request()
+        .query(`
+          SELECT 
+            id,
+            file_name,
+            document_type,
+            file_size,
+            upload_date,
+            status,
+            document_set_id,
+            file_path,
+            mime_type,
+            extracted_data,
+            created_at,
+            updated_at
+          FROM documents 
+          ORDER BY upload_date DESC, created_at DESC
+        `);
+      
+      return result.recordset.map((doc: any) => ({
+        id: doc.id,
+        fileName: doc.file_name,
+        documentType: doc.document_type,
+        fileSize: doc.file_size,
+        uploadDate: doc.upload_date || doc.created_at,
+        status: doc.status || 'uploaded',
+        documentSetId: doc.document_set_id,
+        filePath: doc.file_path,
+        mimeType: doc.mime_type,
+        extractedData: doc.extracted_data
+      }));
+    } catch (error) {
+      console.error('Error fetching library documents from Azure SQL:', error);
+      throw error;
+    }
+  }
+
+  async createLibraryDocument(documentData: any) {
+    try {
+      await connectToAzureSQL();
+      const pool = sql.getCurrentPool();
+      await pool.request()
+        .input('id', sql.VarChar, documentData.id)
+        .input('fileName', sql.VarChar, documentData.fileName)
+        .input('documentType', sql.VarChar, documentData.documentType)
+        .input('fileSize', sql.Int, documentData.fileSize)
+        .input('uploadDate', sql.DateTime, new Date())
+        .input('status', sql.VarChar, documentData.status || 'uploaded')
+        .input('documentSetId', sql.VarChar, documentData.documentSetId || null)
+        .input('filePath', sql.VarChar, documentData.filePath)
+        .input('mimeType', sql.VarChar, documentData.mimeType)
+        .query(`
+          INSERT INTO documents (
+            id, file_name, document_type, file_size, upload_date, 
+            status, document_set_id, file_path, mime_type, created_at, updated_at
+          ) VALUES (
+            @id, @fileName, @documentType, @fileSize, @uploadDate, 
+            @status, @documentSetId, @filePath, @mimeType, GETDATE(), GETDATE()
+          )
+        `);
+      
+      return {
+        id: documentData.id,
+        fileName: documentData.fileName,
+        documentType: documentData.documentType,
+        fileSize: documentData.fileSize,
+        uploadDate: new Date(),
+        status: documentData.status || 'uploaded',
+        documentSetId: documentData.documentSetId,
+        filePath: documentData.filePath,
+        mimeType: documentData.mimeType
+      };
+    } catch (error) {
+      console.error('Error creating library document in Azure SQL:', error);
+      throw error;
+    }
+  }
+
+  async deleteLibraryDocument(documentId: string) {
+    try {
+      await connectToAzureSQL();
+      const pool = sql.getCurrentPool();
+      
+      const getResult = await pool.request()
+        .input('documentId', sql.VarChar, documentId)
+        .query('SELECT file_path FROM documents WHERE id = @documentId');
+      
+      if (getResult.recordset.length === 0) {
+        throw new Error('Document not found');
+      }
+      
+      await pool.request()
+        .input('documentId', sql.VarChar, documentId)
+        .query('DELETE FROM documents WHERE id = @documentId');
+      
+      return { 
+        success: true, 
+        filePath: getResult.recordset[0].file_path 
+      };
+    } catch (error) {
+      console.error('Error deleting library document from Azure SQL:', error);
+      throw error;
+    }
+  }
+
+  async getDocumentById(documentId: string) {
+    try {
+      await connectToAzureSQL();
+      const pool = sql.getCurrentPool();
+      const result = await pool.request()
+        .input('documentId', sql.VarChar, documentId)
+        .query(`
+          SELECT 
+            id, file_name, document_type, file_size, upload_date,
+            status, document_set_id, file_path, mime_type, extracted_data
+          FROM documents 
+          WHERE id = @documentId
+        `);
+      
+      if (result.recordset.length === 0) {
+        return null;
+      }
+      
+      const doc = result.recordset[0];
+      return {
+        id: doc.id,
+        fileName: doc.file_name,
+        documentType: doc.document_type,
+        fileSize: doc.file_size,
+        uploadDate: doc.upload_date,
+        status: doc.status,
+        documentSetId: doc.document_set_id,
+        filePath: doc.file_path,
+        mimeType: doc.mime_type,
+        extractedData: doc.extracted_data
+      };
+    } catch (error) {
+      console.error('Error fetching document by ID from Azure SQL:', error);
+      throw error;
+    }
+  }
 }
 
 export const azureDataService = new AzureDataService();
