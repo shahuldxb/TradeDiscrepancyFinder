@@ -185,7 +185,10 @@ export default function MT700Lifecycle() {
     
     input.onchange = async (e) => {
       const files = (e.target as HTMLInputElement).files;
-      if (!files) return;
+      if (!files || files.length === 0) {
+        setIsUploading(false);
+        return;
+      }
       
       try {
         const formData = new FormData();
@@ -194,10 +197,15 @@ export default function MT700Lifecycle() {
         });
         formData.append('nodeId', selectedNode?.id || 'default');
         
+        console.log('Uploading files:', files.length);
+        
         const response = await apiRequest('/api/mt700-lifecycle/documents', {
           method: 'POST',
           body: formData,
         });
+        
+        const result = await response.json();
+        console.log('Upload result:', result);
         
         queryClient.invalidateQueries({ queryKey: ['/api/mt700-lifecycle/documents'] });
         
@@ -205,10 +213,11 @@ export default function MT700Lifecycle() {
           title: "Documents Uploaded",
           description: `Successfully uploaded ${files.length} document(s) to the lifecycle stage.`,
         });
-      } catch (error) {
+      } catch (error: any) {
+        console.error('Upload error:', error);
         toast({
           title: "Upload Failed",
-          description: "Failed to upload documents. Please try again.",
+          description: error?.message || "Failed to upload documents. Please try again.",
           variant: "destructive",
         });
       } finally {
