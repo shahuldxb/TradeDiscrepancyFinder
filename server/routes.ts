@@ -1964,6 +1964,119 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Workflow Management API - Test Drive Feature (Authentication temporarily removed for testing)
+  app.get('/api/workflows', async (req, res) => {
+    try {
+      // Mock workflow data for now
+      const workflows = [
+        {
+          id: "wf_001",
+          name: "LC Document Processing",
+          description: "Automated workflow for processing Letter of Credit documents",
+          documentSetId: "demo_set_1",
+          status: "active",
+          completionPercentage: 65,
+          createdAt: "2025-06-03T08:00:00Z",
+          updatedAt: "2025-06-03T10:15:00Z"
+        }
+      ];
+      res.json(workflows);
+    } catch (error) {
+      console.error('Error fetching workflows:', error);
+      res.status(500).json({ error: 'Failed to fetch workflows' });
+    }
+  });
+
+  app.post('/api/workflows', async (req, res) => {
+    try {
+      const { name, description, documentSetId, automationLevel } = req.body;
+      
+      if (!name || !description || !documentSetId) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      // Mock workflow creation
+      const newWorkflow = {
+        id: `wf_${Date.now()}`,
+        name,
+        description,
+        documentSetId,
+        automationLevel,
+        status: "draft",
+        completionPercentage: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        steps: [
+          {
+            id: "step_001",
+            name: "Document Upload Validation",
+            description: "Validate uploaded documents for completeness and format",
+            status: "pending",
+            assignedTo: "AI Agent",
+            duration: 5,
+            automationType: "automated"
+          },
+          {
+            id: "step_002",
+            name: "OCR Processing",
+            description: "Extract text content from documents using OCR",
+            status: "pending",
+            assignedTo: "OCR Service",
+            duration: 15,
+            automationType: "automated"
+          },
+          {
+            id: "step_003",
+            name: "Data Extraction",
+            description: "Extract key fields and data points from documents",
+            status: "pending",
+            assignedTo: "Document AI",
+            duration: 20,
+            automationType: "automated"
+          }
+        ]
+      };
+
+      console.log('Workflow created successfully:', newWorkflow);
+      res.status(201).json(newWorkflow);
+    } catch (error) {
+      console.error('Error creating workflow:', error);
+      res.status(500).json({ error: 'Failed to create workflow' });
+    }
+  });
+
+  app.put('/api/workflows/:id', async (req, res) => {
+    try {
+      const workflowId = req.params.id;
+      const updates = req.body;
+      
+      // Mock workflow update
+      const updatedWorkflow = {
+        id: workflowId,
+        ...updates,
+        updatedAt: new Date().toISOString()
+      };
+
+      console.log('Workflow updated successfully:', updatedWorkflow);
+      res.json(updatedWorkflow);
+    } catch (error) {
+      console.error('Error updating workflow:', error);
+      res.status(500).json({ error: 'Failed to update workflow' });
+    }
+  });
+
+  app.delete('/api/workflows/:id', async (req, res) => {
+    try {
+      const workflowId = req.params.id;
+      
+      console.log('Workflow deleted successfully:', workflowId);
+      res.json({ message: 'Workflow deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting workflow:', error);
+      res.status(500).json({ error: 'Failed to delete workflow' });
+    }
+  });
+
   // OCR Processing API - Test Drive Feature (Authentication temporarily removed for testing)
   app.get('/api/ocr-results', async (req, res) => {
     try {

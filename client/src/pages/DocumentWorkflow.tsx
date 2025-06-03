@@ -290,8 +290,13 @@ export default function DocumentWorkflow() {
     queryKey: ['/api/document-sets']
   });
 
-  // Mock workflow data - replace with real API calls
-  const workflows: DocumentWorkflow[] = [
+  // Fetch workflows from API
+  const { data: workflowsData, isLoading: workflowsLoading } = useQuery({
+    queryKey: ['/api/workflows']
+  });
+
+  // Use actual workflow data from API
+  const workflows: DocumentWorkflow[] = Array.isArray(workflowsData) ? workflowsData : [
     {
       id: "wf_001",
       name: "LC Document Processing",
