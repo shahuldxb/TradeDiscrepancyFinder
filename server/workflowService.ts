@@ -85,32 +85,29 @@ export class WorkflowService {
         SELECT * FROM workflows ORDER BY created_at DESC
       `);
 
-      return result.recordset.map(workflow => ({
-        id: workflow.id,
-        name: workflow.name,
-        description: workflow.description,
-        documentSetId: workflow.document_set_id,
-        automationLevel: workflow.automation_level,
-        status: workflow.status,
-        completionPercentage: workflow.completion_percentage,
-        createdAt: workflow.created_at,
-        updatedAt: workflow.updated_at
-      }));
+      // Get workflow steps for each workflow
+      const workflowsWithSteps = await Promise.all(
+        result.recordset.map(async (workflow) => {
+          const steps = await this.getWorkflowSteps(workflow.id);
+          return {
+            id: workflow.id,
+            name: workflow.name,
+            description: workflow.description,
+            documentSetId: workflow.document_set_id,
+            automationLevel: workflow.automation_level,
+            status: workflow.status,
+            completionPercentage: workflow.completion_percentage,
+            createdAt: workflow.created_at,
+            updatedAt: workflow.updated_at,
+            steps
+          };
+        })
+      );
+
+      return workflowsWithSteps;
     } catch (error) {
       console.error('Error fetching workflows:', error);
-      // Return sample data if table doesn't exist yet
-      return [
-        {
-          id: "wf_001",
-          name: "LC Document Processing",
-          description: "Automated workflow for processing Letter of Credit documents",
-          documentSetId: "demo_set_1",
-          status: "active",
-          completionPercentage: 65,
-          createdAt: "2025-06-03T08:00:00Z",
-          updatedAt: "2025-06-03T10:15:00Z"
-        }
-      ];
+      return [];
     }
   }
 

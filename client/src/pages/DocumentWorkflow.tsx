@@ -474,7 +474,16 @@ export default function DocumentWorkflow() {
             <CardContent>
               <div className="flex items-center space-x-2">
                 <CheckCircle className="h-4 w-4 text-green-600" />
-                <span className="text-2xl font-bold">{workflows.filter(w => w.status === 'completed').length}</span>
+                <span className="text-2xl font-bold">
+                  {workflows.filter(w => {
+                    if (w.status === 'completed') {
+                      const today = new Date().toDateString();
+                      const updatedDate = new Date(w.updatedAt).toDateString();
+                      return updatedDate === today;
+                    }
+                    return false;
+                  }).length}
+                </span>
               </div>
             </CardContent>
           </Card>
@@ -486,7 +495,7 @@ export default function DocumentWorkflow() {
             <CardContent>
               <div className="flex items-center space-x-2">
                 <Clock className="h-4 w-4 text-yellow-600" />
-                <span className="text-2xl font-bold">3</span>
+                <span className="text-2xl font-bold">{workflows.filter(w => w.status === 'draft').length}</span>
               </div>
             </CardContent>
           </Card>
@@ -498,7 +507,17 @@ export default function DocumentWorkflow() {
             <CardContent>
               <div className="flex items-center space-x-2">
                 <BarChart3 className="h-4 w-4 text-purple-600" />
-                <span className="text-2xl font-bold">2.5h</span>
+                <span className="text-2xl font-bold">
+                  {workflows.length > 0 ? 
+                    `${Math.round(workflows.reduce((acc, w) => {
+                      const created = new Date(w.createdAt);
+                      const updated = new Date(w.updatedAt);
+                      const diffHours = (updated.getTime() - created.getTime()) / (1000 * 60 * 60);
+                      return acc + diffHours;
+                    }, 0) / workflows.length * 10) / 10}h` 
+                    : '0h'
+                  }
+                </span>
               </div>
             </CardContent>
           </Card>
