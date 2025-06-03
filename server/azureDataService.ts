@@ -555,16 +555,16 @@ export class AzureDataService {
       const pool = await connectToAzureSQL();
       
       const getResult = await pool.request()
-        .input('documentId', sql.VarChar, documentId)
-        .query('SELECT file_path FROM documents WHERE id = @documentId');
+        .input('documentId', documentId)
+        .query('SELECT file_path FROM dbo.documents WHERE id = @documentId');
       
       if (getResult.recordset.length === 0) {
         throw new Error('Document not found');
       }
       
       await pool.request()
-        .input('documentId', sql.VarChar, documentId)
-        .query('DELETE FROM documents WHERE id = @documentId');
+        .input('documentId', documentId)
+        .query('DELETE FROM dbo.documents WHERE id = @documentId');
       
       return { 
         success: true, 
@@ -580,12 +580,12 @@ export class AzureDataService {
     try {
       const pool = await connectToAzureSQL();
       const result = await pool.request()
-        .input('documentId', sql.VarChar, documentId)
+        .input('documentId', documentId)
         .query(`
           SELECT 
-            id, file_name, document_type, file_size, upload_date,
+            id, file_name, document_type, file_size, created_at,
             status, document_set_id, file_path, mime_type, extracted_data
-          FROM documents 
+          FROM dbo.documents 
           WHERE id = @documentId
         `);
       
@@ -599,7 +599,7 @@ export class AzureDataService {
         fileName: doc.file_name,
         documentType: doc.document_type,
         fileSize: doc.file_size,
-        uploadDate: doc.upload_date,
+        uploadDate: doc.created_at,
         status: doc.status,
         documentSetId: doc.document_set_id,
         filePath: doc.file_path,
