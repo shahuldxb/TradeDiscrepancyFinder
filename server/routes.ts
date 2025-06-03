@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupLocalDevAuth, isAuthenticatedLocal } from "./localDevConfig";
 import { 
   insertDocumentSetSchema, 
   insertDocumentSchema, 
@@ -39,8 +40,17 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Auth middleware
-  await setupAuth(app);
+  // Detect environment and setup appropriate authentication
+  const isLocalDev = !process.env.REPLIT_DOMAINS || process.env.NODE_ENV === 'development';
+  const authMiddleware = isLocalDev ? isAuthenticatedLocal : isAuthenticated;
+  
+  if (isLocalDev) {
+    console.log("Running in local development mode - using mock authentication");
+    setupLocalDevAuth(app);
+  } else {
+    console.log("Running in Replit environment - using Replit authentication");
+    await setupAuth(app);
+  }
 
   // Document Sets - Public routes for demo (before auth routes)
   app.get('/api/document-sets', async (req, res) => {
