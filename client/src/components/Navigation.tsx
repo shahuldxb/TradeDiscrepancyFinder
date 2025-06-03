@@ -60,6 +60,8 @@ const navigationItems: NavItem[] = [
     children: [
       { title: "Upload Documents", href: "/document-upload", icon: Upload },
       { title: "Document Library", href: "/documents/library", icon: Archive },
+      { title: "Document Types", href: "/documents/types", icon: Database },
+      { title: "Sub Document Types", href: "/documents/sub-types", icon: FileText },
       { title: "OCR Processing", href: "/documents/ocr", icon: Bot },
       { title: "Validation Results", href: "/documents/validation", icon: CheckCircle },
       { title: "Trade Finance Docs", href: "/trade-finance-documents", icon: FileText },
