@@ -27,6 +27,113 @@ export async function getAllMessageTypes() {
   }
 }
 
+export async function validateSwiftMessage(messageText: string, messageType: string) {
+  try {
+    // Basic SWIFT message validation
+    const validationResult = {
+      success: false,
+      errors: [] as string[],
+      warnings: [] as string[],
+      messageType,
+      validatedFields: [] as any[]
+    };
+
+    // Check if message text is provided
+    if (!messageText || messageText.trim().length === 0) {
+      validationResult.errors.push("Message text is required");
+      return validationResult;
+    }
+
+    // Check if message type is provided
+    if (!messageType) {
+      validationResult.errors.push("Message type is required");
+      return validationResult;
+    }
+
+    // Parse SWIFT fields from message text
+    const swiftFields = parseSwiftFields(messageText);
+    
+    // Validate based on message type
+    if (messageType === "700") {
+      validateMT700Fields(swiftFields, validationResult);
+    } else if (messageType === "701") {
+      validateMT701Fields(swiftFields, validationResult);
+    } else {
+      validationResult.warnings.push(`Basic validation for MT${messageType} - comprehensive rules not implemented`);
+    }
+
+    // Check for mandatory field :20: (Reference) in all messages
+    if (!swiftFields.find(f => f.tag === "20")) {
+      validationResult.errors.push("Mandatory field :20: (Reference) is missing");
+    }
+
+    // Set success based on errors
+    validationResult.success = validationResult.errors.length === 0;
+    
+    return validationResult;
+  } catch (error) {
+    console.error('Error validating SWIFT message:', error);
+    return {
+      success: false,
+      errors: ['Internal validation error occurred'],
+      warnings: [],
+      messageType,
+      validatedFields: []
+    };
+  }
+}
+
+function parseSwiftFields(messageText: string) {
+  const fields = [];
+  const lines = messageText.split('\n');
+  
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith(':') && trimmed.includes(':')) {
+      const match = trimmed.match(/^:(\w+):(.*)/);
+      if (match) {
+        fields.push({
+          tag: match[1],
+          content: match[2]
+        });
+      }
+    }
+  }
+  
+  return fields;
+}
+
+function validateMT700Fields(fields: any[], result: any) {
+  const mandatoryFields = ["20", "23", "31C", "40A", "50", "59", "32B"];
+  
+  for (const mandatoryField of mandatoryFields) {
+    if (!fields.find(f => f.tag === mandatoryField)) {
+      result.errors.push(`Mandatory field :${mandatoryField}: is missing for MT700`);
+    }
+  }
+  
+  // Validate specific field formats
+  const field20 = fields.find(f => f.tag === "20");
+  if (field20 && field20.content.length > 16) {
+    result.errors.push("Field :20: Reference cannot exceed 16 characters");
+  }
+  
+  const field31C = fields.find(f => f.tag === "31C");
+  if (field31C && !/^\d{6}$/.test(field31C.content)) {
+    result.errors.push("Field :31C: Date must be in YYMMDD format");
+  }
+}
+
+function validateMT701Fields(fields: any[], result: any) {
+  const mandatoryFields = ["20", "21", "31C", "23"];
+  
+  for (const mandatoryField of mandatoryFields) {
+    if (!fields.find(f => f.tag === mandatoryField)) {
+      result.errors.push(`Mandatory field :${mandatoryField}: is missing for MT701`);
+    }
+  }
+}
+
 export async function getSwiftStatistics() {
   try {
     const pool = await connectToAzureSQL();
