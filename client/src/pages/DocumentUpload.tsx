@@ -18,7 +18,7 @@ export default function DocumentUpload() {
   const queryClient = useQueryClient();
   const [selectedDocumentSet, setSelectedDocumentSet] = useState<string | null>(null);
 
-  const { data: documentSets, isLoading: setsLoading } = useQuery({
+  const { data: documentSets = [], isLoading: setsLoading } = useQuery({
     queryKey: ["/api/document-sets"],
   });
 
@@ -344,7 +344,7 @@ export default function DocumentUpload() {
                           </div>
                         ))}
                       </div>
-                    ) : documentSets && documentSets.length > 0 ? (
+                    ) : Array.isArray(documentSets) && documentSets.length > 0 ? (
                       documentSets.map((set: any) => (
                         <div 
                           key={set.id}

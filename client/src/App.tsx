@@ -48,6 +48,7 @@ function Router() {
             {/* Document Management Routes */}
             <Route path="/document-upload" component={DocumentUpload} />
             <Route path="/documents" component={DocumentUpload} />
+            <Route path="/document-management/upload-documents" component={DocumentUpload} />
             <Route path="/documents/library" component={DocumentUpload} />
             <Route path="/documents/ocr" component={OCRAgent} />
             <Route path="/documents/validation" component={DocumentUpload} />
