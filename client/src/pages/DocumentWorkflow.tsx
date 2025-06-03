@@ -397,19 +397,30 @@ export default function DocumentWorkflow() {
 
   const createWorkflowMutation = useMutation({
     mutationFn: async (workflowData: any) => {
-      return apiRequest('/api/workflows', 'POST', workflowData);
+      console.log('Creating workflow with data:', workflowData);
+      try {
+        const response = await apiRequest('POST', '/api/workflows', workflowData);
+        const result = await response.json();
+        console.log('Workflow creation response:', result);
+        return result;
+      } catch (error) {
+        console.error('Workflow creation error:', error);
+        throw error;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Workflow created successfully:', data);
       queryClient.invalidateQueries({ queryKey: ['/api/workflows'] });
       toast({
         title: "Workflow Created",
         description: "Document workflow has been created successfully",
       });
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error('Mutation error:', error);
       toast({
         title: "Error",
-        description: "Failed to create workflow",
+        description: error?.message || "Failed to create workflow",
         variant: "destructive",
       });
     }
