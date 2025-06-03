@@ -342,6 +342,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Validation Results API
+  app.get('/api/validation/results', async (req, res) => {
+    try {
+      console.log('Fetching validation results from Azure SQL...');
+      const validationResults = await azureDataService.getValidationResults();
+      res.json(validationResults);
+    } catch (error) {
+      console.error('Error fetching validation results:', error);
+      res.status(500).json({ error: 'Failed to fetch validation results' });
+    }
+  });
+
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
