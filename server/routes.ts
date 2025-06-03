@@ -1501,12 +1501,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // MT700 Lifecycle Management Routes
-  app.get('/api/mt700-lifecycle', isAuthenticated, async (req, res) => {
+  // MT700 Lifecycle Management Routes - Public for demo
+  app.get('/api/mt700-lifecycle', async (req, res) => {
     try {
-      // Get lifecycle data from Azure SQL with enhanced agent system
-      const { enhancedAzureAgentService } = await import('./enhancedAzureAgentService');
-      const lifecycleData = await enhancedAzureAgentService.getMT700LifecycleData();
+      const { mt700LifecycleService } = await import('./mt700LifecycleService');
+      
+      // Initialize tables and seed data if needed
+      await mt700LifecycleService.initializeTables();
+      await mt700LifecycleService.seedSampleData();
+      
+      const lifecycleData = await mt700LifecycleService.getLifecycleData();
       res.json(lifecycleData);
     } catch (error) {
       console.error('Error fetching MT700 lifecycle data:', error);
@@ -1514,11 +1518,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/mt700-lifecycle/documents/:nodeId', isAuthenticated, async (req, res) => {
+  app.get('/api/mt700-lifecycle/documents/:nodeId', async (req, res) => {
     try {
       const { nodeId } = req.params;
-      const { azureDataService } = await import('./azureDataService');
-      const documents = await azureDataService.getLifecycleDocuments(nodeId);
+      const { mt700LifecycleService } = await import('./mt700LifecycleService');
+      const documents = await mt700LifecycleService.getLifecycleDocuments(nodeId);
       res.json(documents);
     } catch (error) {
       console.error('Error fetching lifecycle documents:', error);
@@ -1526,15 +1530,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/mt700-lifecycle/agents/:nodeId', isAuthenticated, async (req, res) => {
+  app.get('/api/mt700-lifecycle/agents/:nodeId', async (req, res) => {
     try {
       const { nodeId } = req.params;
-      const { enhancedAzureAgentService } = await import('./enhancedAzureAgentService');
-      const agentTasks = await enhancedAzureAgentService.getLifecycleAgentTasks(nodeId);
+      const { mt700LifecycleService } = await import('./mt700LifecycleService');
+      const agentTasks = await mt700LifecycleService.getLifecycleAgentTasks(nodeId);
       res.json(agentTasks);
     } catch (error) {
       console.error('Error fetching agent tasks:', error);
       res.status(500).json({ error: 'Failed to fetch agent tasks' });
+    }
+  });
+
+  // Document upload for MT700 lifecycle
+  app.post('/api/mt700-lifecycle/documents/:nodeId', async (req, res) => {
+    try {
+      const { nodeId } = req.params;
+      const { mt700LifecycleService } = await import('./mt700LifecycleService');
+      const document = await mt700LifecycleService.uploadDocument(nodeId, req.body);
+      res.json(document);
+    } catch (error) {
+      console.error('Error uploading document:', error);
+      res.status(500).json({ error: 'Failed to upload document' });
+    }
+  });
+
+  // Create agent task for MT700 lifecycle
+  app.post('/api/mt700-lifecycle/agents/:nodeId', async (req, res) => {
+    try {
+      const { nodeId } = req.params;
+      const { mt700LifecycleService } = await import('./mt700LifecycleService');
+      const task = await mt700LifecycleService.createAgentTask(nodeId, req.body);
+      res.json(task);
+    } catch (error) {
+      console.error('Error creating agent task:', error);
+      res.status(500).json({ error: 'Failed to create agent task' });
     }
   });
 

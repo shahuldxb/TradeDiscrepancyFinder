@@ -78,6 +78,7 @@ function Router() {
             
             {/* SWIFT Messages Routes */}
             <Route path="/mt700-lifecycle" component={MT700Lifecycle} />
+            <Route path="/swift/mt700-lifecycle" component={MT700Lifecycle} />
             <Route path="/message-builder" component={MessageBuilder} />
             <Route path="/mt-intelligence" component={MTIntelligence} />
             <Route path="/swift-message/:messageType" component={SwiftMessageDetails} />
