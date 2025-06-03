@@ -489,6 +489,8 @@ export class AzureDataService {
           ORDER BY created_at DESC
         `);
       
+      console.log(`Found ${result.recordset.length} documents in Azure SQL`);
+      
       return result.recordset.map((doc: any) => ({
         id: doc.id,
         fileName: doc.file_name,
