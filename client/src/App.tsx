@@ -9,6 +9,7 @@ import Landing from "@/pages/Landing";
 import Dashboard from "@/pages/Dashboard";
 import DocumentUpload from "@/pages/DocumentUpload";
 import DocumentLibrary from "@/pages/DocumentLibrary";
+import DocumentWorkflow from "@/pages/DocumentWorkflow";
 import ValidationResults from "@/pages/ValidationResults";
 import DiscrepancyAnalysis from "@/pages/DiscrepancyAnalysis";
 import AgentMonitor from "@/pages/AgentMonitor";
@@ -54,7 +55,7 @@ function Router() {
             <Route path="/documents/library" component={DocumentLibrary} />
             <Route path="/documents/ocr" component={OCRAgent} />
             <Route path="/documents/validation" component={ValidationResults} />
-            <Route path="/documents/workflow" component={DocumentUpload} />
+            <Route path="/documents/workflow" component={DocumentWorkflow} />
             <Route path="/trade-finance-documents" component={TradeFinanceDocuments} />
             <Route path="/documents/trade-finance" component={TradeFinanceDocuments} />
             
