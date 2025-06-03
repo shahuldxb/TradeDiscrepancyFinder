@@ -194,6 +194,135 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Document Library API endpoints - Public for demo
+  app.get('/api/library/documents', async (req, res) => {
+    try {
+      console.log('Fetching documents from library...');
+      
+      // Sample document library data for demo - replace with Azure SQL query
+      const libraryDocuments = [
+        {
+          id: 'doc_1748942001',
+          fileName: 'Commercial_Invoice_LC001.pdf',
+          documentType: 'Commercial Invoice',
+          fileSize: 245760,
+          uploadDate: '2025-06-03T09:10:00Z',
+          status: 'analyzed',
+          documentSetId: 'ds_1748941845210_sotbdw18g',
+          extractedData: {
+            amount: '95,000.00 USD',
+            date: '2025-01-05',
+            invoiceNumber: 'INV-2025-001'
+          }
+        },
+        {
+          id: 'doc_1748942002',
+          fileName: 'Bill_of_Lading_LC001.pdf',
+          documentType: 'Bill of Lading',
+          fileSize: 189440,
+          uploadDate: '2025-06-03T09:12:00Z',
+          status: 'processing',
+          documentSetId: 'ds_1748941845210_sotbdw18g'
+        },
+        {
+          id: 'doc_1748942003',
+          fileName: 'Letter_of_Credit_LC002.pdf',
+          documentType: 'Letter of Credit',
+          fileSize: 156672,
+          uploadDate: '2025-06-03T09:15:00Z',
+          status: 'uploaded',
+          documentSetId: 'ds_1748942115715_ftjz4kqkt'
+        },
+        {
+          id: 'doc_1748942004',
+          fileName: 'Insurance_Certificate_LC001.pdf',
+          documentType: 'Insurance Certificate',
+          fileSize: 98304,
+          uploadDate: '2025-06-03T08:45:00Z',
+          status: 'analyzed'
+        },
+        {
+          id: 'doc_1748942005',
+          fileName: 'Packing_List_LC002.pdf',
+          documentType: 'Packing List',
+          fileSize: 134217,
+          uploadDate: '2025-06-03T08:30:00Z',
+          status: 'error'
+        }
+      ];
+
+      res.json(libraryDocuments);
+    } catch (error) {
+      console.error('Error fetching library documents:', error);
+      res.status(500).json({ error: 'Failed to fetch documents from library' });
+    }
+  });
+
+  app.post('/api/library/upload', async (req, res) => {
+    try {
+      const multer = (await import('multer')).default;
+      const upload = multer({ dest: 'uploads/' });
+      
+      upload.single('document')(req, res, async (err) => {
+        if (err) {
+          return res.status(400).json({ error: 'File upload failed' });
+        }
+
+        const file = req.file;
+        const { documentType, documentSetId } = req.body;
+
+        if (!file) {
+          return res.status(400).json({ error: 'No file uploaded' });
+        }
+
+        // Generate unique document ID
+        const documentId = `doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+        // Simulate document processing and store in Azure SQL
+        const documentRecord = {
+          id: documentId,
+          fileName: file.originalname,
+          documentType,
+          fileSize: file.size,
+          uploadDate: new Date().toISOString(),
+          status: 'uploaded',
+          documentSetId: documentSetId || null,
+          filePath: file.path,
+          mimeType: file.mimetype
+        };
+
+        console.log('Document uploaded to library:', documentRecord);
+
+        res.json({
+          success: true,
+          document: documentRecord,
+          message: 'Document uploaded successfully to library'
+        });
+      });
+    } catch (error) {
+      console.error('Error uploading document to library:', error);
+      res.status(500).json({ error: 'Failed to upload document to library' });
+    }
+  });
+
+  app.delete('/api/library/documents/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+      console.log(`Deleting document from library: ${id}`);
+      
+      // Simulate document deletion from Azure SQL and file system
+      // In real implementation, delete from Azure SQL and remove file
+      
+      res.json({
+        success: true,
+        message: 'Document deleted from library'
+      });
+    } catch (error) {
+      console.error('Error deleting document from library:', error);
+      res.status(500).json({ error: 'Failed to delete document from library' });
+    }
+  });
+
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
