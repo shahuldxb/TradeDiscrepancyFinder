@@ -56,6 +56,7 @@ function Router() {
             <Route path="/documents/validation" component={ValidationResults} />
             <Route path="/documents/workflow" component={DocumentUpload} />
             <Route path="/trade-finance-documents" component={TradeFinanceDocuments} />
+            <Route path="/documents/trade-finance" component={TradeFinanceDocuments} />
             
             {/* AI Agents Routes */}
             <Route path="/agent-monitor" component={AgentMonitor} />
