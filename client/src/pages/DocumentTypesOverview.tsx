@@ -194,13 +194,16 @@ export default function DocumentTypesOverview() {
       {/* Document Types Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {filteredAndSortedTypes.map((type: DocumentType) => (
-          <Card key={type.document_type} className="hover:shadow-md transition-shadow">
+          <Card key={type.DocumentID} className="hover:shadow-md transition-shadow">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div className="text-2xl">{getCategoryIcon(type.document_type)}</div>
-                <Badge className={getStatusColor(type.count)}>
-                  {type.count} docs
+                <Badge className={getStatusColor(type.IsActive)}>
+                  {type.IsActive ? 'Active' : 'Inactive'}
                 </Badge>
+              </div>
+              <div className="text-xs text-muted-foreground mt-2">
+                Code: {type.DocumentCode} | ID: {type.DocumentID}
               </div>
             </CardHeader>
             <CardContent>
@@ -208,9 +211,7 @@ export default function DocumentTypesOverview() {
                 {type.document_type}
               </CardTitle>
               <CardDescription className="text-xs">
-                {type.count === 0 && "No documents available"}
-                {type.count === 1 && "1 document in system"}
-                {type.count > 1 && `${type.count} documents in system`}
+                {type.Description || "No description available"}
               </CardDescription>
             </CardContent>
           </Card>
