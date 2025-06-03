@@ -90,8 +90,8 @@ const navigationItems: NavItem[] = [
       { title: "Message Builder", href: "/message-builder", icon: Settings },
       { title: "MT Intelligence", href: "/mt-intelligence", icon: Bot },
       { title: "Message Details", href: "/swift-message/700", icon: FileText },
-      { title: "Message Validation", href: "/swift-message/701", icon: CheckCircle },
-      { title: "Category 7 Messages", href: "/mt-intelligence", icon: MessageSquare },
+      { title: "Message Validation", href: "/swift/validation", icon: CheckCircle },
+      { title: "Category 7 Messages", href: "/swift/category7", icon: MessageSquare },
     ]
   },
   {

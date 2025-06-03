@@ -17,6 +17,8 @@ import AgentDesigner from "@/pages/AgentDesigner";
 import MessageBuilder from "@/pages/MessageBuilder";
 import MTIntelligence from "@/pages/MTIntelligenceSimple";
 import SwiftMessageDetails from "@/pages/SwiftMessageDetails";
+import SwiftValidation from "@/pages/SwiftValidation";
+import SwiftCategory7 from "@/pages/SwiftCategory7";
 import TradeFinanceDocuments from "@/pages/TradeFinanceDocuments";
 import UCPRules from "@/pages/UCPRules";
 import MT700Lifecycle from "@/pages/MT700Lifecycle";
@@ -82,8 +84,8 @@ function Router() {
             <Route path="/message-builder" component={MessageBuilder} />
             <Route path="/mt-intelligence" component={MTIntelligence} />
             <Route path="/swift-message/:messageType" component={SwiftMessageDetails} />
-            <Route path="/swift/validation" component={SwiftMessageDetails} />
-            <Route path="/swift/category7" component={SwiftMessageDetails} />
+            <Route path="/swift/validation" component={SwiftValidation} />
+            <Route path="/swift/category7" component={SwiftCategory7} />
             
             {/* Analysis & Reporting Routes */}
             <Route path="/discrepancy-analysis" component={DiscrepancyAnalysis} />
