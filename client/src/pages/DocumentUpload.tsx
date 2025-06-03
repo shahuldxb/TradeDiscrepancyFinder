@@ -158,7 +158,15 @@ export default function DocumentUpload() {
     }
 
     try {
-      const response = await fetch('/api/test-document-set', { method: 'POST' });
+      const response = await fetch(`/api/document-sets/${selectedDocumentSet}/analyze`, { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Analysis failed to start');
+      }
+      
       const result = await response.json();
       
       if (result.success) {
@@ -166,7 +174,7 @@ export default function DocumentUpload() {
         
         toast({
           title: "Analysis started",
-          description: "New discrepancy analysis has been initiated using AI agents.",
+          description: `AI agents activated: ${result.agentStatus.agentsActivated.join(', ')}`,
         });
       }
     } catch (error) {
