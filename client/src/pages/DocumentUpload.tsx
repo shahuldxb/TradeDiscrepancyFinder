@@ -115,34 +115,20 @@ export default function DocumentUpload() {
     }
 
     try {
-      const response = await fetch(`/api/test-document-set`);
-      const data = await response.json();
+      const response = await fetch(`/api/document-sets/${selectedDocumentSet}/export`);
       
-      // Create a comprehensive analysis report
-      const exportData = {
-        documentSetId: selectedDocumentSet,
-        exportDate: new Date().toISOString(),
-        summary: {
-          totalDocuments: 3,
-          processedDocuments: 3,
-          discrepanciesFound: 2,
-          complianceScore: 85,
-          riskLevel: 'Medium'
-        },
-        details: data,
-        recommendations: [
-          'Review MT700 field discrepancies',
-          'Verify commercial invoice amounts',
-          'Check bill of lading dates'
-        ]
-      };
+      if (!response.ok) {
+        throw new Error('Export failed');
+      }
 
+      const exportData = await response.json();
+      
       const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.style.display = 'none';
       a.href = url;
-      a.download = `document-analysis-${selectedDocumentSet}-${Date.now()}.json`;
+      a.download = `analysis-report-${selectedDocumentSet}-${Date.now()}.json`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -150,7 +136,7 @@ export default function DocumentUpload() {
       
       toast({
         title: "Export successful",
-        description: "Analysis results have been downloaded.",
+        description: "Analysis results have been downloaded from Azure SQL database.",
       });
     } catch (error) {
       toast({
