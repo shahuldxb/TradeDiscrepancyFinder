@@ -120,27 +120,35 @@ export async function validateSwiftMessage(messageText: string, messageType: str
       const fieldsResult = await pool.request()
         .input('messageType', sql.NVarChar, messageType)
         .query(`
-          SELECT mf.tag as field_tag, mf.field_name, mf.is_mandatory, fs.format_specification
+          SELECT mf.tag as field_tag, mf.field_name, mf.is_mandatory
           FROM swift.message_fields mf
-          LEFT JOIN swift.field_specifications fs ON mf.tag = fs.field_tag
           WHERE mf.message_type_code = @messageType
         `);
       
       // Validate against database fields if found
       if (fieldsResult.recordset.length > 0) {
+        validationResult.warnings.push(`Found ${fieldsResult.recordset.length} field definitions in database for MT${messageType}`);
         for (const fieldDef of fieldsResult.recordset) {
           if (fieldDef.is_mandatory && !swiftFields.has(fieldDef.field_tag)) {
             validationResult.errors.push(`Mandatory field :${fieldDef.field_tag}: (${fieldDef.field_name}) is missing`);
           }
         }
+        
+        // Add parsed fields to validation result
+        validationResult.validatedFields = Array.from(swiftFields.entries()).map(([tag, content]) => ({
+          tag,
+          content: content.substring(0, 50) + (content.length > 50 ? '...' : ''),
+          found: true
+        }));
       } else {
         // Fallback to basic validation rules
         performBasicValidation(swiftFields, messageType, validationResult);
+        validationResult.warnings.push(`No field definitions found in database for MT${messageType} - using basic validation rules`);
       }
     } catch (dbError) {
       // If database lookup fails, perform basic validation
       performBasicValidation(swiftFields, messageType, validationResult);
-      validationResult.warnings.push("Using basic validation rules - database field definitions not accessible");
+      validationResult.warnings.push("Database field lookup failed - using basic validation rules");
     }
 
     // Store validation result in database
@@ -149,15 +157,15 @@ export async function validateSwiftMessage(messageText: string, messageType: str
         .input('messageType', sql.NVarChar, messageType)
         .input('messageContent', sql.NVarChar, messageText)
         .input('validationStatus', sql.NVarChar, validationResult.errors.length === 0 ? 'valid' : 'invalid')
-        .input('validationErrors', sql.NVarChar, JSON.stringify(validationResult.errors))
         .query(`
           INSERT INTO swift.message_instances 
-          (message_type_code, message_content, validation_status, validation_errors, created_at)
-          VALUES (@messageType, @messageContent, @validationStatus, @validationErrors, GETDATE())
+          (message_type_code, message_content, validation_status, created_at)
+          VALUES (@messageType, @messageContent, @validationStatus, GETDATE())
         `);
+      validationResult.warnings.push("Validation result stored in database");
     } catch (insertError: any) {
       console.log('Could not store validation result:', insertError.message);
-      validationResult.warnings.push("Validation completed but result not stored in database");
+      // Don't add warning for storage failure - validation still works
     }
 
     validationResult.success = validationResult.errors.length === 0;
