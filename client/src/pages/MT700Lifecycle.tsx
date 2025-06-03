@@ -164,8 +164,8 @@ export default function MT700Lifecycle() {
   });
 
   const { data: documentsData } = useQuery({
-    queryKey: ['/api/mt700-lifecycle/documents', selectedNode?.id],
-    enabled: !!selectedNode
+    queryKey: ['/api/mt700-lifecycle/documents'],
+    refetchInterval: 5000, // Refresh every 5 seconds to show new uploads
   });
 
   const { data: agentTasksData } = useQuery({

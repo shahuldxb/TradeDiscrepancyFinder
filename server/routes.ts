@@ -1577,6 +1577,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get uploaded documents for MT700 lifecycle - Public for demo
+  app.get('/api/mt700-lifecycle/documents', async (req, res) => {
+    try {
+      const { mt700LifecycleService } = await import('./mt700LifecycleService');
+      const documents = await mt700LifecycleService.getAllDocuments();
+      res.json(documents);
+    } catch (error) {
+      console.error('Error fetching MT700 documents:', error);
+      res.status(500).json({ error: 'Failed to fetch documents' });
+    }
+  });
+
   // Document upload for MT700 lifecycle with nodeId - Public for demo
   app.post('/api/mt700-lifecycle/documents/:nodeId', async (req, res) => {
     try {

@@ -401,6 +401,34 @@ export class MT700LifecycleService {
     }
   }
 
+  async getAllDocuments() {
+    try {
+      const pool = await connectToAzureSQL();
+      
+      const result = await pool.request().query(`
+        SELECT * FROM mt700_lifecycle_documents 
+        ORDER BY uploaded_at DESC
+      `);
+
+      return result.recordset.map(doc => ({
+        id: doc.id,
+        nodeId: doc.node_id,
+        document_name: doc.document_name,
+        name: doc.document_name,
+        document_type: doc.document_type,
+        type: doc.document_type,
+        status: doc.status,
+        uploaded_at: doc.uploaded_at,
+        uploadedAt: doc.uploaded_at,
+        validation_status: doc.validation_status,
+        validationStatus: doc.validation_status
+      }));
+    } catch (error) {
+      console.error('Error fetching all documents:', error);
+      return [];
+    }
+  }
+
   async uploadDocument(nodeId: string, documentData: any) {
     try {
       const pool = await connectToAzureSQL();
