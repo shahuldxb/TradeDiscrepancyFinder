@@ -1967,23 +1967,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Workflow Management API - Test Drive Feature (Authentication temporarily removed for testing)
   app.get('/api/workflows', async (req, res) => {
     try {
-      // Mock workflow data for now
-      const workflows = [
-        {
-          id: "wf_001",
-          name: "LC Document Processing",
-          description: "Automated workflow for processing Letter of Credit documents",
-          documentSetId: "demo_set_1",
-          status: "active",
-          completionPercentage: 65,
-          createdAt: "2025-06-03T08:00:00Z",
-          updatedAt: "2025-06-03T10:15:00Z"
-        }
-      ];
+      const { workflowService } = await import('./workflowService');
+      const workflows = await workflowService.getWorkflows();
       res.json(workflows);
     } catch (error) {
       console.error('Error fetching workflows:', error);
       res.status(500).json({ error: 'Failed to fetch workflows' });
+    }
+  });
+
+  app.get('/api/workflows/:id', async (req, res) => {
+    try {
+      const { workflowService } = await import('./workflowService');
+      const workflow = await workflowService.getWorkflowById(req.params.id);
+      if (workflow) {
+        res.json(workflow);
+      } else {
+        res.status(404).json({ error: 'Workflow not found' });
+      }
+    } catch (error) {
+      console.error('Error fetching workflow:', error);
+      res.status(500).json({ error: 'Failed to fetch workflow' });
     }
   });
 
@@ -1995,47 +1999,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Missing required fields' });
       }
 
-      // Mock workflow creation
-      const newWorkflow = {
-        id: `wf_${Date.now()}`,
+      const { workflowService } = await import('./workflowService');
+      const newWorkflow = await workflowService.createWorkflow({
         name,
         description,
         documentSetId,
-        automationLevel,
-        status: "draft",
-        completionPercentage: 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        steps: [
-          {
-            id: "step_001",
-            name: "Document Upload Validation",
-            description: "Validate uploaded documents for completeness and format",
-            status: "pending",
-            assignedTo: "AI Agent",
-            duration: 5,
-            automationType: "automated"
-          },
-          {
-            id: "step_002",
-            name: "OCR Processing",
-            description: "Extract text content from documents using OCR",
-            status: "pending",
-            assignedTo: "OCR Service",
-            duration: 15,
-            automationType: "automated"
-          },
-          {
-            id: "step_003",
-            name: "Data Extraction",
-            description: "Extract key fields and data points from documents",
-            status: "pending",
-            assignedTo: "Document AI",
-            duration: 20,
-            automationType: "automated"
-          }
-        ]
-      };
+        automationLevel
+      });
 
       console.log('Workflow created successfully:', newWorkflow);
       res.status(201).json(newWorkflow);
@@ -2047,18 +2017,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put('/api/workflows/:id', async (req, res) => {
     try {
-      const workflowId = req.params.id;
-      const updates = req.body;
+      const { workflowService } = await import('./workflowService');
+      const updatedWorkflow = await workflowService.updateWorkflow(req.params.id, req.body);
       
-      // Mock workflow update
-      const updatedWorkflow = {
-        id: workflowId,
-        ...updates,
-        updatedAt: new Date().toISOString()
-      };
-
-      console.log('Workflow updated successfully:', updatedWorkflow);
-      res.json(updatedWorkflow);
+      if (updatedWorkflow) {
+        console.log('Workflow updated successfully:', updatedWorkflow);
+        res.json(updatedWorkflow);
+      } else {
+        res.status(404).json({ error: 'Workflow not found' });
+      }
     } catch (error) {
       console.error('Error updating workflow:', error);
       res.status(500).json({ error: 'Failed to update workflow' });
@@ -2067,10 +2034,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete('/api/workflows/:id', async (req, res) => {
     try {
-      const workflowId = req.params.id;
+      const { workflowService } = await import('./workflowService');
+      const success = await workflowService.deleteWorkflow(req.params.id);
       
-      console.log('Workflow deleted successfully:', workflowId);
-      res.json({ message: 'Workflow deleted successfully' });
+      if (success) {
+        console.log('Workflow deleted successfully:', req.params.id);
+        res.json({ message: 'Workflow deleted successfully' });
+      } else {
+        res.status(404).json({ error: 'Workflow not found' });
+      }
     } catch (error) {
       console.error('Error deleting workflow:', error);
       res.status(500).json({ error: 'Failed to delete workflow' });
