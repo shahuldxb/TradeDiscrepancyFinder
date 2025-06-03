@@ -208,6 +208,35 @@ function performBasicValidation(swiftFields: Map<string, string>, messageType: s
         result.errors.push(`Mandatory field :${field}: is missing for MT701`);
       }
     }
+    
+    // Validate specific field formats for MT701
+    const field21 = swiftFields.get("21");
+    if (field21 && field21.length > 16) {
+      result.errors.push("Field :21: Related Reference cannot exceed 16 characters");
+    }
+    
+    const field31C = swiftFields.get("31C");
+    if (field31C && !/^\d{6}$/.test(field31C)) {
+      result.errors.push("Field :31C: Date must be in YYMMDD format");
+    }
+  } else if (messageType === "702") {
+    const mandatoryFields = ["20", "21", "31C", "32B"];
+    for (const field of mandatoryFields) {
+      if (!swiftFields.has(field)) {
+        result.errors.push(`Mandatory field :${field}: is missing for MT702`);
+      }
+    }
+    
+    // Validate specific field formats for MT702
+    const field32B = swiftFields.get("32B");
+    if (field32B && !/^[A-Z]{3}\d+([,\.]\d{1,2})?$/.test(field32B)) {
+      result.errors.push("Field :32B: Currency and amount format is invalid (should be like USD1000.00)");
+    }
+    
+    const field31C = swiftFields.get("31C");
+    if (field31C && !/^\d{6}$/.test(field31C)) {
+      result.errors.push("Field :31C: Date must be in YYMMDD format");
+    }
   }
 }
 
