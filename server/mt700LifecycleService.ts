@@ -1,4 +1,5 @@
 import { connectToAzureSQL } from './azureSqlConnection';
+import * as sql from 'mssql';
 
 export class MT700LifecycleService {
   async initializeTables() {
@@ -365,12 +366,12 @@ export class MT700LifecycleService {
         SELECT SCOPE_IDENTITY() as id;
       `;
       
-      request.input('nodeId', sql.NVarChar, documentData.nodeId);
-      request.input('documentName', sql.NVarChar, documentData.documentName);
-      request.input('documentType', sql.NVarChar, documentData.documentType);
-      request.input('status', sql.NVarChar, documentData.status);
-      request.input('uploadedAt', sql.DateTime, new Date(documentData.uploadedAt));
-      request.input('validationStatus', sql.NVarChar, documentData.validationStatus);
+      request.input('nodeId', documentData.nodeId);
+      request.input('documentName', documentData.documentName);
+      request.input('documentType', documentData.documentType);
+      request.input('status', documentData.status);
+      request.input('uploadedAt', new Date(documentData.uploadedAt));
+      request.input('validationStatus', documentData.validationStatus);
       
       const result = await request.query(query);
       
