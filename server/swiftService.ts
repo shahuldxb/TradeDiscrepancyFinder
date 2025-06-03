@@ -88,7 +88,7 @@ export async function validateSwiftMessage(messageText: string, messageType: str
       .input('messageType', sql.NVarChar, messageType)
       .query(`
         SELECT message_type_code, message_type_name, purpose
-        FROM dbo.SwiftMessageTypes 
+        FROM swift.message_types 
         WHERE message_type_code = @messageType
       `);
     
@@ -120,9 +120,10 @@ export async function validateSwiftMessage(messageText: string, messageType: str
       const fieldsResult = await pool.request()
         .input('messageType', sql.NVarChar, messageType)
         .query(`
-          SELECT field_tag, field_name, is_mandatory, format_specification
-          FROM dbo.SwiftFieldDefinitions 
-          WHERE message_type_code = @messageType
+          SELECT mf.tag as field_tag, mf.field_name, mf.is_mandatory, fs.format_specification
+          FROM swift.message_fields mf
+          LEFT JOIN swift.field_specifications fs ON mf.tag = fs.field_tag
+          WHERE mf.message_type_code = @messageType
         `);
       
       // Validate against database fields if found
@@ -149,13 +150,12 @@ export async function validateSwiftMessage(messageText: string, messageType: str
         .input('messageContent', sql.NVarChar, messageText)
         .input('validationStatus', sql.NVarChar, validationResult.errors.length === 0 ? 'valid' : 'invalid')
         .input('validationErrors', sql.NVarChar, JSON.stringify(validationResult.errors))
-        .input('validatedAt', sql.DateTime, new Date())
         .query(`
-          INSERT INTO dbo.SwiftValidationHistory 
-          (message_type_code, message_content, validation_status, validation_errors, validated_at)
-          VALUES (@messageType, @messageContent, @validationStatus, @validationErrors, @validatedAt)
+          INSERT INTO swift.message_instances 
+          (message_type_code, message_content, validation_status, validation_errors, created_at)
+          VALUES (@messageType, @messageContent, @validationStatus, @validationErrors, GETDATE())
         `);
-    } catch (insertError) {
+    } catch (insertError: any) {
       console.log('Could not store validation result:', insertError.message);
       validationResult.warnings.push("Validation completed but result not stored in database");
     }
