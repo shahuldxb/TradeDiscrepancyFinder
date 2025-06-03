@@ -436,6 +436,42 @@ export class AzureDataService {
   async getLibraryDocuments(userId: string = 'demo-user') {
     try {
       const pool = await connectToAzureSQL();
+      
+      // First check if documents table exists and get its structure
+      const tableCheck = await pool.request().query(`
+        SELECT COLUMN_NAME 
+        FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_NAME = 'documents' AND TABLE_SCHEMA = 'dbo'
+      `);
+      
+      if (tableCheck.recordset.length === 0) {
+        // Create documents table if it doesn't exist
+        await pool.request().query(`
+          CREATE TABLE dbo.documents (
+            id NVARCHAR(100) PRIMARY KEY,
+            file_name NVARCHAR(255) NOT NULL,
+            document_type NVARCHAR(100),
+            file_size INT,
+            status NVARCHAR(50) DEFAULT 'uploaded',
+            document_set_id NVARCHAR(100),
+            file_path NVARCHAR(500),
+            mime_type NVARCHAR(100),
+            extracted_data NVARCHAR(MAX),
+            created_at DATETIME2 DEFAULT GETDATE()
+          )
+        `);
+        
+        // Insert sample documents
+        await pool.request().query(`
+          INSERT INTO dbo.documents (id, file_name, document_type, file_size, status, document_set_id, file_path, mime_type) VALUES
+          ('doc_1748942001', 'Commercial_Invoice_LC001.pdf', 'Commercial Invoice', 245760, 'analyzed', 'ds_1748941845210_sotbdw18g', 'uploads/commercial_invoice_1.pdf', 'application/pdf'),
+          ('doc_1748942002', 'Bill_of_Lading_LC001.pdf', 'Bill of Lading', 189440, 'processing', 'ds_1748941845210_sotbdw18g', 'uploads/bill_of_lading_1.pdf', 'application/pdf'),
+          ('doc_1748942003', 'Letter_of_Credit_LC002.pdf', 'Letter of Credit', 156672, 'uploaded', 'ds_1748942115715_ftjz4kqkt', 'uploads/letter_of_credit_1.pdf', 'application/pdf'),
+          ('doc_1748942004', 'Insurance_Certificate_LC001.pdf', 'Insurance Certificate', 98304, 'analyzed', NULL, 'uploads/insurance_cert_1.pdf', 'application/pdf'),
+          ('doc_1748942005', 'Packing_List_LC002.pdf', 'Packing List', 134217, 'error', NULL, 'uploads/packing_list_1.pdf', 'application/pdf')
+        `);
+      }
+      
       const result = await pool.request()
         .query(`
           SELECT 
@@ -443,16 +479,14 @@ export class AzureDataService {
             file_name,
             document_type,
             file_size,
-            upload_date,
             status,
             document_set_id,
             file_path,
             mime_type,
             extracted_data,
-            created_at,
-            updated_at
-          FROM documents 
-          ORDER BY upload_date DESC, created_at DESC
+            created_at
+          FROM dbo.documents 
+          ORDER BY created_at DESC
         `);
       
       return result.recordset.map((doc: any) => ({
@@ -460,7 +494,7 @@ export class AzureDataService {
         fileName: doc.file_name,
         documentType: doc.document_type,
         fileSize: doc.file_size,
-        uploadDate: doc.upload_date || doc.created_at,
+        uploadDate: doc.created_at,
         status: doc.status || 'uploaded',
         documentSetId: doc.document_set_id,
         filePath: doc.file_path,
@@ -481,18 +515,17 @@ export class AzureDataService {
         .input('fileName', sql.VarChar, documentData.fileName)
         .input('documentType', sql.VarChar, documentData.documentType)
         .input('fileSize', sql.Int, documentData.fileSize)
-        .input('uploadDate', sql.DateTime, new Date())
         .input('status', sql.VarChar, documentData.status || 'uploaded')
         .input('documentSetId', sql.VarChar, documentData.documentSetId || null)
         .input('filePath', sql.VarChar, documentData.filePath)
         .input('mimeType', sql.VarChar, documentData.mimeType)
         .query(`
-          INSERT INTO documents (
-            id, file_name, document_type, file_size, upload_date, 
-            status, document_set_id, file_path, mime_type, created_at, updated_at
+          INSERT INTO dbo.documents (
+            id, file_name, document_type, file_size, 
+            status, document_set_id, file_path, mime_type, created_at
           ) VALUES (
-            @id, @fileName, @documentType, @fileSize, @uploadDate, 
-            @status, @documentSetId, @filePath, @mimeType, GETDATE(), GETDATE()
+            @id, @fileName, @documentType, @fileSize, 
+            @status, @documentSetId, @filePath, @mimeType, GETDATE()
           )
         `);
       

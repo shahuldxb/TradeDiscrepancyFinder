@@ -306,7 +306,7 @@ export default function DocumentLibrary() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {documentTypes.map((type) => (
+                          {documentTypes.filter(type => type && type.trim()).map((type) => (
                             <SelectItem key={type} value={type}>
                               {type}
                             </SelectItem>
