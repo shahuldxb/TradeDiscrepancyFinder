@@ -73,10 +73,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/document-types', async (req, res) => {
     try {
       console.log('Fetching document types from Azure database...');
-      const { azureDataService } = await import('./azureDataService');
-      const documentTypes = await azureDataService.getDocumentTypes();
-      console.log(`Fetched ${documentTypes.length} document types from Azure`);
-      res.json(documentTypes);
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+      
+      // First check table structure
+      const structureResult = await pool.request().query(`
+        SELECT COLUMN_NAME, DATA_TYPE
+        FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_NAME = 'MasterDocuments'
+        ORDER BY ORDINAL_POSITION
+      `);
+      
+      console.log('MasterDocuments columns:', structureResult.recordset.map(c => c.COLUMN_NAME));
+      
+      // Get sample data to understand structure
+      const sampleResult = await pool.request().query(`
+        SELECT TOP 3 * FROM MasterDocuments
+      `);
+      
+      console.log('Sample MasterDocuments data:', JSON.stringify(sampleResult.recordset, null, 2));
+      
+      res.json({
+        columns: structureResult.recordset,
+        sampleData: sampleResult.recordset,
+        message: 'Table structure and sample data'
+      });
     } catch (error) {
       console.error('Error fetching document types from Azure:', error);
       res.status(500).json({ error: 'Failed to fetch document types from Azure database' });
