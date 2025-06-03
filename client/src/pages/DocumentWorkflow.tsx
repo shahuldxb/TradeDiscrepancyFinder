@@ -563,29 +563,35 @@ export default function DocumentWorkflow() {
             <CardContent>
               {selectedWorkflowData ? (
                 <div className="space-y-4">
-                  {selectedWorkflowData.steps.map((step, index) => (
-                    <div key={step.id} className="flex items-start gap-4">
-                      <div className="flex flex-col items-center">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                          step.status === 'completed' ? 'bg-green-500 text-white' :
-                          step.status === 'in_progress' ? 'bg-blue-500 text-white' :
-                          step.status === 'failed' ? 'bg-red-500 text-white' :
-                          'bg-gray-300 text-gray-600'
-                        }`}>
-                          {index + 1}
+                  {selectedWorkflowData.steps && selectedWorkflowData.steps.length > 0 ? (
+                    selectedWorkflowData.steps.map((step, index) => (
+                      <div key={step.id} className="flex items-start gap-4">
+                        <div className="flex flex-col items-center">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                            step.status === 'completed' ? 'bg-green-500 text-white' :
+                            step.status === 'in_progress' ? 'bg-blue-500 text-white' :
+                            step.status === 'failed' ? 'bg-red-500 text-white' :
+                            'bg-gray-300 text-gray-600'
+                          }`}>
+                            {index + 1}
+                          </div>
+                          {index < selectedWorkflowData.steps.length - 1 && (
+                            <div className="w-0.5 h-16 bg-gray-300 mt-2" />
+                          )}
                         </div>
-                        {index < selectedWorkflowData.steps.length - 1 && (
-                          <div className="w-0.5 h-16 bg-gray-300 mt-2" />
-                        )}
+                        <div className="flex-1">
+                          <WorkflowStepCard 
+                            step={step} 
+                            onUpdate={(stepId, status) => updateStepStatus(selectedWorkflowData.id, stepId, status)}
+                          />
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <WorkflowStepCard 
-                          step={step} 
-                          onUpdate={(stepId, status) => updateStepStatus(selectedWorkflowData.id, stepId, status)}
-                        />
-                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8">
+                      <p className="text-gray-500">No workflow steps available. Steps will be generated automatically when the workflow is activated.</p>
                     </div>
-                  ))}
+                  )}
                 </div>
               ) : (
                 <div className="text-center py-12">
