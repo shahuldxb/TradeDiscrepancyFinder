@@ -171,20 +171,20 @@ export class AzureDataService {
   async getDocuments(filters: any = {}) {
     try {
       const pool = await connectToAzureSQL();
-      let query = 'SELECT * FROM documents WHERE 1=1';
+      let query = 'SELECT * FROM MasterDocuments WHERE 1=1';
       const request = pool.request();
       
       if (filters.document_type) {
-        query += ' AND document_type = @document_type';
+        query += ' AND DocumentType = @document_type';
         request.input('document_type', filters.document_type);
       }
       
       if (filters.status) {
-        query += ' AND status = @status';
+        query += ' AND Status = @status';
         request.input('status', filters.status);
       }
       
-      query += ' ORDER BY created_at DESC';
+      query += ' ORDER BY CreatedDate DESC';
       
       const result = await request.query(query);
       return result.recordset;
@@ -198,10 +198,10 @@ export class AzureDataService {
     try {
       const pool = await connectToAzureSQL();
       const result = await pool.request().query(`
-        SELECT DISTINCT document_type, COUNT(*) as count 
-        FROM documents 
-        GROUP BY document_type 
-        ORDER BY document_type
+        SELECT DISTINCT DocumentType as document_type, COUNT(*) as count 
+        FROM MasterDocuments 
+        GROUP BY DocumentType 
+        ORDER BY DocumentType
       `);
       return result.recordset;
     } catch (error) {
@@ -216,11 +216,11 @@ export class AzureDataService {
       const result = await pool.request().query(`
         SELECT 
           COUNT(*) as total_documents,
-          COUNT(DISTINCT document_type) as total_types,
-          SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved_count,
-          SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_count,
-          SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected_count
-        FROM documents
+          COUNT(DISTINCT DocumentType) as total_types,
+          SUM(CASE WHEN Status = 'approved' THEN 1 ELSE 0 END) as approved_count,
+          SUM(CASE WHEN Status = 'pending' THEN 1 ELSE 0 END) as pending_count,
+          SUM(CASE WHEN Status = 'rejected' THEN 1 ELSE 0 END) as rejected_count
+        FROM MasterDocuments
       `);
       return result.recordset[0];
     } catch (error) {

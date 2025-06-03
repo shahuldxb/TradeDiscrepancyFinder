@@ -35,14 +35,13 @@ const uploadFormSchema = z.object({
 
 type UploadFormData = z.infer<typeof uploadFormSchema>;
 
-// Document types fetched from Azure database
-const { data: documentTypesData } = useQuery({
-  queryKey: ['/api/document-types'],
-});
-
-const documentTypes = documentTypesData?.map((type: any) => type.document_type) || [];
-
 export default function DocumentLibrary() {
+  // Document types fetched from Azure database
+  const { data: documentTypesData } = useQuery({
+    queryKey: ['/api/document-types'],
+  });
+
+  const documentTypes = documentTypesData?.map((type: any) => type.document_type) || [];
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
