@@ -10,6 +10,7 @@ import Dashboard from "@/pages/Dashboard";
 import DocumentUpload from "@/pages/DocumentUpload";
 import DocumentLibrary from "@/pages/DocumentLibrary";
 import DocumentTypesOverview from "@/pages/DocumentTypesOverview";
+import SubDocumentTypes from "@/pages/SubDocumentTypes";
 import DocumentWorkflow from "@/pages/DocumentWorkflow";
 import ValidationResults from "@/pages/ValidationResults";
 import DiscrepancyAnalysis from "@/pages/DiscrepancyAnalysis";
@@ -57,6 +58,7 @@ function Router() {
             <Route path="/document-management/upload-documents" component={DocumentUpload} />
             <Route path="/documents/library" component={DocumentLibrary} />
             <Route path="/documents/types" component={DocumentTypesOverview} />
+            <Route path="/documents/sub-types" component={SubDocumentTypes} />
             <Route path="/documents/ocr" component={OCRAgent} />
             <Route path="/documents/validation" component={ValidationResults} />
             <Route path="/documents/workflow" component={DocumentWorkflow} />

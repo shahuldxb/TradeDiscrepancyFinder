@@ -96,6 +96,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Sub Document Types API Routes
+  app.post('/api/sub-document-types/setup', async (req, res) => {
+    try {
+      console.log('Setting up SubDocumentTypes table and Bill of Lading sub-types...');
+      const { azureDataService } = await import('./azureDataService');
+      
+      // Create table
+      await azureDataService.createSubDocumentTypesTable();
+      
+      // Create Bill of Lading sub-types
+      const result = await azureDataService.createBillOfLadingSubTypes();
+      
+      console.log('SubDocumentTypes setup completed:', result);
+      res.json(result);
+    } catch (error) {
+      console.error('Error setting up SubDocumentTypes:', error);
+      res.status(500).json({ error: 'Failed to setup SubDocumentTypes' });
+    }
+  });
+
+  app.get('/api/sub-document-types', async (req, res) => {
+    try {
+      const parentDocumentId = req.query.parentDocumentId ? parseInt(req.query.parentDocumentId as string) : undefined;
+      console.log('Fetching sub document types from Azure database...');
+      const { azureDataService } = await import('./azureDataService');
+      const subDocumentTypes = await azureDataService.getSubDocumentTypes(parentDocumentId);
+      console.log(`Fetched ${subDocumentTypes.length} sub document types from Azure`);
+      res.json(subDocumentTypes);
+    } catch (error) {
+      console.error('Error fetching sub document types from Azure:', error);
+      res.status(500).json({ error: 'Failed to fetch sub document types from Azure database' });
+    }
+  });
+
+  app.get('/api/sub-document-types/statistics', async (req, res) => {
+    try {
+      console.log('Fetching sub document statistics from Azure database...');
+      const { azureDataService } = await import('./azureDataService');
+      const statistics = await azureDataService.getSubDocumentStatistics();
+      console.log('Sub document statistics fetched from Azure:', statistics);
+      res.json(statistics);
+    } catch (error) {
+      console.error('Error fetching sub document statistics from Azure:', error);
+      res.status(500).json({ error: 'Failed to fetch sub document statistics from Azure database' });
+    }
+  });
+
   // Document Sets - Azure Database Connection
   app.get('/api/document-sets', async (req, res) => {
     try {

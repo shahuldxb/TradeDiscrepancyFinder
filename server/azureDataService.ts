@@ -756,6 +756,187 @@ export class AzureDataService {
       throw error;
     }
   }
+
+  // Sub Document Types Operations
+  async createSubDocumentTypesTable() {
+    try {
+      const pool = await connectToAzureSQL();
+      
+      const createTableQuery = `
+        IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='SubDocumentTypes' AND xtype='U')
+        CREATE TABLE SubDocumentTypes (
+          SubDocumentID INT IDENTITY(1,1) PRIMARY KEY,
+          ParentDocumentID INT NOT NULL,
+          SubDocumentCode VARCHAR(20) NOT NULL,
+          SubDocumentName VARCHAR(255) NOT NULL,
+          Description TEXT,
+          IsActive BIT DEFAULT 1,
+          CreatedDate DATETIME DEFAULT GETDATE(),
+          UpdatedDate DATETIME DEFAULT GETDATE(),
+          FOREIGN KEY (ParentDocumentID) REFERENCES MasterDocuments(DocumentID)
+        );
+      `;
+      
+      await pool.request().query(createTableQuery);
+      console.log('SubDocumentTypes table created successfully');
+      return { success: true };
+    } catch (error) {
+      console.error('Error creating SubDocumentTypes table:', error);
+      throw error;
+    }
+  }
+
+  async getSubDocumentTypes(parentDocumentId?: number) {
+    try {
+      const pool = await connectToAzureSQL();
+      let query = `
+        SELECT 
+          sd.SubDocumentID,
+          sd.ParentDocumentID,
+          sd.SubDocumentCode,
+          sd.SubDocumentName,
+          sd.Description,
+          sd.IsActive,
+          sd.CreatedDate,
+          md.DocumentName as ParentDocumentName,
+          md.DocumentCode as ParentDocumentCode
+        FROM SubDocumentTypes sd
+        JOIN MasterDocuments md ON sd.ParentDocumentID = md.DocumentID
+        WHERE sd.IsActive = 1
+      `;
+      
+      const request = pool.request();
+      
+      if (parentDocumentId) {
+        query += ' AND sd.ParentDocumentID = @parentDocumentId';
+        request.input('parentDocumentId', parentDocumentId);
+      }
+      
+      query += ' ORDER BY sd.SubDocumentCode';
+      
+      const result = await request.query(query);
+      return result.recordset;
+    } catch (error) {
+      console.error('Error fetching sub document types from Azure:', error);
+      throw error;
+    }
+  }
+
+  async createBillOfLadingSubTypes() {
+    try {
+      const pool = await connectToAzureSQL();
+      
+      // Get Bill of Lading DocumentID
+      const getBOLQuery = `
+        SELECT DocumentID FROM MasterDocuments 
+        WHERE DocumentName LIKE '%Bill of Lading%' OR DocumentCode = 'DOC002'
+      `;
+      
+      const bolResult = await pool.request().query(getBOLQuery);
+      
+      if (bolResult.recordset.length === 0) {
+        throw new Error('Bill of Lading not found in MasterDocuments');
+      }
+      
+      const parentDocumentID = bolResult.recordset[0].DocumentID;
+      
+      // Check if sub-types already exist
+      const checkExisting = `
+        SELECT COUNT(*) as count FROM SubDocumentTypes 
+        WHERE ParentDocumentID = @parentDocumentID
+      `;
+      
+      const existingResult = await pool.request()
+        .input('parentDocumentID', parentDocumentID)
+        .query(checkExisting);
+      
+      if (existingResult.recordset[0].count > 0) {
+        return { success: true, message: 'Sub-document types already exist for Bill of Lading' };
+      }
+      
+      // Bill of Lading sub-document types
+      const subDocumentTypes = [
+        {
+          code: 'BOL001',
+          name: 'Shipped Bill of Lading',
+          description: 'Evidence that goods have been shipped on board in good condition.'
+        },
+        {
+          code: 'BOL002',
+          name: 'Through Bill of Lading',
+          description: 'Allows multiple modes of transport across borders with different carriers.'
+        },
+        {
+          code: 'BOL003',
+          name: 'Ocean Bill of Lading',
+          description: 'Used for sea shipments; can be negotiable or non-negotiable.'
+        },
+        {
+          code: 'BOL004',
+          name: 'Inland Bill of Lading',
+          description: 'Used for land transportation (truck or rail) to ports.'
+        },
+        {
+          code: 'BOL005',
+          name: 'Received Bill of Lading',
+          description: 'Confirms that goods have been received by the carrier, not necessarily shipped.'
+        },
+        {
+          code: 'BOL006',
+          name: 'Claused Bill of Lading',
+          description: 'Indicates goods were damaged or quantity/quality issues noted (foul/dirty BOL).'
+        },
+        {
+          code: 'BOL007',
+          name: 'Uniform Bill of Lading',
+          description: 'Standard agreement between carrier and exporter with shipment terms.'
+        },
+        {
+          code: 'BOL008',
+          name: 'Clean Bill of Lading',
+          description: 'Confirms goods were received in perfect condition by the carrier.'
+        }
+      ];
+      
+      // Insert sub-document types
+      for (const subDoc of subDocumentTypes) {
+        const insertQuery = `
+          INSERT INTO SubDocumentTypes (ParentDocumentID, SubDocumentCode, SubDocumentName, Description)
+          VALUES (@parentDocumentID, @code, @name, @description)
+        `;
+        
+        await pool.request()
+          .input('parentDocumentID', parentDocumentID)
+          .input('code', subDoc.code)
+          .input('name', subDoc.name)
+          .input('description', subDoc.description)
+          .query(insertQuery);
+      }
+      
+      return { success: true, message: 'Bill of Lading sub-document types created successfully', count: subDocumentTypes.length };
+    } catch (error) {
+      console.error('Error creating Bill of Lading sub-document types:', error);
+      throw error;
+    }
+  }
+
+  async getSubDocumentStatistics() {
+    try {
+      const pool = await connectToAzureSQL();
+      const result = await pool.request().query(`
+        SELECT 
+          COUNT(*) as total_sub_documents,
+          COUNT(DISTINCT ParentDocumentID) as parent_documents_with_subs,
+          SUM(CASE WHEN IsActive = 1 THEN 1 ELSE 0 END) as active_count,
+          SUM(CASE WHEN IsActive = 0 THEN 1 ELSE 0 END) as inactive_count
+        FROM SubDocumentTypes
+      `);
+      return result.recordset[0];
+    } catch (error) {
+      console.error('Error fetching sub document statistics from Azure:', error);
+      throw error;
+    }
+  }
 }
 
 export const azureDataService = new AzureDataService();
