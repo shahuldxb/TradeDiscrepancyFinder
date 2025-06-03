@@ -331,7 +331,7 @@ export default function DocumentLibrary() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">None</SelectItem>
+                          <SelectItem value="none">None</SelectItem>
                           {documentSets.map((set: any) => (
                             <SelectItem key={set.id} value={set.id}>
                               {set.set_name || set.setName} ({set.lc_reference || set.lcReference})

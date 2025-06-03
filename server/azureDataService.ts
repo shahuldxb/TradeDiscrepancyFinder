@@ -437,78 +437,36 @@ export class AzureDataService {
     try {
       const pool = await connectToAzureSQL();
       
-      // First check if documents table exists and get its structure
-      const tableCheck = await pool.request().query(`
-        SELECT COLUMN_NAME 
+      // Get table structure first to understand existing columns
+      const tableStructure = await pool.request().query(`
+        SELECT COLUMN_NAME, DATA_TYPE, IS_NULLABLE
         FROM INFORMATION_SCHEMA.COLUMNS 
         WHERE TABLE_NAME = 'documents' AND TABLE_SCHEMA = 'dbo'
+        ORDER BY ORDINAL_POSITION
       `);
       
-      // Always check if we need to add sample data
-      const dataCount = await pool.request().query('SELECT COUNT(*) as count FROM dbo.documents');
+      console.log('Documents table structure:', tableStructure.recordset);
       
-      if (dataCount.recordset[0].count === 0) {
-        console.log('Adding sample documents to Azure SQL database...');
-        
-        // Insert sample documents using individual INSERT statements
-        await pool.request().query(`
-          INSERT INTO dbo.documents (id, file_name, document_type, file_size, status, document_set_id, file_path, mime_type) 
-          VALUES ('doc_1748942001', 'Commercial_Invoice_LC001.pdf', 'Commercial Invoice', 245760, 'analyzed', 'ds_1748941845210_sotbdw18g', 'uploads/commercial_invoice_1.pdf', 'application/pdf')
-        `);
-        
-        await pool.request().query(`
-          INSERT INTO dbo.documents (id, file_name, document_type, file_size, status, document_set_id, file_path, mime_type) 
-          VALUES ('doc_1748942002', 'Bill_of_Lading_LC001.pdf', 'Bill of Lading', 189440, 'processing', 'ds_1748941845210_sotbdw18g', 'uploads/bill_of_lading_1.pdf', 'application/pdf')
-        `);
-        
-        await pool.request().query(`
-          INSERT INTO dbo.documents (id, file_name, document_type, file_size, status, document_set_id, file_path, mime_type) 
-          VALUES ('doc_1748942003', 'Letter_of_Credit_LC002.pdf', 'Letter of Credit', 156672, 'uploaded', 'ds_1748942115715_ftjz4kqkt', 'uploads/letter_of_credit_1.pdf', 'application/pdf')
-        `);
-        
-        await pool.request().query(`
-          INSERT INTO dbo.documents (id, file_name, document_type, file_size, status, file_path, mime_type) 
-          VALUES ('doc_1748942004', 'Insurance_Certificate_LC001.pdf', 'Insurance Certificate', 98304, 'analyzed', 'uploads/insurance_cert_1.pdf', 'application/pdf')
-        `);
-        
-        await pool.request().query(`
-          INSERT INTO dbo.documents (id, file_name, document_type, file_size, status, file_path, mime_type) 
-          VALUES ('doc_1748942005', 'Packing_List_LC002.pdf', 'Packing List', 134217, 'error', 'uploads/packing_list_1.pdf', 'application/pdf')
-        `);
-        
-        console.log('Sample documents inserted successfully');
-      }
-      
-      const result = await pool.request()
-        .query(`
-          SELECT 
-            id,
-            file_name,
-            document_type,
-            file_size,
-            status,
-            document_set_id,
-            file_path,
-            mime_type,
-            extracted_data,
-            created_at
-          FROM dbo.documents 
-          ORDER BY created_at DESC
-        `);
+      // Select all data from existing table to understand the current structure
+      const result = await pool.request().query('SELECT * FROM dbo.documents');
       
       console.log(`Found ${result.recordset.length} documents in Azure SQL`);
       
+      if (result.recordset.length > 0) {
+        console.log('Sample document structure:', Object.keys(result.recordset[0]));
+      }
+      
       return result.recordset.map((doc: any) => ({
-        id: doc.id,
-        fileName: doc.file_name,
-        documentType: doc.document_type,
-        fileSize: doc.file_size,
-        uploadDate: doc.created_at,
-        status: doc.status || 'uploaded',
-        documentSetId: doc.document_set_id,
-        filePath: doc.file_path,
-        mimeType: doc.mime_type,
-        extractedData: doc.extracted_data
+        id: doc.id || doc.ID,
+        fileName: doc.file_name || doc.fileName || doc.name || doc.Name,
+        documentType: doc.document_type || doc.documentType || doc.type || doc.Type,
+        fileSize: doc.file_size || doc.fileSize || doc.size || doc.Size,
+        uploadDate: doc.created_at || doc.createdAt || doc.upload_date || doc.uploadDate,
+        status: doc.status || doc.Status || 'uploaded',
+        documentSetId: doc.document_set_id || doc.documentSetId || doc.setId,
+        filePath: doc.file_path || doc.filePath || doc.path || doc.Path,
+        mimeType: doc.mime_type || doc.mimeType || doc.type,
+        extractedData: doc.extracted_data || doc.extractedData
       }));
     } catch (error) {
       console.error('Error fetching library documents from Azure SQL:', error);
@@ -519,27 +477,28 @@ export class AzureDataService {
   async createLibraryDocument(documentData: any) {
     try {
       const pool = await connectToAzureSQL();
-      await pool.request()
-        .input('id', sql.VarChar, documentData.id)
+      const result = await pool.request()
         .input('fileName', sql.VarChar, documentData.fileName)
         .input('documentType', sql.VarChar, documentData.documentType)
         .input('fileSize', sql.Int, documentData.fileSize)
         .input('status', sql.VarChar, documentData.status || 'uploaded')
-        .input('documentSetId', sql.VarChar, documentData.documentSetId || null)
+        .input('documentSetId', sql.VarChar, documentData.documentSetId === 'none' ? null : documentData.documentSetId)
         .input('filePath', sql.VarChar, documentData.filePath)
         .input('mimeType', sql.VarChar, documentData.mimeType)
         .query(`
           INSERT INTO dbo.documents (
-            id, file_name, document_type, file_size, 
-            status, document_set_id, file_path, mime_type, created_at
-          ) VALUES (
-            @id, @fileName, @documentType, @fileSize, 
-            @status, @documentSetId, @filePath, @mimeType, GETDATE()
+            file_name, document_type, file_size, 
+            status, document_set_id, file_path, mime_type
+          ) 
+          OUTPUT INSERTED.id
+          VALUES (
+            @fileName, @documentType, @fileSize, 
+            @status, @documentSetId, @filePath, @mimeType
           )
         `);
       
       return {
-        id: documentData.id,
+        id: result.recordset[0].id,
         fileName: documentData.fileName,
         documentType: documentData.documentType,
         fileSize: documentData.fileSize,
