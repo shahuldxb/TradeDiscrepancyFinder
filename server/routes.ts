@@ -42,6 +42,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
 
+  // Document Sets - Public routes for demo (before auth routes)
+  app.get('/api/document-sets', async (req, res) => {
+    try {
+      console.log('Fetching document sets...');
+      const { azureDataService } = await import('./azureDataService');
+      const documentSets = await azureDataService.getDocumentSets('demo-user');
+      console.log('Document sets fetched:', documentSets);
+      res.json(documentSets);
+    } catch (error) {
+      console.error('Error fetching document sets:', error);
+      res.status(500).json({ error: 'Failed to fetch document sets' });
+    }
+  });
+
+  app.post('/api/document-sets', async (req, res) => {
+    try {
+      console.log('Creating document set with data:', req.body);
+      const { azureDataService } = await import('./azureDataService');
+      const documentSet = await azureDataService.createDocumentSet({ 
+        ...req.body, 
+        user_id: 'demo-user' 
+      });
+      console.log('Document set created:', documentSet);
+      res.json(documentSet);
+    } catch (error) {
+      console.error('Error creating document set:', error);
+      res.status(500).json({ error: error.message || 'Failed to create document set' });
+    }
+  });
+
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
@@ -992,30 +1022,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Document Sets - Now using Azure SQL
-  app.get('/api/document-sets', async (req, res) => {
-    try {
-      const userId = 'demo-user'; // Use demo user for testing
-      const { azureDataService } = await import('./azureDataService');
-      const documentSets = await azureDataService.getDocumentSets(userId);
-      res.json(documentSets);
-    } catch (error) {
-      console.error('Error fetching document sets:', error);
-      res.status(500).json({ error: 'Failed to fetch document sets' });
-    }
-  });
 
-  app.post('/api/document-sets', async (req, res) => {
-    try {
-      const userId = 'demo-user'; // Use demo user for testing
-      const { azureDataService } = await import('./azureDataService');
-      const documentSet = await azureDataService.createDocumentSet({ ...req.body, user_id: userId });
-      res.json(documentSet);
-    } catch (error) {
-      console.error('Error creating document set:', error);
-      res.status(500).json({ error: 'Failed to create document set' });
-    }
-  });
 
   // Export document set analysis results
   app.get('/api/document-sets/:id/export', isAuthenticated, async (req, res) => {
