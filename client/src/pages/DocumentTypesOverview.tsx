@@ -8,16 +8,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { FileText, Search, Filter, BarChart3, TrendingUp, Database } from "lucide-react";
 
 interface DocumentType {
+  DocumentID: number;
+  DocumentCode: string;
   document_type: string;
-  count: number;
+  Description: string;
+  IsActive: boolean;
 }
 
 interface DocumentStatistics {
   total_documents: number;
   total_types: number;
-  approved_count: number;
-  pending_count: number;
-  rejected_count: number;
+  active_count: number;
+  inactive_count: number;
 }
 
 export default function DocumentTypesOverview() {
@@ -38,22 +40,23 @@ export default function DocumentTypesOverview() {
   // Filter and sort document types
   const filteredAndSortedTypes = documentTypes
     .filter((type: DocumentType) => 
-      type.document_type.toLowerCase().includes(searchTerm.toLowerCase())
+      type.document_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      type.DocumentCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      type.Description.toLowerCase().includes(searchTerm.toLowerCase())
     )
     .sort((a: DocumentType, b: DocumentType) => {
       const multiplier = sortOrder === "asc" ? 1 : -1;
       if (sortBy === "name") {
         return multiplier * a.document_type.localeCompare(b.document_type);
       } else {
-        return multiplier * (a.count - b.count);
+        return multiplier * (a.DocumentID - b.DocumentID);
       }
     });
 
-  const getStatusColor = (count: number) => {
-    if (count === 0) return "bg-gray-100 text-gray-600";
-    if (count < 5) return "bg-yellow-100 text-yellow-700";
-    if (count < 20) return "bg-blue-100 text-blue-700";
-    return "bg-green-100 text-green-700";
+  const getStatusColor = (isActive: boolean) => {
+    return isActive 
+      ? "bg-green-100 text-green-700"
+      : "bg-gray-100 text-gray-600";
   };
 
   const getCategoryIcon = (documentType: string) => {
@@ -129,39 +132,26 @@ export default function DocumentTypesOverview() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Approved</CardTitle>
+              <CardTitle className="text-sm font-medium">Active</CardTitle>
               <TrendingUp className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">{statistics.approved_count}</div>
+              <div className="text-2xl font-bold text-green-600">{statistics?.active_count || 0}</div>
               <p className="text-xs text-muted-foreground">
-                {((statistics.approved_count / statistics.total_documents) * 100).toFixed(1)}% of total
+                {statistics?.total_documents ? ((statistics.active_count / statistics.total_documents) * 100).toFixed(1) : 0}% of total
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending</CardTitle>
-              <TrendingUp className="h-4 w-4 text-yellow-600" />
+              <CardTitle className="text-sm font-medium">Inactive</CardTitle>
+              <TrendingUp className="h-4 w-4 text-gray-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-yellow-600">{statistics.pending_count}</div>
+              <div className="text-2xl font-bold text-gray-600">{statistics?.inactive_count || 0}</div>
               <p className="text-xs text-muted-foreground">
-                {((statistics.pending_count / statistics.total_documents) * 100).toFixed(1)}% of total
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Rejected</CardTitle>
-              <TrendingUp className="h-4 w-4 text-red-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600">{statistics.rejected_count}</div>
-              <p className="text-xs text-muted-foreground">
-                {((statistics.rejected_count / statistics.total_documents) * 100).toFixed(1)}% of total
+                {statistics?.total_documents ? ((statistics.inactive_count / statistics.total_documents) * 100).toFixed(1) : 0}% of total
               </p>
             </CardContent>
           </Card>

@@ -171,20 +171,20 @@ export class AzureDataService {
   async getDocuments(filters: any = {}) {
     try {
       const pool = await connectToAzureSQL();
-      let query = 'SELECT * FROM MasterDocuments WHERE 1=1';
+      let query = 'SELECT * FROM MasterDocuments WHERE IsActive = 1';
       const request = pool.request();
       
-      if (filters.document_type) {
-        query += ' AND DocumentType = @document_type';
-        request.input('document_type', filters.document_type);
+      if (filters.document_name) {
+        query += ' AND DocumentName LIKE @document_name';
+        request.input('document_name', `%${filters.document_name}%`);
       }
       
-      if (filters.status) {
-        query += ' AND Status = @status';
-        request.input('status', filters.status);
+      if (filters.document_code) {
+        query += ' AND DocumentCode = @document_code';
+        request.input('document_code', filters.document_code);
       }
       
-      query += ' ORDER BY CreatedDate DESC';
+      query += ' ORDER BY DocumentName';
       
       const result = await request.query(query);
       return result.recordset;
@@ -198,10 +198,15 @@ export class AzureDataService {
     try {
       const pool = await connectToAzureSQL();
       const result = await pool.request().query(`
-        SELECT DISTINCT DocumentType as document_type, COUNT(*) as count 
+        SELECT 
+          DocumentID,
+          DocumentCode,
+          DocumentName as document_type,
+          Description,
+          IsActive
         FROM MasterDocuments 
-        GROUP BY DocumentType 
-        ORDER BY DocumentType
+        WHERE IsActive = 1
+        ORDER BY DocumentName
       `);
       return result.recordset;
     } catch (error) {
@@ -216,10 +221,9 @@ export class AzureDataService {
       const result = await pool.request().query(`
         SELECT 
           COUNT(*) as total_documents,
-          COUNT(DISTINCT DocumentType) as total_types,
-          SUM(CASE WHEN Status = 'approved' THEN 1 ELSE 0 END) as approved_count,
-          SUM(CASE WHEN Status = 'pending' THEN 1 ELSE 0 END) as pending_count,
-          SUM(CASE WHEN Status = 'rejected' THEN 1 ELSE 0 END) as rejected_count
+          COUNT(DISTINCT DocumentName) as total_types,
+          SUM(CASE WHEN IsActive = 1 THEN 1 ELSE 0 END) as active_count,
+          SUM(CASE WHEN IsActive = 0 THEN 1 ELSE 0 END) as inactive_count
         FROM MasterDocuments
       `);
       return result.recordset[0];
