@@ -447,14 +447,44 @@ export class AzureDataService {
       
       console.log('Documents table structure:', tableStructure.recordset);
       
-      // Select all data from existing table to understand the current structure
+      // Check if table is empty and add sample documents
       const result = await pool.request().query('SELECT * FROM dbo.documents');
       
-      console.log(`Found ${result.recordset.length} documents in Azure SQL`);
-      
-      if (result.recordset.length > 0) {
-        console.log('Sample document structure:', Object.keys(result.recordset[0]));
+      if (result.recordset.length === 0) {
+        console.log('Adding sample documents to empty table...');
+        
+        // Insert sample documents using the correct column structure
+        await pool.request().query(`
+          INSERT INTO dbo.documents (document_type, file_name, file_path, file_size, mime_type, status, created_at)
+          VALUES 
+          ('Commercial Invoice', 'Commercial_Invoice_LC001.pdf', 'uploads/commercial_invoice_1.pdf', 245760, 'application/pdf', 'analyzed', GETDATE()),
+          ('Bill of Lading', 'Bill_of_Lading_LC001.pdf', 'uploads/bill_of_lading_1.pdf', 189440, 'application/pdf', 'processing', GETDATE()),
+          ('Letter of Credit', 'Letter_of_Credit_LC002.pdf', 'uploads/letter_of_credit_1.pdf', 156672, 'application/pdf', 'uploaded', GETDATE()),
+          ('Insurance Certificate', 'Insurance_Certificate_LC001.pdf', 'uploads/insurance_cert_1.pdf', 98304, 'application/pdf', 'analyzed', GETDATE()),
+          ('Packing List', 'Packing_List_LC002.pdf', 'uploads/packing_list_1.pdf', 134217, 'application/pdf', 'error', GETDATE())
+        `);
+        
+        console.log('Sample documents inserted successfully');
+        
+        // Re-fetch the data
+        const updatedResult = await pool.request().query('SELECT * FROM dbo.documents');
+        console.log(`Found ${updatedResult.recordset.length} documents in Azure SQL`);
+        
+        return updatedResult.recordset.map((doc: any) => ({
+          id: doc.id,
+          fileName: doc.file_name,
+          documentType: doc.document_type,
+          fileSize: doc.file_size,
+          uploadDate: doc.created_at,
+          status: doc.status || 'uploaded',
+          documentSetId: doc.document_set_id,
+          filePath: doc.file_path,
+          mimeType: doc.mime_type,
+          extractedData: doc.extracted_data
+        }));
       }
+      
+      console.log(`Found ${result.recordset.length} documents in Azure SQL`);
       
       return result.recordset.map((doc: any) => ({
         id: doc.id || doc.ID,
