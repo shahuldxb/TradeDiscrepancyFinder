@@ -453,15 +453,15 @@ export class AzureDataService {
       if (result.recordset.length === 0) {
         console.log('Adding sample documents to empty table...');
         
-        // Insert sample documents using the correct column structure
+        // Insert sample documents using the correct column structure with document_set_id
         await pool.request().query(`
-          INSERT INTO dbo.documents (document_type, file_name, file_path, file_size, mime_type, status, created_at)
+          INSERT INTO dbo.documents (document_set_id, document_type, file_name, file_path, file_size, mime_type, status, created_at)
           VALUES 
-          ('Commercial Invoice', 'Commercial_Invoice_LC001.pdf', 'uploads/commercial_invoice_1.pdf', 245760, 'application/pdf', 'analyzed', GETDATE()),
-          ('Bill of Lading', 'Bill_of_Lading_LC001.pdf', 'uploads/bill_of_lading_1.pdf', 189440, 'application/pdf', 'processing', GETDATE()),
-          ('Letter of Credit', 'Letter_of_Credit_LC002.pdf', 'uploads/letter_of_credit_1.pdf', 156672, 'application/pdf', 'uploaded', GETDATE()),
-          ('Insurance Certificate', 'Insurance_Certificate_LC001.pdf', 'uploads/insurance_cert_1.pdf', 98304, 'application/pdf', 'analyzed', GETDATE()),
-          ('Packing List', 'Packing_List_LC002.pdf', 'uploads/packing_list_1.pdf', 134217, 'application/pdf', 'error', GETDATE())
+          ('ds_1748941845210_sotbdw18g', 'Commercial Invoice', 'Commercial_Invoice_LC001.pdf', 'uploads/commercial_invoice_1.pdf', 245760, 'application/pdf', 'analyzed', GETDATE()),
+          ('ds_1748941845210_sotbdw18g', 'Bill of Lading', 'Bill_of_Lading_LC001.pdf', 'uploads/bill_of_lading_1.pdf', 189440, 'application/pdf', 'processing', GETDATE()),
+          ('ds_1748942115715_ftjz4kqkt', 'Letter of Credit', 'Letter_of_Credit_LC002.pdf', 'uploads/letter_of_credit_1.pdf', 156672, 'application/pdf', 'uploaded', GETDATE()),
+          ('demo_set_1', 'Insurance Certificate', 'Insurance_Certificate_LC001.pdf', 'uploads/insurance_cert_1.pdf', 98304, 'application/pdf', 'analyzed', GETDATE()),
+          ('demo_set_1', 'Packing List', 'Packing_List_LC002.pdf', 'uploads/packing_list_1.pdf', 134217, 'application/pdf', 'error', GETDATE())
         `);
         
         console.log('Sample documents inserted successfully');
@@ -507,23 +507,29 @@ export class AzureDataService {
   async createLibraryDocument(documentData: any) {
     try {
       const pool = await connectToAzureSQL();
+      
+      // Handle document_set_id - use default if none provided
+      const documentSetId = documentData.documentSetId === 'none' || !documentData.documentSetId 
+        ? 'demo_set_1' 
+        : documentData.documentSetId;
+      
       const result = await pool.request()
-        .input('fileName', sql.VarChar, documentData.fileName)
-        .input('documentType', sql.VarChar, documentData.documentType)
-        .input('fileSize', sql.Int, documentData.fileSize)
-        .input('status', sql.VarChar, documentData.status || 'uploaded')
-        .input('documentSetId', sql.VarChar, documentData.documentSetId === 'none' ? null : documentData.documentSetId)
-        .input('filePath', sql.VarChar, documentData.filePath)
-        .input('mimeType', sql.VarChar, documentData.mimeType)
+        .input('fileName', documentData.fileName)
+        .input('documentType', documentData.documentType)
+        .input('fileSize', documentData.fileSize)
+        .input('status', documentData.status || 'uploaded')
+        .input('documentSetId', documentSetId)
+        .input('filePath', documentData.filePath)
+        .input('mimeType', documentData.mimeType)
         .query(`
           INSERT INTO dbo.documents (
-            file_name, document_type, file_size, 
-            status, document_set_id, file_path, mime_type
+            document_set_id, document_type, file_name, file_path, file_size, 
+            mime_type, status, created_at
           ) 
           OUTPUT INSERTED.id
           VALUES (
-            @fileName, @documentType, @fileSize, 
-            @status, @documentSetId, @filePath, @mimeType
+            @documentSetId, @documentType, @fileName, @filePath, @fileSize, 
+            @mimeType, @status, GETDATE()
           )
         `);
       
@@ -534,7 +540,7 @@ export class AzureDataService {
         fileSize: documentData.fileSize,
         uploadDate: new Date(),
         status: documentData.status || 'uploaded',
-        documentSetId: documentData.documentSetId,
+        documentSetId: documentSetId,
         filePath: documentData.filePath,
         mimeType: documentData.mimeType
       };
