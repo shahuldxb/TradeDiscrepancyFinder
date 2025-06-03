@@ -587,9 +587,45 @@ export class AzureDataService {
       `);
       
       if (validationCheck.recordset[0].count === 0) {
-        // Create sample validation results based on existing documents and discrepancies
+        // Create sample validation results based on existing documents
         const documents = await pool.request().query('SELECT * FROM dbo.documents');
-        const discrepancies = await this.getDiscrepancies();
+        
+        // Create sample discrepancies since table doesn't exist
+        const sampleDiscrepancies = [
+          {
+            id: 'disc_1',
+            type: 'critical',
+            category: 'Date Mismatch',
+            description: 'Document date exceeds Letter of Credit expiry date',
+            field: 'Issue Date',
+            expectedValue: 'Before 2025-06-01',
+            actualValue: '2025-06-05',
+            ucpReference: '600 Article 14',
+            recommendation: 'Update document date to comply with LC terms'
+          },
+          {
+            id: 'disc_2', 
+            type: 'major',
+            category: 'Amount Discrepancy',
+            description: 'Invoice amount exceeds LC credit amount',
+            field: 'Total Amount',
+            expectedValue: 'USD 50,000.00',
+            actualValue: 'USD 52,500.00',
+            ucpReference: '600 Article 18',
+            recommendation: 'Correct invoice amount or request LC amendment'
+          },
+          {
+            id: 'disc_3',
+            type: 'minor',
+            category: 'Description Variance',
+            description: 'Goods description differs from LC terms',
+            field: 'Goods Description',
+            expectedValue: 'Steel Pipes Grade A',
+            actualValue: 'Steel Pipes Grade A1',
+            ucpReference: '600 Article 14',
+            recommendation: 'Ensure exact match with LC description'
+          }
+        ];
         
         const sampleValidations = documents.recordset.map((doc: any, index: number) => ({
           id: `val_${doc.id}`,
@@ -600,7 +636,7 @@ export class AzureDataService {
           validatedBy: index % 3 === 0 ? 'AI Agent' : index % 3 === 1 ? 'Senior Analyst' : 'Trade Finance Specialist',
           status: index % 4 === 0 ? 'failed' : index % 4 === 1 ? 'warning' : index % 4 === 2 ? 'passed' : 'pending',
           score: Math.floor(Math.random() * 40) + 60, // 60-100%
-          discrepancies: discrepancies.slice(0, Math.floor(Math.random() * 3)),
+          discrepancies: sampleDiscrepancies.slice(0, Math.floor(Math.random() * 3)),
           recommendations: [
             'Review document formatting and ensure compliance with UCP 600 standards',
             'Verify all required fields are properly filled',
