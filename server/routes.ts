@@ -953,7 +953,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // CRUD Routes for Master Documents
-  app.post('/api/trade-finance/master-documents', isAuthenticated, async (req, res) => {
+  app.post('/api/trade-finance/master-documents', async (req, res) => {
     try {
       const { createMasterDocument } = await import('./tradeFinanceService');
       const document = await createMasterDocument(req.body);
@@ -964,7 +964,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/trade-finance/master-documents/:id', isAuthenticated, async (req, res) => {
+  app.put('/api/trade-finance/master-documents/:id', async (req, res) => {
     try {
       const { updateMasterDocument } = await import('./tradeFinanceService');
       const documentId = parseInt(req.params.id);
@@ -976,7 +976,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/trade-finance/master-documents/:id', isAuthenticated, async (req, res) => {
+  app.delete('/api/trade-finance/master-documents/:id', async (req, res) => {
     try {
       const { deleteMasterDocument } = await import('./tradeFinanceService');
       const documentId = parseInt(req.params.id);
@@ -989,7 +989,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // CRUD Routes for Documentary Credits
-  app.post('/api/trade-finance/documentary-credits', isAuthenticated, async (req, res) => {
+  app.post('/api/trade-finance/documentary-credits', async (req, res) => {
     try {
       const { createDocumentaryCredit } = await import('./tradeFinanceService');
       const credit = await createDocumentaryCredit(req.body);
@@ -1000,7 +1000,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/trade-finance/documentary-credits/:id', isAuthenticated, async (req, res) => {
+  app.put('/api/trade-finance/documentary-credits/:id', async (req, res) => {
     try {
       const { updateDocumentaryCredit } = await import('./tradeFinanceService');
       const creditId = parseInt(req.params.id);
@@ -1012,7 +1012,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/trade-finance/documentary-credits/:id', isAuthenticated, async (req, res) => {
+  app.delete('/api/trade-finance/documentary-credits/:id', async (req, res) => {
     try {
       const { deleteDocumentaryCredit } = await import('./tradeFinanceService');
       const creditId = parseInt(req.params.id);
@@ -1025,7 +1025,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // CRUD Routes for SWIFT Message Codes
-  app.post('/api/trade-finance/swift-message-codes', isAuthenticated, async (req, res) => {
+  app.post('/api/trade-finance/swift-message-codes', async (req, res) => {
     try {
       const { createSwiftMessageCode } = await import('./tradeFinanceService');
       const swiftCode = await createSwiftMessageCode(req.body);
@@ -1036,7 +1036,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/trade-finance/swift-message-codes/:id', isAuthenticated, async (req, res) => {
+  app.put('/api/trade-finance/swift-message-codes/:id', async (req, res) => {
     try {
       const { updateSwiftMessageCode } = await import('./tradeFinanceService');
       const swiftCodeId = parseInt(req.params.id);
@@ -1048,7 +1048,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/trade-finance/swift-message-codes/:id', isAuthenticated, async (req, res) => {
+  app.delete('/api/trade-finance/swift-message-codes/:id', async (req, res) => {
     try {
       const { deleteSwiftMessageCode } = await import('./tradeFinanceService');
       const swiftCodeId = parseInt(req.params.id);
