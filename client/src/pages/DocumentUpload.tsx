@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { FileText, CheckCircle, AlertTriangle, Clock, Upload } from "lucide-react";
+import { FileText, CheckCircle, AlertTriangle, Clock, Upload, Download, Play, Plus, BarChart3 } from "lucide-react";
 
 export default function DocumentUpload() {
   const { user } = useAuth();
@@ -104,6 +104,59 @@ export default function DocumentUpload() {
     });
   };
 
+  const handleExportResults = async () => {
+    try {
+      const response = await apiRequest("GET", `/api/document-sets/${selectedDocumentSet}/export`);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = `document-analysis-${selectedDocumentSet}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Export successful",
+        description: "Analysis results have been downloaded.",
+      });
+    } catch (error) {
+      toast({
+        title: "Export failed",
+        description: "Unable to export analysis results.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleNewAnalysis = async () => {
+    if (!selectedDocumentSet) {
+      toast({
+        title: "No document set selected",
+        description: "Please select a document set first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await apiRequest("POST", `/api/document-sets/${selectedDocumentSet}/analyze`);
+      queryClient.invalidateQueries({ queryKey: ["/api/document-sets"] });
+      
+      toast({
+        title: "Analysis started",
+        description: "New discrepancy analysis has been initiated.",
+      });
+    } catch (error) {
+      toast({
+        title: "Analysis failed",
+        description: "Unable to start new analysis.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background flex">
       <Sidebar />
@@ -113,6 +166,46 @@ export default function DocumentUpload() {
           title="Document Management"
           subtitle="Upload and manage LC documents for analysis"
         />
+        
+        {/* Action Buttons */}
+        <div className="px-6 py-4 border-b bg-muted/30">
+          <div className="flex items-center gap-4">
+            <Button 
+              onClick={handleCreateNewSet}
+              disabled={createDocumentSetMutation.isPending}
+              className="banking-button-primary"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Create Document Set
+            </Button>
+            
+            <Button 
+              onClick={handleNewAnalysis}
+              disabled={!selectedDocumentSet}
+              variant="outline"
+            >
+              <Play className="h-4 w-4 mr-2" />
+              New Analysis
+            </Button>
+            
+            <Button 
+              onClick={handleExportResults}
+              disabled={!selectedDocumentSet}
+              variant="outline"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export Results
+            </Button>
+            
+            <Button 
+              variant="outline"
+              disabled={!selectedDocumentSet}
+            >
+              <BarChart3 className="h-4 w-4 mr-2" />
+              View Analytics
+            </Button>
+          </div>
+        </div>
         
         <div className="p-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

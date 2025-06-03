@@ -999,6 +999,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Export document set analysis results
+  app.get('/api/document-sets/:id/export', isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.claims?.sub;
+      const { azureDataService } = await import('./azureDataService');
+      
+      const documentSets = await azureDataService.getDocumentSets(userId);
+      const selectedSet = documentSets.find((set: any) => set.id === id);
+      
+      if (!selectedSet) {
+        return res.status(404).json({ error: 'Document set not found' });
+      }
+
+      // Get discrepancies for this document set
+      const discrepancies = await azureDataService.getDiscrepancies({ documentSetId: id });
+
+      // Generate comprehensive analysis report
+      const reportData = {
+        documentSetId: id,
+        setName: selectedSet.setName || `Document Set ${id}`,
+        lcReference: selectedSet.lcReference || 'N/A',
+        status: selectedSet.status || 'pending',
+        analysisDate: new Date().toISOString(),
+        documents: selectedSet.uploadedDocuments || [],
+        discrepancies: discrepancies || [],
+        summary: {
+          totalDocuments: selectedSet.uploadedDocuments?.length || 0,
+          totalDiscrepancies: discrepancies?.length || 0,
+          riskLevel: discrepancies?.length > 5 ? 'High' : discrepancies?.length > 2 ? 'Medium' : 'Low',
+          complianceScore: Math.max(0, 100 - (discrepancies?.length || 0) * 10)
+        },
+        exportedAt: new Date().toISOString(),
+        exportedBy: userId
+      };
+
+      // Set headers for JSON download (can be enhanced with PDF generation)
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', `attachment; filename="analysis-report-${id}.json"`);
+      
+      res.json(reportData);
+    } catch (error) {
+      console.error('Error exporting document set:', error);
+      res.status(500).json({ error: 'Failed to export analysis results' });
+    }
+  });
+
+  // Start new analysis for document set
+  app.post('/api/document-sets/:id/analyze', isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.claims?.sub;
+      
+      // Import autonomous agent coordinator
+      const { autonomousAgentCoordinator } = await import('./autonomousAgents');
+      
+      // Trigger new analysis using AI agents
+      const analysisResult = await autonomousAgentCoordinator.initiateAgentWorkflow(userId, {
+        documentSetId: id,
+        analysisType: 'discrepancy_detection',
+        priority: 'high',
+        requestedAt: new Date().toISOString()
+      });
+
+      res.json({
+        success: true,
+        analysisId: `analysis_${Date.now()}`,
+        status: 'initiated',
+        estimatedCompletionTime: '5-10 minutes',
+        agentStatus: analysisResult,
+        message: 'Analysis started successfully'
+      });
+    } catch (error) {
+      console.error('Error starting analysis:', error);
+      res.status(500).json({ error: 'Failed to start new analysis' });
+    }
+  });
+
   // Azure SQL Agent Operations - Replace PostgreSQL
   app.get('/api/azure-agents/tasks', isAuthenticated, async (req, res) => {
     try {
