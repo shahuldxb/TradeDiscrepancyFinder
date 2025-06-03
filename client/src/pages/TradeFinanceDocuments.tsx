@@ -749,12 +749,6 @@ export default function TradeFinanceDocuments() {
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
-          <Link href="/mt-intelligence">
-            <button className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
-              <ArrowLeft className="h-4 w-4" />
-              Back to MT Intelligence
-            </button>
-          </Link>
           <div>
             <h1 className="text-4xl font-bold text-gray-900">Trade Finance Documentation Management</h1>
             <p className="text-lg text-gray-600 mt-1">
