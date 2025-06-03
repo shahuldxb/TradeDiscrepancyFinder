@@ -1,0 +1,9 @@
+Sub-Document Type,Description
+Shipped Bill of Lading,Evidence that goods have been shipped on board in good condition.
+Through Bill of Lading,Allows multiple modes of transport across borders with different carriers.
+Ocean Bill of Lading,Used for sea shipments; can be negotiable or non-negotiable.
+Inland Bill of Lading,Used for land transportation (truck or rail) to ports.
+Received Bill of Lading,"Confirms that goods have been received by the carrier, not necessarily shipped."
+Claused Bill of Lading,Indicates goods were damaged or quantity/quality issues noted (foul/dirty BOL).
+Uniform Bill of Lading,Standard agreement between carrier and exporter with shipment terms.
+Clean Bill of Lading,Confirms goods were received in perfect condition by the carrier.
