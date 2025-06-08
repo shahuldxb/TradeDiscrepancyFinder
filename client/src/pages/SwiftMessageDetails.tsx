@@ -138,14 +138,14 @@ export default function SwiftMessageDetails() {
             <CardHeader>
               <CardTitle>Message Fields</CardTitle>
               <CardDescription>
-                Field definitions and specifications for {displayData.message_type}
+                Field definitions and specifications for {(displayData as any)?.message_type || 'SWIFT Message'}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {displayData.fields?.length > 0 ? (
+                {(displayData as any)?.fields?.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {displayData.fields.map((field: any, index: number) => (
+                    {(displayData as any)?.fields.map((field: any, index: number) => (
                       <div key={field.field_code || index} className="p-4 bg-gray-50 rounded-lg">
                         <div className="flex items-center justify-between mb-2">
                           <Badge variant="outline">{field.field_code}</Badge>
@@ -253,7 +253,7 @@ export default function SwiftMessageDetails() {
             <CardHeader>
               <CardTitle>Message Examples</CardTitle>
               <CardDescription>
-                Sample {displayData.message_type} message structure
+                Sample {(displayData as any)?.message_type || 'SWIFT Message'} message structure
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -261,7 +261,7 @@ export default function SwiftMessageDetails() {
                 <div className="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-sm">
                   <div className="mb-2 text-gray-400">// Header Block</div>
                   <div>{`{1:F01BANKGB2LAXXX0000000000}`}</div>
-                  <div>{`{2:I${displayData.message_type?.slice(2) || '700'}BANKUS33XXXXN}`}</div>
+                  <div>{`{2:I${(displayData as any)?.message_type?.slice(2) || '700'}BANKUS33XXXXN}`}</div>
                   <div>{`{3:{108:MT${params?.messageType || '700'}EXAMPLE}{121:12345678-1234-1234-1234-123456789abc}}`}</div>
                   
                   <div className="mt-4 mb-2 text-gray-400">// Text Block</div>
