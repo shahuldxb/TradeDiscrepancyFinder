@@ -149,7 +149,12 @@ interface NavigationProps {
 
 export function Navigation({ className }: NavigationProps) {
   const [location] = useLocation();
-  const [openGroups, setOpenGroups] = useState<string[]>([]);
+  const [openGroups, setOpenGroups] = useState<string[]>([
+    "SWIFT Messages", 
+    "Document Management", 
+    "AI Agents", 
+    "Incoterms Management"
+  ]);
 
   const toggleGroup = (title: string) => {
     setOpenGroups(prev => 
