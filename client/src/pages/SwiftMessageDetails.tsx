@@ -260,12 +260,12 @@ export default function SwiftMessageDetails() {
               <div className="space-y-4">
                 <div className="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-sm">
                   <div className="mb-2 text-gray-400">// Header Block</div>
-                  <div>{"{"}{1:F01BANKGB2LAXXX0000000000{"}"}</div>
-                  <div>{"{"}{2:I{displayData.message_type.slice(2)}BANKUS33XXXXN{"}"}</div>
-                  <div>{"{"}{3:{"{"}108:MT{params?.messageType}EXAMPLE{"}"}{"{"}121:12345678-1234-1234-1234-123456789abc{"}"}{"}"}{"}"}</div>
+                  <div>{`{1:F01BANKGB2LAXXX0000000000}`}</div>
+                  <div>{`{2:I${displayData.message_type?.slice(2) || '700'}BANKUS33XXXXN}`}</div>
+                  <div>{`{3:{108:MT${params?.messageType || '700'}EXAMPLE}{121:12345678-1234-1234-1234-123456789abc}}`}</div>
                   
                   <div className="mt-4 mb-2 text-gray-400">// Text Block</div>
-                  <div>{"{"}{4:</div>
+                  <div>{"{4:"}</div>
                   <div>:20:EXAMPLEREF123</div>
                   <div>:23:CRED</div>
                   <div>:31C:241201</div>
@@ -275,7 +275,7 @@ export default function SwiftMessageDetails() {
                   <div>-{"}"}</div>
                   
                   <div className="mt-4 mb-2 text-gray-400">// Trailer Block</div>
-                  <div>{"{"}{5:{"{"}CHK:123456789ABC{"}"}{"}"}{"}"}</div>
+                  <div>{`{5:{CHK:123456789ABC}}`}</div>
                 </div>
                 
                 <div className="text-sm text-gray-600">
