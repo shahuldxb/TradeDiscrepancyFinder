@@ -54,13 +54,103 @@ export class AzureDataService {
   // SWIFT Message Definitions - Replace PostgreSQL
   async getSwiftMessageTypes() {
     try {
-      const pool = await connectToAzureSQL();
-      const result = await pool.request().query(`
-        SELECT * FROM SwiftMessageTypes ORDER BY message_type_code
-      `);
-      return result.recordset;
+      // Return MT7xx message types for display
+      const messageTypes = [
+        {
+          message_type: 'MT700',
+          message_type_code: '700',
+          message_type_name: 'Issue of a Documentary Credit',
+          description: 'Issue of a Documentary Credit',
+          category: '7',
+          purpose: 'Used to issue a new documentary credit',
+          is_active: true
+        },
+        {
+          message_type: 'MT701',
+          message_type_code: '701',
+          message_type_name: 'Issue of a Documentary Credit (Extended)',
+          description: 'Issue of a Documentary Credit (Extended)',
+          category: '7',
+          purpose: 'Used to issue a new documentary credit with extended fields',
+          is_active: true
+        },
+        {
+          message_type: 'MT705',
+          message_type_code: '705',
+          message_type_name: 'Pre-Advice of a Documentary Credit',
+          description: 'Pre-Advice of a Documentary Credit',
+          category: '7',
+          purpose: 'Used to pre-advise the issuance of a documentary credit',
+          is_active: true
+        },
+        {
+          message_type: 'MT707',
+          message_type_code: '707',
+          message_type_name: 'Amendment to a Documentary Credit',
+          description: 'Amendment to a Documentary Credit',
+          category: '7',
+          purpose: 'Used to amend an existing documentary credit',
+          is_active: true
+        },
+        {
+          message_type: 'MT710',
+          message_type_code: '710',
+          message_type_name: 'Advice of a Third Bank\'s Documentary Credit',
+          description: 'Advice of a Third Bank\'s Documentary Credit',
+          category: '7',
+          purpose: 'Used to advise a documentary credit issued by a third bank',
+          is_active: true
+        },
+        {
+          message_type: 'MT720',
+          message_type_code: '720',
+          message_type_name: 'Transfer of a Documentary Credit',
+          description: 'Transfer of a Documentary Credit',
+          category: '7',
+          purpose: 'Used to transfer all or part of a documentary credit',
+          is_active: true
+        },
+        {
+          message_type: 'MT730',
+          message_type_code: '730',
+          message_type_name: 'Acknowledgement',
+          description: 'Acknowledgement',
+          category: '7',
+          purpose: 'Used to acknowledge receipt of a documentary credit message',
+          is_active: true
+        },
+        {
+          message_type: 'MT740',
+          message_type_code: '740',
+          message_type_name: 'Authorization to Reimburse',
+          description: 'Authorization to Reimburse',
+          category: '7',
+          purpose: 'Used to authorize reimbursement of a documentary credit',
+          is_active: true
+        },
+        {
+          message_type: 'MT750',
+          message_type_code: '750',
+          message_type_name: 'Advice of Discrepancy',
+          description: 'Advice of Discrepancy',
+          category: '7',
+          purpose: 'Used to advise discrepancies in documentary credit documents',
+          is_active: true
+        },
+        {
+          message_type: 'MT760',
+          message_type_code: '760',
+          message_type_name: 'Guarantee',
+          description: 'Guarantee',
+          category: '7',
+          purpose: 'Used for guarantee-related messages',
+          is_active: true
+        }
+      ];
+      
+      return messageTypes;
     } catch (error) {
-      console.error('Error fetching SWIFT message types from Azure:', error);
+      console.error('Error fetching SWIFT message types:', error);
       throw error;
     }
   }
@@ -69,7 +159,16 @@ export class AzureDataService {
     try {
       const pool = await connectToAzureSQL();
       const result = await pool.request().query(`
-        SELECT * FROM SwiftFields ORDER BY field_code
+        SELECT 
+          field_code,
+          field_name,
+          format,
+          max_length,
+          is_active,
+          field_code as field_code,
+          field_name as field_name
+        FROM swift.fields 
+        ORDER BY field_code
       `);
       return result.recordset;
     } catch (error) {
