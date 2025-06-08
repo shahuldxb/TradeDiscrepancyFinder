@@ -104,43 +104,31 @@ export class AzureDataService {
     try {
       const pool = await connectToAzureSQL();
       
-      // First get message_type_id for the messageTypeCode
-      const messageTypeResult = await pool.request().query(`
-        SELECT message_type_id, MessageTypeCode, MessageType
-        FROM swift.message_types 
-        WHERE MessageTypeCode = '${messageTypeCode}' OR MessageTypeCode = 'MT${messageTypeCode}' OR MessageType = 'MT${messageTypeCode}'
-      `);
-      
-      if (messageTypeResult.recordset.length === 0) {
-        console.log(`No message type found for: ${messageTypeCode}`);
-        return [];
-      }
-      
-      const messageTypeId = messageTypeResult.recordset[0].message_type_id;
-      
-      // Get fields using actual column names from Azure discovery
+      // Simplified approach: directly query message_fields table with sample data to understand structure
       const result = await pool.request().query(`
-        SELECT 
-          mf.field_id,
-          mf.tag,
-          mf.field_name,
-          mf.is_mandatory,
-          mf.content_options,
-          mf.sequence
+        SELECT TOP 100 * 
         FROM swift.message_fields mf
-        WHERE mf.message_type_id = ${messageTypeId}
+        INNER JOIN swift.message_types mt ON mf.message_type_id = mt.message_type_id
+        WHERE mt.message_type_code = '${messageTypeCode}' 
+           OR mt.message_type_code = 'MT${messageTypeCode}'
+           OR mt.message_type = 'MT${messageTypeCode}'
         ORDER BY mf.sequence
       `);
       
+      if (result.recordset.length === 0) {
+        console.log(`No fields found for message type: ${messageTypeCode}`);
+        return [];
+      }
+      
       return result.recordset.map((row: any) => ({
-        field_code: row.tag,
-        field_name: row.field_name,
-        format: row.content_options || 'Text',
-        max_length: row.content_options?.length || 255,
-        is_mandatory: row.is_mandatory,
-        sequence_number: row.sequence,
-        description: `SWIFT field ${row.tag} - ${row.field_name}`,
-        field_id: row.field_id
+        field_code: row.tag || row.Tag || row.field_code || row.FieldCode,
+        field_name: row.field_name || row.FieldName || row.Name,
+        format: row.content_options || row.ContentOptions || row.Format || 'Text',
+        max_length: 255,
+        is_mandatory: row.is_mandatory || row.IsMandatory || false,
+        sequence_number: row.sequence || row.Sequence || 0,
+        description: `SWIFT field ${row.tag || row.Tag} - ${row.field_name || row.FieldName}`,
+        field_id: row.field_id || row.FieldId
       }));
     } catch (error) {
       console.error('Error fetching SWIFT fields by message type from Azure:', error);
@@ -155,9 +143,9 @@ export class AzureDataService {
       
       // Get message_type_id first
       const messageTypeResult = await pool.request().query(`
-        SELECT message_type_id, MessageTypeCode, MessageType
+        SELECT TOP 1 * 
         FROM swift.message_types 
-        WHERE MessageTypeCode = '${messageTypeCode}' OR MessageTypeCode = 'MT${messageTypeCode}' OR MessageType = 'MT${messageTypeCode}'
+        WHERE message_type_code = '${messageTypeCode}' OR message_type_code = 'MT${messageTypeCode}' OR message_type = 'MT${messageTypeCode}'
       `);
       
       if (messageTypeResult.recordset.length === 0) {
@@ -203,9 +191,9 @@ export class AzureDataService {
       
       // Get message_type_id first
       const messageTypeResult = await pool.request().query(`
-        SELECT message_type_id 
+        SELECT TOP 1 * 
         FROM swift.message_types 
-        WHERE message_type_code = '${messageTypeCode}' OR message_type_code = 'MT${messageTypeCode}'
+        WHERE message_type_code = '${messageTypeCode}' OR message_type_code = 'MT${messageTypeCode}' OR message_type = 'MT${messageTypeCode}'
       `);
       
       if (messageTypeResult.recordset.length === 0) {
