@@ -79,20 +79,21 @@ export class AzureDataService {
   async getSwiftFields() {
     try {
       const pool = await connectToAzureSQL();
+      // Query all columns to understand the actual structure
       const result = await pool.request().query(`
-        SELECT 
-          field_code,
-          field_name,
-          format,
-          max_length,
-          is_active,
-          is_mandatory,
-          description
-        FROM swift.field_codes 
-        WHERE is_active = 1
-        ORDER BY field_code
+        SELECT TOP 100 * FROM swift.field_codes
       `);
-      return result.recordset;
+      
+      // Map the results to expected format
+      return result.recordset.map((row: any) => ({
+        field_code: row.FieldCode || row.field_code || row.Code,
+        field_name: row.FieldName || row.field_name || row.Name || row.Description,
+        format: row.Format || row.format || row.DataType || 'N/A',
+        max_length: row.MaxLength || row.max_length || row.Length || 0,
+        is_active: row.IsActive !== undefined ? row.IsActive : (row.is_active !== undefined ? row.is_active : true),
+        is_mandatory: row.IsMandatory || row.is_mandatory || false,
+        description: row.Description || row.description || row.Purpose || row.FieldName
+      }));
     } catch (error) {
       console.error('Error fetching SWIFT fields:', error);
       throw error;
@@ -105,24 +106,79 @@ export class AzureDataService {
       const result = await pool.request()
         .input('messageTypeCode', messageTypeCode)
         .query(`
-          SELECT 
-            mf.field_code,
-            fc.field_name,
-            fc.format,
-            fc.max_length,
-            mf.is_mandatory,
-            mf.sequence_number,
-            fc.description
+          SELECT TOP 100 
+            mf.*,
+            fc.*
           FROM swift.message_fields mf
-          INNER JOIN swift.field_codes fc ON mf.field_code = fc.field_code
-          WHERE mf.message_type_code = @messageTypeCode
-            AND mf.is_active = 1
-            AND fc.is_active = 1
-          ORDER BY mf.sequence_number
+          LEFT JOIN swift.field_codes fc ON mf.FieldCode = fc.FieldCode OR mf.field_code = fc.field_code
+          WHERE mf.MessageTypeCode = @messageTypeCode OR mf.message_type_code = @messageTypeCode
+          ORDER BY mf.SequenceNumber, mf.sequence_number
         `);
-      return result.recordset;
+      
+      // Map results to expected format
+      return result.recordset.map((row: any) => ({
+        field_code: row.FieldCode || row.field_code,
+        field_name: row.FieldName || row.field_name || row.Name,
+        format: row.Format || row.format || 'N/A',
+        max_length: row.MaxLength || row.max_length || row.Length || 0,
+        is_mandatory: row.IsMandatory || row.is_mandatory || false,
+        sequence_number: row.SequenceNumber || row.sequence_number || 0,
+        description: row.Description || row.description || row.Purpose
+      }));
     } catch (error) {
       console.error('Error fetching SWIFT fields by message type from Azure:', error);
+      throw error;
+    }
+  }
+
+  // Field Specifications for MT Intelligence
+  async getFieldSpecifications(messageTypeCode: string) {
+    try {
+      const pool = await connectToAzureSQL();
+      const result = await pool.request()
+        .input('messageTypeCode', messageTypeCode)
+        .query(`
+          SELECT TOP 100 *
+          FROM swift.field_specification fs
+          WHERE fs.MessageTypeCode = @messageTypeCode OR fs.message_type_code = @messageTypeCode
+          ORDER BY fs.FieldCode, fs.field_code
+        `);
+      
+      return result.recordset.map((row: any) => ({
+        field_code: row.FieldCode || row.field_code,
+        specification: row.Specification || row.specification || row.Description,
+        data_type: row.DataType || row.data_type || row.Format,
+        constraints: row.Constraints || row.constraints || row.Rules,
+        examples: row.Examples || row.examples || row.SampleData
+      }));
+    } catch (error) {
+      console.error('Error fetching field specifications from Azure:', error);
+      throw error;
+    }
+  }
+
+  // Field Validation Rules for MT Intelligence
+  async getFieldValidationRules(messageTypeCode: string) {
+    try {
+      const pool = await connectToAzureSQL();
+      const result = await pool.request()
+        .input('messageTypeCode', messageTypeCode)
+        .query(`
+          SELECT TOP 100 *
+          FROM swift.field_validation_rules fvr
+          WHERE fvr.MessageTypeCode = @messageTypeCode OR fvr.message_type_code = @messageTypeCode
+          ORDER BY fvr.FieldCode, fvr.field_code
+        `);
+      
+      return result.recordset.map((row: any) => ({
+        field_code: row.FieldCode || row.field_code,
+        rule_type: row.RuleType || row.rule_type || row.ValidationType,
+        rule_description: row.RuleDescription || row.rule_description || row.Description,
+        validation_pattern: row.ValidationPattern || row.validation_pattern || row.Pattern,
+        error_message: row.ErrorMessage || row.error_message || row.Message
+      }));
+    } catch (error) {
+      console.error('Error fetching field validation rules from Azure:', error);
       throw error;
     }
   }
