@@ -1011,6 +1011,83 @@ export class AzureDataService {
       throw error;
     }
   }
+
+  // Field Specifications - Query from Azure SQL Database
+  async getFieldSpecifications(messageTypeCode?: string) {
+    try {
+      const pool = await connectToAzureSQL();
+      let query = `
+        SELECT 
+          field_code,
+          data_type,
+          format_pattern,
+          min_length,
+          max_length,
+          allowed_values,
+          usage_rules
+        FROM swift.field_specification 
+        WHERE is_active = 1
+      `;
+      
+      if (messageTypeCode) {
+        query += ` AND field_code IN (
+          SELECT field_code FROM swift.message_fields 
+          WHERE message_type_code = @messageTypeCode
+        )`;
+      }
+      
+      query += ` ORDER BY field_code`;
+      
+      const request = pool.request();
+      if (messageTypeCode) {
+        request.input('messageTypeCode', messageTypeCode);
+      }
+      
+      const result = await request.query(query);
+      return result.recordset;
+    } catch (error) {
+      console.error('Error fetching field specifications:', error);
+      throw error;
+    }
+  }
+
+  // Field Validation Rules - Query from Azure SQL Database
+  async getFieldValidationRules(messageTypeCode?: string) {
+    try {
+      const pool = await connectToAzureSQL();
+      let query = `
+        SELECT 
+          rule_id,
+          field_code,
+          validation_type,
+          validation_rule,
+          error_message,
+          severity
+        FROM swift.field_validation_rules 
+        WHERE is_active = 1
+      `;
+      
+      if (messageTypeCode) {
+        query += ` AND field_code IN (
+          SELECT field_code FROM swift.message_fields 
+          WHERE message_type_code = @messageTypeCode
+        )`;
+      }
+      
+      query += ` ORDER BY field_code, rule_id`;
+      
+      const request = pool.request();
+      if (messageTypeCode) {
+        request.input('messageTypeCode', messageTypeCode);
+      }
+      
+      const result = await request.query(query);
+      return result.recordset;
+    } catch (error) {
+      console.error('Error fetching field validation rules:', error);
+      throw error;
+    }
+  }
 }
 
 export const azureDataService = new AzureDataService();

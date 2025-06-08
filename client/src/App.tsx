@@ -21,7 +21,7 @@ import TradeFinanceDocuments from "@/pages/TradeFinanceDocuments";
 import UCPRules from "@/pages/UCPRules";
 import MT700Lifecycle from "@/pages/MT700Lifecycle";
 import MessageBuilder from "@/pages/MessageBuilder";
-import MTIntelligence from "@/pages/MTIntelligenceSimple";
+import MTIntelligence from "@/pages/MTIntelligenceComplete";
 import SwiftMessageTypes from "@/pages/SwiftMessageTypes";
 import SwiftMessageDetails from "@/pages/SwiftMessageDetails";
 import SwiftValidation from "@/pages/SwiftValidation";
