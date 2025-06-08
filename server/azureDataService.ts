@@ -51,57 +51,24 @@ export class AzureDataService {
     }
   }
 
-  // SWIFT Message Definitions - Comprehensive MT7xx and Trade Finance Messages
+  // SWIFT Message Definitions - Query from Azure SQL Database with swift schema
   async getSwiftMessageTypes() {
     try {
-      // Return all 38 SWIFT message types from your database structure
-      const messageTypes = [
-        // MT7xx Documentary Credits (Primary Category)
-        { message_type: 'MT700', message_type_code: '700', message_type_name: 'Issue of a Documentary Credit', description: 'Issue of a Documentary Credit', category: '7', purpose: 'Used to issue a new documentary credit', is_active: true },
-        { message_type: 'MT701', message_type_code: '701', message_type_name: 'Issue of a Documentary Credit (Extended)', description: 'Issue of a Documentary Credit (Extended)', category: '7', purpose: 'Used to issue a documentary credit with extended fields', is_active: true },
-        { message_type: 'MT705', message_type_code: '705', message_type_name: 'Pre-Advice of a Documentary Credit', description: 'Pre-Advice of a Documentary Credit', category: '7', purpose: 'Used to pre-advise the issuance of a documentary credit', is_active: true },
-        { message_type: 'MT707', message_type_code: '707', message_type_name: 'Amendment to a Documentary Credit', description: 'Amendment to a Documentary Credit', category: '7', purpose: 'Used to amend an existing documentary credit', is_active: true },
-        { message_type: 'MT710', message_type_code: '710', message_type_name: 'Advice of a Third Bank\'s Documentary Credit', description: 'Advice of a Third Bank\'s Documentary Credit', category: '7', purpose: 'Used to advise a documentary credit issued by a third bank', is_active: true },
-        { message_type: 'MT711', message_type_code: '711', message_type_name: 'Advice of a Third Bank\'s Documentary Credit (Extended)', description: 'Advice of a Third Bank\'s Documentary Credit (Extended)', category: '7', purpose: 'Used to advise a documentary credit with extended format', is_active: true },
-        { message_type: 'MT720', message_type_code: '720', message_type_name: 'Transfer of a Documentary Credit', description: 'Transfer of a Documentary Credit', category: '7', purpose: 'Used to transfer all or part of a documentary credit', is_active: true },
-        { message_type: 'MT721', message_type_code: '721', message_type_name: 'Transfer of a Documentary Credit (Extended)', description: 'Transfer of a Documentary Credit (Extended)', category: '7', purpose: 'Used to transfer a documentary credit with extended format', is_active: true },
-        { message_type: 'MT730', message_type_code: '730', message_type_name: 'Acknowledgement', description: 'Acknowledgement', category: '7', purpose: 'Used to acknowledge receipt of a documentary credit message', is_active: true },
-        { message_type: 'MT732', message_type_code: '732', message_type_name: 'Advice of Discharge', description: 'Advice of Discharge', category: '7', purpose: 'Used to advise discharge of liability under a documentary credit', is_active: true },
-        { message_type: 'MT734', message_type_code: '734', message_type_name: 'Advice of Refusal', description: 'Advice of Refusal', category: '7', purpose: 'Used to advise refusal to honor or negotiate under a documentary credit', is_active: true },
-        { message_type: 'MT740', message_type_code: '740', message_type_name: 'Authorization to Reimburse', description: 'Authorization to Reimburse', category: '7', purpose: 'Used to authorize reimbursement of a documentary credit', is_active: true },
-        { message_type: 'MT742', message_type_code: '742', message_type_name: 'Reimbursement Claim', description: 'Reimbursement Claim', category: '7', purpose: 'Used to claim reimbursement under a documentary credit', is_active: true },
-        { message_type: 'MT747', message_type_code: '747', message_type_name: 'Amendment to an Authorization to Reimburse', description: 'Amendment to an Authorization to Reimburse', category: '7', purpose: 'Used to amend an authorization to reimburse', is_active: true },
-        { message_type: 'MT750', message_type_code: '750', message_type_name: 'Advice of Discrepancy', description: 'Advice of Discrepancy', category: '7', purpose: 'Used to advise discrepancies in documentary credit documents', is_active: true },
-        { message_type: 'MT752', message_type_code: '752', message_type_name: 'Authorisation to Pay, Accept or Negotiate', description: 'Authorisation to Pay, Accept or Negotiate', category: '7', purpose: 'Used to authorize payment, acceptance or negotiation', is_active: true },
-        { message_type: 'MT754', message_type_code: '754', message_type_name: 'Advice of Payment/Acceptance/Negotiation', description: 'Advice of Payment/Acceptance/Negotiation', category: '7', purpose: 'Used to advise payment, acceptance or negotiation under a documentary credit', is_active: true },
-        { message_type: 'MT756', message_type_code: '756', message_type_name: 'Advice of Reimbursement or Payment', description: 'Advice of Reimbursement or Payment', category: '7', purpose: 'Used to advise reimbursement or payment made under a documentary credit', is_active: true },
-        { message_type: 'MT760', message_type_code: '760', message_type_name: 'Guarantee', description: 'Guarantee', category: '7', purpose: 'Used for guarantee-related messages', is_active: true },
-        { message_type: 'MT767', message_type_code: '767', message_type_name: 'Guarantee Amendment', description: 'Guarantee Amendment', category: '7', purpose: 'Used to amend an existing guarantee', is_active: true },
-        { message_type: 'MT768', message_type_code: '768', message_type_name: 'Acknowledgement of a Guarantee Message', description: 'Acknowledgement of a Guarantee Message', category: '7', purpose: 'Used to acknowledge receipt of a guarantee message', is_active: true },
-        { message_type: 'MT769', message_type_code: '769', message_type_name: 'Advice of Reduction or Release', description: 'Advice of Reduction or Release', category: '7', purpose: 'Used to advise reduction or release of a guarantee', is_active: true },
-        { message_type: 'MT778', message_type_code: '778', message_type_name: 'Standby Letter of Credit', description: 'Standby Letter of Credit', category: '7', purpose: 'Used for standby letter of credit issuance', is_active: true },
-        { message_type: 'MT779', message_type_code: '779', message_type_name: 'Standby LC Amendment', description: 'Standby LC Amendment', category: '7', purpose: 'Used to amend a standby letter of credit', is_active: true },
-        { message_type: 'MT798', message_type_code: '798', message_type_name: 'Proprietary Message', description: 'Proprietary Message', category: '7', purpose: 'Used for proprietary or bilateral messages', is_active: true },
-        { message_type: 'MT799', message_type_code: '799', message_type_name: 'Free Format Message', description: 'Free Format Message', category: '7', purpose: 'Used for free format documentary credit messages', is_active: true },
-        
-        // MT4xx Collections Category
-        { message_type: 'MT400', message_type_code: '400', message_type_name: 'Advice of Payment', description: 'Advice of Payment', category: '4', purpose: 'Used to advise payment of a collection', is_active: true },
-        { message_type: 'MT405', message_type_code: '405', message_type_name: 'Clean Collection', description: 'Clean Collection', category: '4', purpose: 'Used for clean collection instructions', is_active: true },
-        { message_type: 'MT410', message_type_code: '410', message_type_name: 'Acknowledgement', description: 'Acknowledgement', category: '4', purpose: 'Used to acknowledge receipt of collection instructions', is_active: true },
-        { message_type: 'MT412', message_type_code: '412', message_type_name: 'Advice of Acceptance', description: 'Advice of Acceptance', category: '4', purpose: 'Used to advise acceptance of documents', is_active: true },
-        { message_type: 'MT416', message_type_code: '416', message_type_name: 'Advice of Non-Payment/Non-Acceptance', description: 'Advice of Non-Payment/Non-Acceptance', category: '4', purpose: 'Used to advise non-payment or non-acceptance', is_active: true },
-        { message_type: 'MT420', message_type_code: '420', message_type_name: 'Tracer', description: 'Tracer', category: '4', purpose: 'Used to trace the status of a collection', is_active: true },
-        { message_type: 'MT422', message_type_code: '422', message_type_name: 'Advice of Fate and Request for Instructions', description: 'Advice of Fate and Request for Instructions', category: '4', purpose: 'Used to advise fate of documents and request instructions', is_active: true },
-        { message_type: 'MT430', message_type_code: '430', message_type_name: 'Amendment of Instructions', description: 'Amendment of Instructions', category: '4', purpose: 'Used to amend collection instructions', is_active: true },
-        { message_type: 'MT456', message_type_code: '456', message_type_name: 'Advice of Dishonour', description: 'Advice of Dishonour', category: '4', purpose: 'Used to advise dishonour of documents', is_active: true },
-        
-        // MT6xx Precious Metals & Commodities
-        { message_type: 'MT600', message_type_code: '600', message_type_name: 'Precious Metals Confirmation', description: 'Precious Metals Confirmation', category: '6', purpose: 'Used for precious metals trade confirmation', is_active: true },
-        { message_type: 'MT601', message_type_code: '601', message_type_name: 'Precious Metals Confirmation', description: 'Precious Metals Confirmation', category: '6', purpose: 'Used for precious metals trade confirmation with extended details', is_active: true },
-        { message_type: 'MT670', message_type_code: '670', message_type_name: 'Extended Payment Advice', description: 'Extended Payment Advice', category: '6', purpose: 'Used for extended payment advice in trade finance', is_active: true }
-      ];
-      
-      return messageTypes;
+      const pool = await connectToAzureSQL();
+      const result = await pool.request().query(`
+        SELECT 
+          message_type,
+          message_type_code,
+          message_type_name,
+          description,
+          category,
+          purpose,
+          is_active
+        FROM swift.message_types 
+        WHERE is_active = 1
+        ORDER BY message_type_code
+      `);
+      return result.recordset;
     } catch (error) {
       console.error('Error fetching SWIFT message types:', error);
       throw error;
@@ -120,7 +87,7 @@ export class AzureDataService {
           is_active,
           is_mandatory,
           description
-        FROM field_codes 
+        FROM swift.field_codes 
         WHERE is_active = 1
         ORDER BY field_code
       `);
@@ -137,10 +104,20 @@ export class AzureDataService {
       const result = await pool.request()
         .input('messageTypeCode', messageTypeCode)
         .query(`
-          SELECT sf.* FROM SwiftFields sf
-          INNER JOIN MessageTypeFields mtf ON sf.field_code = mtf.field_code
-          WHERE mtf.message_type_code = @messageTypeCode
-          ORDER BY mtf.field_order, sf.field_code
+          SELECT 
+            mf.field_code,
+            fc.field_name,
+            fc.format,
+            fc.max_length,
+            mf.is_mandatory,
+            mf.sequence_number,
+            fc.description
+          FROM swift.message_fields mf
+          INNER JOIN swift.field_codes fc ON mf.field_code = fc.field_code
+          WHERE mf.message_type_code = @messageTypeCode
+            AND mf.is_active = 1
+            AND fc.is_active = 1
+          ORDER BY mf.sequence_number
         `);
       return result.recordset;
     } catch (error) {
