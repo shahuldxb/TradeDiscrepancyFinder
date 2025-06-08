@@ -83,7 +83,19 @@ const navigationItems: NavItem[] = [
       { title: "Agent Performance", href: "/agents/performance", icon: TrendingUp },
     ]
   },
-
+  {
+    title: "SWIFT Messages",
+    href: "/swift",
+    icon: MessageSquare,
+    children: [
+      { title: "MT700 Lifecycle", href: "/mt700-lifecycle", icon: Workflow },
+      { title: "Message Builder", href: "/message-builder", icon: Settings },
+      { title: "MT Intelligence", href: "/mt-intelligence", icon: Bot },
+      { title: "Message Types", href: "/swift-message-types", icon: FileText },
+      { title: "Message Validation", href: "/swift/validation", icon: CheckCircle },
+      { title: "Category 7 Messages", href: "/swift/category7", icon: MessageSquare },
+    ]
+  },
   {
     title: "Analysis & Reporting",
     href: "/analysis",
@@ -107,7 +119,7 @@ const navigationItems: NavItem[] = [
       { title: "Agent Code Demo", href: "/test-drive/agent-code", icon: FileText },
       { title: "AI Validation Demo", href: "/test-drive/validation", icon: CheckCircle },
       { title: "Document Processing", href: "/test-drive/documents", icon: Upload },
-
+      { title: "SWIFT Processing", href: "/test-drive/swift", icon: MessageSquare },
     ]
   },
   {
