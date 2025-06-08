@@ -30,22 +30,21 @@ interface SwiftField {
 }
 
 interface FieldValidation {
-  rule_id: string;
   field_code: string;
-  validation_type: string;
-  validation_rule: string;
+  field_name: string;
+  rule_type: string;
+  rule_description: string;
+  validation_pattern: string;
   error_message: string;
-  severity: 'ERROR' | 'WARNING' | 'INFO';
 }
 
 interface FieldSpecification {
   field_code: string;
-  data_type: string;
-  format_pattern: string;
-  min_length: number;
-  max_length: number;
-  allowed_values: string;
-  usage_rules: string;
+  field_name: string;
+  specification: string;
+  format: string;
+  presence: string;
+  definition: string;
 }
 
 export default function MTIntelligenceComplete() {
@@ -54,25 +53,25 @@ export default function MTIntelligenceComplete() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
   // Fetch SWIFT message types from Azure database
-  const { data: messages = [], isLoading: messagesLoading, error: messagesError } = useQuery({
+  const { data: messages = [], isLoading: messagesLoading, error: messagesError } = useQuery<SwiftMessage[]>({
     queryKey: ['/api/swift/message-types-azure'],
     enabled: true,
   });
 
   // Fetch fields for selected message
-  const { data: messageFields = [], isLoading: fieldsLoading } = useQuery({
+  const { data: messageFields = [], isLoading: fieldsLoading } = useQuery<SwiftField[]>({
     queryKey: ['/api/swift/fields-by-message', selectedMessage?.message_type_code],
     enabled: !!selectedMessage?.message_type_code,
   });
 
   // Fetch field specifications
-  const { data: fieldSpecs = [], isLoading: specsLoading } = useQuery({
+  const { data: fieldSpecs = [], isLoading: specsLoading } = useQuery<FieldSpecification[]>({
     queryKey: ['/api/swift/field-specifications', selectedMessage?.message_type_code],
     enabled: !!selectedMessage?.message_type_code,
   });
 
   // Fetch validation rules
-  const { data: validationRules = [], isLoading: validationLoading } = useQuery({
+  const { data: validationRules = [], isLoading: validationLoading } = useQuery<FieldValidation[]>({
     queryKey: ['/api/swift/field-validation', selectedMessage?.message_type_code],
     enabled: !!selectedMessage?.message_type_code,
   });
@@ -88,7 +87,7 @@ export default function MTIntelligenceComplete() {
   // Get statistics
   const totalMessages = messages.length;
   const activeMessages = messages.filter((msg: SwiftMessage) => msg.is_active).length;
-  const categories = [...new Set(messages.map((msg: SwiftMessage) => msg.category))];
+  const categories = Array.from(new Set(messages.map((msg: SwiftMessage) => msg.category)));
   const categoryStats = categories.map(cat => ({
     category: cat,
     count: messages.filter((msg: SwiftMessage) => msg.category === cat).length
@@ -349,18 +348,26 @@ export default function MTIntelligenceComplete() {
                         <TableHeader>
                           <TableRow>
                             <TableHead>Field</TableHead>
-                            <TableHead>Data Type</TableHead>
-                            <TableHead>Length</TableHead>
-                            <TableHead>Format Pattern</TableHead>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Format</TableHead>
+                            <TableHead>Presence</TableHead>
+                            <TableHead>Definition</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {fieldSpecs.map((spec: FieldSpecification) => (
                             <TableRow key={spec.field_code}>
                               <TableCell className="font-medium">{spec.field_code}</TableCell>
-                              <TableCell>{spec.data_type}</TableCell>
-                              <TableCell>{spec.min_length}-{spec.max_length}</TableCell>
-                              <TableCell className="font-mono text-xs">{spec.format_pattern}</TableCell>
+                              <TableCell>{spec.field_name}</TableCell>
+                              <TableCell className="font-mono text-xs">{spec.format}</TableCell>
+                              <TableCell>
+                                <Badge variant={spec.presence === 'Mandatory' ? 'destructive' : 'secondary'}>
+                                  {spec.presence}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-xs text-muted-foreground max-w-xs truncate">
+                                {spec.definition}
+                              </TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
@@ -379,24 +386,24 @@ export default function MTIntelligenceComplete() {
                     <div className="space-y-4">
                       <h4 className="font-medium">Validation Rules</h4>
                       <div className="space-y-2">
-                        {validationRules.map((rule: FieldValidation) => (
-                          <div key={rule.rule_id} className="border rounded-lg p-3">
+                        {validationRules.map((rule: FieldValidation, index: number) => (
+                          <div key={`${rule.field_code}-${index}`} className="border rounded-lg p-3">
                             <div className="flex items-start gap-2">
-                              {getSeverityIcon(rule.severity)}
+                              <CheckCircle className="h-4 w-4 text-blue-500" />
                               <div className="flex-1">
                                 <div className="flex items-center gap-2">
                                   <span className="font-medium">{rule.field_code}</span>
-                                  <Badge variant="outline">{rule.validation_type}</Badge>
-                                  <Badge 
-                                    variant={rule.severity === 'ERROR' ? 'destructive' : 
-                                            rule.severity === 'WARNING' ? 'secondary' : 'default'}
-                                  >
-                                    {rule.severity}
-                                  </Badge>
+                                  <span className="text-sm text-muted-foreground">- {rule.field_name}</span>
+                                  <Badge variant="outline">{rule.rule_type}</Badge>
                                 </div>
                                 <p className="text-sm text-muted-foreground mt-1">
-                                  {rule.validation_rule}
+                                  {rule.rule_description}
                                 </p>
+                                {rule.validation_pattern && (
+                                  <p className="text-xs font-mono bg-gray-100 p-1 rounded mt-1">
+                                    Pattern: {rule.validation_pattern}
+                                  </p>
+                                )}
                                 <p className="text-xs text-red-600 mt-1">
                                   {rule.error_message}
                                 </p>
