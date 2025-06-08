@@ -16,15 +16,10 @@ import ValidationResults from "@/pages/ValidationResults";
 import DiscrepancyAnalysis from "@/pages/DiscrepancyAnalysis";
 import AgentMonitor from "@/pages/AgentMonitor";
 import AgentDesigner from "@/pages/AgentDesigner";
-import MessageBuilder from "@/pages/MessageBuilder";
-import MTIntelligence from "@/pages/MTIntelligenceSimple";
-import SwiftMessageTypes from "@/pages/SwiftMessageTypes";
-import SwiftMessageDetails from "@/pages/SwiftMessageDetails";
-import SwiftValidation from "@/pages/SwiftValidation";
-import SwiftCategory7 from "@/pages/SwiftCategory7";
+
 import TradeFinanceDocuments from "@/pages/TradeFinanceDocuments";
 import UCPRules from "@/pages/UCPRules";
-import MT700Lifecycle from "@/pages/MT700Lifecycle";
+
 import SkillsManagement from "@/pages/SkillsManagement";
 import OCRAgent from "@/pages/OCRAgent";
 import AgentCode from "@/pages/AgentCode";
@@ -81,17 +76,7 @@ function Router() {
             <Route path="/test-drive/agent-code" component={AgentCode} />
             <Route path="/test-drive/validation" component={DiscrepancyAnalysis} />
             <Route path="/test-drive/documents" component={DocumentUpload} />
-            <Route path="/test-drive/swift" component={MT700Lifecycle} />
-            
-            {/* SWIFT Messages Routes */}
-            <Route path="/mt700-lifecycle" component={MT700Lifecycle} />
-            <Route path="/swift/mt700-lifecycle" component={MT700Lifecycle} />
-            <Route path="/message-builder" component={MessageBuilder} />
-            <Route path="/mt-intelligence" component={MTIntelligence} />
-            <Route path="/swift-message-types" component={SwiftMessageTypes} />
-            <Route path="/swift-message/:messageType" component={SwiftMessageDetails} />
-            <Route path="/swift/validation" component={SwiftValidation} />
-            <Route path="/swift/category7" component={SwiftCategory7} />
+
             
             {/* Analysis & Reporting Routes */}
             <Route path="/discrepancy-analysis" component={DiscrepancyAnalysis} />
