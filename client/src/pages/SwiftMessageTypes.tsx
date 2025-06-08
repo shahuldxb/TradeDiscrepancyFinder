@@ -40,13 +40,13 @@ export default function SwiftMessageTypes() {
   });
 
   // Filter message types based on search and category
-  const filteredMessageTypes = (messageTypes || []).filter((msgType: any) => {
+  const filteredMessageTypes = Array.isArray(messageTypes) ? messageTypes.filter((msgType: any) => {
     const matchesSearch = msgType.message_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          msgType.message_type_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          msgType.description?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === "all" || msgType.category === selectedCategory;
     return matchesSearch && matchesCategory;
-  });
+  }) : [];
 
   const handleMessageClick = (msgType: any) => {
     setSelectedMessage(msgType);
@@ -57,13 +57,13 @@ export default function SwiftMessageTypes() {
   const categories = ["all", "7"];
 
   // Get message statistics
-  const totalMessages = (messageTypes || []).length;
-  const activeMessages = (messageTypes || []).filter((msg: any) => msg.is_active).length;
-  const category7Messages = (messageTypes || []).filter((msg: any) => msg.category === "7").length;
+  const totalMessages = Array.isArray(messageTypes) ? messageTypes.length : 0;
+  const activeMessages = Array.isArray(messageTypes) ? messageTypes.filter((msg: any) => msg.is_active).length : 0;
+  const category7Messages = Array.isArray(messageTypes) ? messageTypes.filter((msg: any) => msg.category === "7").length : 0;
 
   // Get field statistics
-  const totalFields = (swiftFields || []).length;
-  const activeFields = (swiftFields || []).filter((field: any) => field.is_active).length;
+  const totalFields = Array.isArray(swiftFields) ? swiftFields.length : 0;
+  const activeFields = Array.isArray(swiftFields) ? swiftFields.filter((field: any) => field.is_active).length : 0;
 
   if (loadingMessageTypes || loadingFields) {
     return (
@@ -267,7 +267,7 @@ export default function SwiftMessageTypes() {
                     <p className="text-sm text-gray-600">Active Fields</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-2xl font-bold">{(swiftFields || []).filter((f: any) => f.field_code?.startsWith('2')).length}</p>
+                    <p className="text-2xl font-bold">{Array.isArray(swiftFields) ? swiftFields.filter((f: any) => f.field_code?.startsWith('2')).length : 0}</p>
                     <p className="text-sm text-gray-600">Reference Fields</p>
                   </div>
                 </div>
@@ -285,7 +285,7 @@ export default function SwiftMessageTypes() {
                       </tr>
                     </thead>
                     <tbody>
-                      {(swiftFields || []).slice(0, 20).map((field: any) => (
+                      {Array.isArray(swiftFields) ? swiftFields.slice(0, 20).map((field: any) => (
                         <tr key={field.field_code} className="border-b hover:bg-gray-50">
                           <td className="p-2">
                             <Badge variant="outline">{field.field_code}</Badge>
@@ -299,7 +299,7 @@ export default function SwiftMessageTypes() {
                             </Badge>
                           </td>
                         </tr>
-                      ))}
+                      )) : null}
                     </tbody>
                   </table>
                 </div>
@@ -393,7 +393,7 @@ export default function SwiftMessageTypes() {
                   <div className="space-y-4">
                     <h3 className="font-semibold">Related SWIFT Fields</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {(swiftFields || []).slice(0, 6).map((field: any) => (
+                      {Array.isArray(swiftFields) ? swiftFields.slice(0, 6).map((field: any) => (
                         <div key={field.field_code} className="p-3 bg-gray-50 rounded">
                           <div className="flex items-center justify-between mb-2">
                             <Badge variant="outline" className="text-xs">{field.field_code}</Badge>
@@ -402,7 +402,7 @@ export default function SwiftMessageTypes() {
                           <p className="text-sm font-medium">{field.field_name}</p>
                           <p className="text-xs text-gray-600">Max: {field.max_length} chars</p>
                         </div>
-                      ))}
+                      )) : []}
                     </div>
                   </div>
 
