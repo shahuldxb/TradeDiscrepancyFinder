@@ -57,15 +57,16 @@ export class AzureDataService {
       const pool = await connectToAzureSQL();
       const result = await pool.request().query(`
         SELECT 
-          message_type,
+          CONCAT('MT', message_type_code) as message_type,
           message_type_code,
-          message_type_name,
+          name as message_type_name,
           description,
           category,
-          purpose,
+          description as purpose,
           is_active
         FROM swift_message_types 
-        ORDER BY message_type
+        WHERE is_active = 1
+        ORDER BY message_type_code
       `);
       return result.recordset;
     } catch (error) {
