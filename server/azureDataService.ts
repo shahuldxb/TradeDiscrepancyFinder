@@ -51,104 +51,23 @@ export class AzureDataService {
     }
   }
 
-  // SWIFT Message Definitions - Replace PostgreSQL
+  // SWIFT Message Definitions - Query from Azure SQL Database
   async getSwiftMessageTypes() {
     try {
-      // Return MT7xx message types for display
-      const messageTypes = [
-        {
-          message_type: 'MT700',
-          message_type_code: '700',
-          message_type_name: 'Issue of a Documentary Credit',
-          description: 'Issue of a Documentary Credit',
-          category: '7',
-          purpose: 'Used to issue a new documentary credit',
-          is_active: true
-        },
-        {
-          message_type: 'MT701',
-          message_type_code: '701',
-          message_type_name: 'Issue of a Documentary Credit (Extended)',
-          description: 'Issue of a Documentary Credit (Extended)',
-          category: '7',
-          purpose: 'Used to issue a new documentary credit with extended fields',
-          is_active: true
-        },
-        {
-          message_type: 'MT705',
-          message_type_code: '705',
-          message_type_name: 'Pre-Advice of a Documentary Credit',
-          description: 'Pre-Advice of a Documentary Credit',
-          category: '7',
-          purpose: 'Used to pre-advise the issuance of a documentary credit',
-          is_active: true
-        },
-        {
-          message_type: 'MT707',
-          message_type_code: '707',
-          message_type_name: 'Amendment to a Documentary Credit',
-          description: 'Amendment to a Documentary Credit',
-          category: '7',
-          purpose: 'Used to amend an existing documentary credit',
-          is_active: true
-        },
-        {
-          message_type: 'MT710',
-          message_type_code: '710',
-          message_type_name: 'Advice of a Third Bank\'s Documentary Credit',
-          description: 'Advice of a Third Bank\'s Documentary Credit',
-          category: '7',
-          purpose: 'Used to advise a documentary credit issued by a third bank',
-          is_active: true
-        },
-        {
-          message_type: 'MT720',
-          message_type_code: '720',
-          message_type_name: 'Transfer of a Documentary Credit',
-          description: 'Transfer of a Documentary Credit',
-          category: '7',
-          purpose: 'Used to transfer all or part of a documentary credit',
-          is_active: true
-        },
-        {
-          message_type: 'MT730',
-          message_type_code: '730',
-          message_type_name: 'Acknowledgement',
-          description: 'Acknowledgement',
-          category: '7',
-          purpose: 'Used to acknowledge receipt of a documentary credit message',
-          is_active: true
-        },
-        {
-          message_type: 'MT740',
-          message_type_code: '740',
-          message_type_name: 'Authorization to Reimburse',
-          description: 'Authorization to Reimburse',
-          category: '7',
-          purpose: 'Used to authorize reimbursement of a documentary credit',
-          is_active: true
-        },
-        {
-          message_type: 'MT750',
-          message_type_code: '750',
-          message_type_name: 'Advice of Discrepancy',
-          description: 'Advice of Discrepancy',
-          category: '7',
-          purpose: 'Used to advise discrepancies in documentary credit documents',
-          is_active: true
-        },
-        {
-          message_type: 'MT760',
-          message_type_code: '760',
-          message_type_name: 'Guarantee',
-          description: 'Guarantee',
-          category: '7',
-          purpose: 'Used for guarantee-related messages',
-          is_active: true
-        }
-      ];
-      
-      return messageTypes;
+      const pool = await connectToAzureSQL();
+      const result = await pool.request().query(`
+        SELECT 
+          message_type,
+          message_type_code,
+          message_type_name,
+          description,
+          category,
+          purpose,
+          is_active
+        FROM swift_message_types 
+        ORDER BY message_type
+      `);
+      return result.recordset;
     } catch (error) {
       console.error('Error fetching SWIFT message types:', error);
       throw error;
@@ -157,187 +76,21 @@ export class AzureDataService {
 
   async getSwiftFields() {
     try {
-      // Return SWIFT field definitions for MT7xx messages
-      const fields = [
-        {
-          field_code: '20',
-          field_name: 'Documentary Credit Number',
-          format: '16x',
-          max_length: 16,
-          is_active: true,
-          description: 'Reference number assigned by the issuing bank'
-        },
-        {
-          field_code: '23',
-          field_name: 'Reference to Pre-Advice',
-          format: '16x',
-          max_length: 16,
-          is_active: true,
-          description: 'Reference to pre-advice message if applicable'
-        },
-        {
-          field_code: '31C',
-          field_name: 'Date of Issue',
-          format: '6!n',
-          max_length: 6,
-          is_active: true,
-          description: 'Date when the documentary credit was issued'
-        },
-        {
-          field_code: '31D',
-          field_name: 'Date and Place of Expiry',
-          format: '6!n4!a2a',
-          max_length: 12,
-          is_active: true,
-          description: 'Expiry date and place of the documentary credit'
-        },
-        {
-          field_code: '32B',
-          field_name: 'Currency Code, Amount',
-          format: '3!a15d',
-          max_length: 18,
-          is_active: true,
-          description: 'Currency and amount of the documentary credit'
-        },
-        {
-          field_code: '39A',
-          field_name: 'Percentage Credit Amount Tolerance',
-          format: '2n/2n',
-          max_length: 5,
-          is_active: true,
-          description: 'Tolerance percentage for credit amount variation'
-        },
-        {
-          field_code: '39B',
-          field_name: 'Maximum Credit Amount',
-          format: '3!a15d',
-          max_length: 18,
-          is_active: true,
-          description: 'Maximum amount that can be drawn under the credit'
-        },
-        {
-          field_code: '40A',
-          field_name: 'Form of Documentary Credit',
-          format: '1!a',
-          max_length: 1,
-          is_active: true,
-          description: 'Form of documentary credit (I=Irrevocable, R=Revocable)'
-        },
-        {
-          field_code: '40E',
-          field_name: 'Applicable Rules',
-          format: '4*35x',
-          max_length: 140,
-          is_active: true,
-          description: 'Rules applicable to the documentary credit'
-        },
-        {
-          field_code: '41A',
-          field_name: 'Available With... By...',
-          format: '4*35x',
-          max_length: 140,
-          is_active: true,
-          description: 'Bank with which credit is available and method'
-        },
-        {
-          field_code: '42C',
-          field_name: 'Drafts at...',
-          format: '4*35x',
-          max_length: 140,
-          is_active: true,
-          description: 'Terms for drafts under the documentary credit'
-        },
-        {
-          field_code: '43P',
-          field_name: 'Partial Shipments',
-          format: '1!a',
-          max_length: 1,
-          is_active: true,
-          description: 'Whether partial shipments are allowed'
-        },
-        {
-          field_code: '43T',
-          field_name: 'Transhipment',
-          format: '1!a',
-          max_length: 1,
-          is_active: true,
-          description: 'Whether transhipment is allowed'
-        },
-        {
-          field_code: '44A',
-          field_name: 'Loading on Board/Dispatch from',
-          format: '65x',
-          max_length: 65,
-          is_active: true,
-          description: 'Port of loading or place of dispatch'
-        },
-        {
-          field_code: '44B',
-          field_name: 'For Transportation to',
-          format: '65x',
-          max_length: 65,
-          is_active: true,
-          description: 'Port of discharge or place of destination'
-        },
-        {
-          field_code: '44C',
-          field_name: 'Latest Date of Shipment',
-          format: '6!n',
-          max_length: 6,
-          is_active: true,
-          description: 'Latest date for shipment of goods'
-        },
-        {
-          field_code: '45A',
-          field_name: 'Description of Goods and/or Services',
-          format: '65*35x',
-          max_length: 2275,
-          is_active: true,
-          description: 'Description of goods or services being traded'
-        },
-        {
-          field_code: '46A',
-          field_name: 'Documents Required',
-          format: '65*35x',
-          max_length: 2275,
-          is_active: true,
-          description: 'Documents required for presentation'
-        },
-        {
-          field_code: '47A',
-          field_name: 'Additional Conditions',
-          format: '65*35x',
-          max_length: 2275,
-          is_active: true,
-          description: 'Additional terms and conditions'
-        },
-        {
-          field_code: '49',
-          field_name: 'Confirmation Instructions',
-          format: '1!a',
-          max_length: 1,
-          is_active: true,
-          description: 'Instructions for confirmation of the credit'
-        },
-        {
-          field_code: '50',
-          field_name: 'Applicant',
-          format: '4*35x',
-          max_length: 140,
-          is_active: true,
-          description: 'Party applying for the documentary credit'
-        },
-        {
-          field_code: '59',
-          field_name: 'Beneficiary',
-          format: '4*35x',
-          max_length: 140,
-          is_active: true,
-          description: 'Party in whose favor the credit is issued'
-        }
-      ];
-      
-      return fields;
+      const pool = await connectToAzureSQL();
+      const result = await pool.request().query(`
+        SELECT 
+          field_code,
+          field_name,
+          format,
+          max_length,
+          is_active,
+          is_mandatory,
+          description
+        FROM swift_fields 
+        WHERE is_active = 1
+        ORDER BY field_code
+      `);
+      return result.recordset;
     } catch (error) {
       console.error('Error fetching SWIFT fields:', error);
       throw error;
