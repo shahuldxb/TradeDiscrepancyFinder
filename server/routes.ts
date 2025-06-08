@@ -846,6 +846,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Non-authenticated SWIFT endpoints for public access
+  app.get("/api/swift/message-types-azure", async (req, res) => {
+    try {
+      const { azureDataService } = await import('./azureDataService');
+      const messageTypes = await azureDataService.getSwiftMessageTypes();
+      res.json(messageTypes);
+    } catch (error) {
+      console.error("Error fetching SWIFT message types:", error);
+      res.status(500).json({ error: "Failed to fetch SWIFT message types" });
+    }
+  });
+
+  app.get("/api/swift/fields-azure", async (req, res) => {
+    try {
+      const { azureDataService } = await import('./azureDataService');
+      const fields = await azureDataService.getSwiftFields();
+      res.json(fields);
+    } catch (error) {
+      console.error("Error fetching SWIFT fields:", error);
+      res.status(500).json({ error: "Failed to fetch SWIFT fields" });
+    }
+  });
+
+  app.get("/api/swift/fields-azure/:messageType", async (req, res) => {
+    try {
+      const { messageType } = req.params;
+      const { azureDataService } = await import('./azureDataService');
+      const fields = await azureDataService.getSwiftFieldsByMessageType(messageType);
+      res.json(fields);
+    } catch (error) {
+      console.error("Error fetching SWIFT fields by message type:", error);
+      res.status(500).json({ error: "Failed to fetch SWIFT fields by message type" });
+    }
+  });
+
   app.post("/api/swift/validate", async (req, res) => {
     try {
       const { messageText, messageType } = req.body;

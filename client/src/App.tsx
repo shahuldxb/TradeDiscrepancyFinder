@@ -18,6 +18,7 @@ import AgentMonitor from "@/pages/AgentMonitor";
 import AgentDesigner from "@/pages/AgentDesigner";
 import MessageBuilder from "@/pages/MessageBuilder";
 import MTIntelligence from "@/pages/MTIntelligenceSimple";
+import SwiftMessageTypes from "@/pages/SwiftMessageTypes";
 import SwiftMessageDetails from "@/pages/SwiftMessageDetails";
 import SwiftValidation from "@/pages/SwiftValidation";
 import SwiftCategory7 from "@/pages/SwiftCategory7";
@@ -87,6 +88,7 @@ function Router() {
             <Route path="/swift/mt700-lifecycle" component={MT700Lifecycle} />
             <Route path="/message-builder" component={MessageBuilder} />
             <Route path="/mt-intelligence" component={MTIntelligence} />
+            <Route path="/swift-message-types" component={SwiftMessageTypes} />
             <Route path="/swift-message/:messageType" component={SwiftMessageDetails} />
             <Route path="/swift/validation" component={SwiftValidation} />
             <Route path="/swift/category7" component={SwiftCategory7} />
