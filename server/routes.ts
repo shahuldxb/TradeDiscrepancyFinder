@@ -881,6 +881,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // API endpoints expected by MT Intelligence frontend
+  app.get("/api/swift/fields-by-message", async (req, res) => {
+    try {
+      const messageTypeCode = req.query.messageTypeCode as string;
+      if (!messageTypeCode) {
+        return res.status(400).json({ error: "messageTypeCode parameter required" });
+      }
+      const { azureDataService } = await import('./azureDataService');
+      const fields = await azureDataService.getSwiftFieldsByMessageType(messageTypeCode);
+      res.json(fields);
+    } catch (error) {
+      console.error("Error fetching SWIFT fields:", error);
+      res.status(500).json({ error: "Failed to fetch SWIFT fields" });
+    }
+  });
+
+  app.get("/api/swift/field-specifications", async (req, res) => {
+    try {
+      const messageTypeCode = req.query.messageTypeCode as string;
+      if (!messageTypeCode) {
+        return res.status(400).json({ error: "messageTypeCode parameter required" });
+      }
+      const { azureDataService } = await import('./azureDataService');
+      const specs = await azureDataService.getFieldSpecifications(messageTypeCode);
+      res.json(specs);
+    } catch (error) {
+      console.error("Error fetching field specifications:", error);
+      res.status(500).json({ error: "Failed to fetch field specifications" });
+    }
+  });
+
+  app.get("/api/swift/field-validation", async (req, res) => {
+    try {
+      const messageTypeCode = req.query.messageTypeCode as string;
+      if (!messageTypeCode) {
+        return res.status(400).json({ error: "messageTypeCode parameter required" });
+      }
+      const { azureDataService } = await import('./azureDataService');
+      const rules = await azureDataService.getFieldValidationRules(messageTypeCode);
+      res.json(rules);
+    } catch (error) {
+      console.error("Error fetching validation rules:", error);
+      res.status(500).json({ error: "Failed to fetch validation rules" });
+    }
+  });
+
   // Field specifications endpoint for MT Intelligence
   app.get("/api/swift/fields-by-message/:messageType", async (req, res) => {
     try {
