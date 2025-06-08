@@ -106,9 +106,9 @@ export class AzureDataService {
       
       // First get message_type_id for the messageTypeCode
       const messageTypeResult = await pool.request().query(`
-        SELECT message_type_id 
+        SELECT message_type_id, MessageTypeCode, MessageType
         FROM swift.message_types 
-        WHERE message_type = 'MT${messageTypeCode}' OR message_type = '${messageTypeCode}'
+        WHERE MessageTypeCode = '${messageTypeCode}' OR MessageTypeCode = 'MT${messageTypeCode}' OR MessageType = 'MT${messageTypeCode}'
       `);
       
       if (messageTypeResult.recordset.length === 0) {
@@ -155,9 +155,9 @@ export class AzureDataService {
       
       // Get message_type_id first
       const messageTypeResult = await pool.request().query(`
-        SELECT message_type_id 
+        SELECT message_type_id, MessageTypeCode, MessageType
         FROM swift.message_types 
-        WHERE message_type = 'MT${messageTypeCode}' OR message_type = '${messageTypeCode}'
+        WHERE MessageTypeCode = '${messageTypeCode}' OR MessageTypeCode = 'MT${messageTypeCode}' OR MessageType = 'MT${messageTypeCode}'
       `);
       
       if (messageTypeResult.recordset.length === 0) {
@@ -205,7 +205,7 @@ export class AzureDataService {
       const messageTypeResult = await pool.request().query(`
         SELECT message_type_id 
         FROM swift.message_types 
-        WHERE message_type = 'MT${messageTypeCode}' OR message_type = '${messageTypeCode}'
+        WHERE message_type_code = '${messageTypeCode}' OR message_type_code = 'MT${messageTypeCode}'
       `);
       
       if (messageTypeResult.recordset.length === 0) {
