@@ -44,7 +44,7 @@ export default function SwiftMessageTypes() {
   });
 
   // Filter messages based on search term and category
-  const filteredMessages = messageTypes.filter((msg: any) => {
+  const filteredMessages = (messageTypes || []).filter((msg: any) => {
     const matchesSearch = 
       msg.message_type_code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       msg.message_type_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -57,7 +57,7 @@ export default function SwiftMessageTypes() {
   });
 
   // Get unique categories for filtering
-  const categories = Array.from(new Set(messageTypes.map((msg: any) => msg.category).filter(Boolean)));
+  const categories = Array.from(new Set((messageTypes || []).map((msg: any) => msg.category).filter(Boolean)));
 
   const handleMessageClick = (msgType: any) => {
     console.log("Selected message type:", msgType);
@@ -83,7 +83,7 @@ export default function SwiftMessageTypes() {
             <CardContent>
               <div className="flex items-center space-x-2">
                 <MessageSquare className="h-4 w-4 text-blue-600" />
-                <span className="text-2xl font-bold">{messageTypes.length}</span>
+                <span className="text-2xl font-bold">{(messageTypes || []).length}</span>
               </div>
             </CardContent>
           </Card>
