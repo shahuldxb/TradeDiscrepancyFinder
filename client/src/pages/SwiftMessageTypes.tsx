@@ -44,7 +44,7 @@ export default function SwiftMessageTypes() {
   });
 
   // Filter messages based on search term and category
-  const filteredMessages = (messageTypes || []).filter((msg: any) => {
+  const filteredMessages = messageTypes.filter((msg: any) => {
     const matchesSearch = 
       msg.message_type_code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       msg.message_type_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -57,7 +57,7 @@ export default function SwiftMessageTypes() {
   });
 
   // Get unique categories for filtering
-  const categories = Array.from(new Set((messageTypes || []).map((msg: any) => msg.category).filter(Boolean)));
+  const categories = Array.from(new Set(messageTypes.map((msg: any) => msg.category).filter(Boolean)));
 
   const handleMessageClick = (msgType: any) => {
     console.log("Selected message type:", msgType);
@@ -83,7 +83,7 @@ export default function SwiftMessageTypes() {
             <CardContent>
               <div className="flex items-center space-x-2">
                 <MessageSquare className="h-4 w-4 text-blue-600" />
-                <span className="text-2xl font-bold">{messageTypes?.length || 0}</span>
+                <span className="text-2xl font-bold">{messageTypes.length}</span>
               </div>
             </CardContent>
           </Card>
@@ -95,7 +95,7 @@ export default function SwiftMessageTypes() {
             <CardContent>
               <div className="flex items-center space-x-2">
                 <Database className="h-4 w-4 text-green-600" />
-                <span className="text-2xl font-bold">{swiftFields?.length || 0}</span>
+                <span className="text-2xl font-bold">{(swiftFields || []).length}</span>
               </div>
             </CardContent>
           </Card>
@@ -164,7 +164,7 @@ export default function SwiftMessageTypes() {
                       onChange={(e) => setSelectedCategory(e.target.value)}
                     >
                       <option value="all">All Categories</option>
-                      {categories.map(category => (
+                      {categories.map((category: string) => (
                         <option key={category} value={category}>{category}</option>
                       ))}
                     </select>
@@ -286,7 +286,7 @@ export default function SwiftMessageTypes() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {swiftFields?.slice(0, 20).map((field: any, index: number) => (
+                        {(swiftFields || []).slice(0, 20).map((field: any, index: number) => (
                           <TableRow key={index}>
                             <TableCell className="font-mono">{field.field_code}</TableCell>
                             <TableCell className="font-medium">{field.field_name}</TableCell>
