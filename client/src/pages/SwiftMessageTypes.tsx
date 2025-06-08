@@ -26,7 +26,7 @@ import { Link } from "wouter";
 export default function SwiftMessageTypes() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [selectedTab, setSelectedTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState("overview");
   const [selectedMessage, setSelectedMessage] = useState<any>(null);
   const [showMessageDetail, setShowMessageDetail] = useState(false);
 
@@ -144,7 +144,7 @@ export default function SwiftMessageTypes() {
         </div>
 
         {/* Main Content Tabs */}
-        <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="overview">Message Types Overview</TabsTrigger>
             <TabsTrigger value="fields">Field Definitions</TabsTrigger>
