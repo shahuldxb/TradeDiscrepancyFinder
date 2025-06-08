@@ -51,20 +51,20 @@ export class AzureDataService {
     }
   }
 
-  // SWIFT Message Definitions - Query from Azure SQL Database
+  // SWIFT Message Definitions - Query from Azure SQL Database  
   async getSwiftMessageTypes() {
     try {
       const pool = await connectToAzureSQL();
       const result = await pool.request().query(`
         SELECT 
-          CONCAT('MT', message_type_code) as message_type,
+          message_type,
           message_type_code,
-          name as message_type_name,
+          message_type_name,
           description,
           category,
-          description as purpose,
+          purpose,
           is_active
-        FROM swift_message_types 
+        FROM message_types 
         WHERE is_active = 1
         ORDER BY message_type_code
       `);
@@ -87,7 +87,7 @@ export class AzureDataService {
           is_active,
           is_mandatory,
           description
-        FROM swift_fields 
+        FROM field_codes 
         WHERE is_active = 1
         ORDER BY field_code
       `);
