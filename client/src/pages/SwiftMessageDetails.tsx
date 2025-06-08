@@ -52,10 +52,10 @@ export default function SwiftMessageDetails() {
     category: "7",
     is_active: true,
     purpose: `Purpose and usage information for ${messageType}`,
-    fields: swiftFields?.slice(0, 8) || []
+    fields: Array.isArray(swiftFields) ? swiftFields.slice(0, 8) : []
   };
 
-  const displayData = messageData || mockMessageData;
+  const displayData = (messageData && typeof messageData === 'object') ? messageData : mockMessageData;
 
   return (
     <div className="space-y-6">
@@ -68,8 +68,8 @@ export default function SwiftMessageDetails() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-3xl font-bold">{displayData.message_type} Details</h1>
-          <p className="text-gray-600">{displayData.message_type_name}</p>
+          <h1 className="text-3xl font-bold">{(displayData as any)?.message_type || 'Message'} Details</h1>
+          <p className="text-gray-600">{(displayData as any)?.message_type_name || 'Message Details'}</p>
         </div>
       </div>
 
@@ -89,16 +89,16 @@ export default function SwiftMessageDetails() {
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Message Type:</span>
-                    <Badge variant="outline">{displayData.message_type}</Badge>
+                    <Badge variant="outline">{(displayData as any)?.message_type || 'MT700'}</Badge>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Category:</span>
-                    <span>{displayData.category}</span>
+                    <span>{(displayData as any)?.category || '7'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Status:</span>
-                    <Badge className={displayData.is_active ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}>
-                      {displayData.is_active ? "Active" : "Inactive"}
+                    <Badge className={(displayData as any)?.is_active !== false ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}>
+                      {(displayData as any)?.is_active !== false ? "Active" : "Inactive"}
                     </Badge>
                   </div>
                 </div>
@@ -111,11 +111,11 @@ export default function SwiftMessageDetails() {
                 <div className="space-y-2">
                   <div>
                     <span className="text-gray-600 block mb-1">Description:</span>
-                    <p className="text-sm">{displayData.description}</p>
+                    <p className="text-sm">{(displayData as any)?.description || 'SWIFT message description'}</p>
                   </div>
                   <div>
                     <span className="text-gray-600 block mb-1">Purpose:</span>
-                    <p className="text-sm">{displayData.purpose}</p>
+                    <p className="text-sm">{(displayData as any)?.purpose || 'SWIFT message purpose'}</p>
                   </div>
                 </div>
               </div>
