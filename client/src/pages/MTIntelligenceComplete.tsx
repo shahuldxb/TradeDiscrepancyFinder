@@ -61,18 +61,36 @@ export default function MTIntelligenceComplete() {
   // Fetch fields for selected message
   const { data: messageFields = [], isLoading: fieldsLoading } = useQuery<SwiftField[]>({
     queryKey: ['/api/swift/fields-by-message', selectedMessage?.message_type_code],
+    queryFn: async () => {
+      if (!selectedMessage?.message_type_code) return [];
+      const response = await fetch(`/api/swift/fields-by-message?messageTypeCode=${selectedMessage.message_type_code}`);
+      if (!response.ok) throw new Error('Failed to fetch fields');
+      return response.json();
+    },
     enabled: !!selectedMessage?.message_type_code,
   });
 
   // Fetch field specifications
   const { data: fieldSpecs = [], isLoading: specsLoading } = useQuery<FieldSpecification[]>({
     queryKey: ['/api/swift/field-specifications', selectedMessage?.message_type_code],
+    queryFn: async () => {
+      if (!selectedMessage?.message_type_code) return [];
+      const response = await fetch(`/api/swift/field-specifications?messageTypeCode=${selectedMessage.message_type_code}`);
+      if (!response.ok) throw new Error('Failed to fetch specifications');
+      return response.json();
+    },
     enabled: !!selectedMessage?.message_type_code,
   });
 
   // Fetch validation rules
   const { data: validationRules = [], isLoading: validationLoading } = useQuery<FieldValidation[]>({
     queryKey: ['/api/swift/field-validation', selectedMessage?.message_type_code],
+    queryFn: async () => {
+      if (!selectedMessage?.message_type_code) return [];
+      const response = await fetch(`/api/swift/field-validation?messageTypeCode=${selectedMessage.message_type_code}`);
+      if (!response.ok) throw new Error('Failed to fetch validation rules');
+      return response.json();
+    },
     enabled: !!selectedMessage?.message_type_code,
   });
 
