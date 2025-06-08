@@ -104,47 +104,44 @@ export class AzureDataService {
     try {
       const pool = await connectToAzureSQL();
       
-      // Get actual column names from the database schema
-      const columnsResult = await pool.request().query(`
-        SELECT COLUMN_NAME 
-        FROM INFORMATION_SCHEMA.COLUMNS 
-        WHERE TABLE_SCHEMA = 'swift' AND TABLE_NAME = 'message_fields'
-        ORDER BY ORDINAL_POSITION
+      // First get message_type_id for the messageTypeCode
+      const messageTypeResult = await pool.request().query(`
+        SELECT message_type_id 
+        FROM swift.message_types 
+        WHERE message_type = 'MT${messageTypeCode}' OR message_type = '${messageTypeCode}'
       `);
       
-      const columnNames = columnsResult.recordset.map(row => row.COLUMN_NAME);
-      console.log('Available columns in message_fields:', columnNames);
-      
-      // Build query using actual column names
-      let query = `SELECT TOP 50 * FROM swift.message_fields`;
-      
-      // Try to filter by message type using actual column names
-      const messageTypeColumn = columnNames.find(col => 
-        col.toLowerCase().includes('message') && col.toLowerCase().includes('type') ||
-        col.toLowerCase().includes('mt') ||
-        col.toLowerCase() === 'type'
-      );
-      
-      if (messageTypeColumn) {
-        query += ` WHERE ${messageTypeColumn} = '${messageTypeCode}' OR ${messageTypeColumn} = 'MT${messageTypeCode}'`;
+      if (messageTypeResult.recordset.length === 0) {
+        console.log(`No message type found for: ${messageTypeCode}`);
+        return [];
       }
       
-      const result = await pool.request().query(query);
+      const messageTypeId = messageTypeResult.recordset[0].message_type_id;
       
-      // Map results using actual column names
-      return result.recordset.map((row: any, index: number) => {
-        const keys = Object.keys(row);
-        
-        return {
-          field_code: row[keys.find(k => k.toLowerCase().includes('field') && k.toLowerCase().includes('code')) || keys[0]] || `F${index + 1}`,
-          field_name: row[keys.find(k => k.toLowerCase().includes('name')) || keys[1]] || `Field ${index + 1}`,
-          format: row[keys.find(k => k.toLowerCase().includes('format') || k.toLowerCase().includes('type')) || keys[2]] || 'Text',
-          max_length: row[keys.find(k => k.toLowerCase().includes('length') || k.toLowerCase().includes('size')) || keys[3]] || 255,
-          is_mandatory: row[keys.find(k => k.toLowerCase().includes('mandatory') || k.toLowerCase().includes('required')) || keys[4]] || false,
-          sequence_number: row[keys.find(k => k.toLowerCase().includes('sequence') || k.toLowerCase().includes('order')) || keys[5]] || index + 1,
-          description: row[keys.find(k => k.toLowerCase().includes('description') || k.toLowerCase().includes('purpose')) || keys[6]] || `SWIFT field for MT${messageTypeCode}`
-        };
-      });
+      // Get fields using actual column names from Azure discovery
+      const result = await pool.request().query(`
+        SELECT 
+          mf.field_id,
+          mf.tag,
+          mf.field_name,
+          mf.is_mandatory,
+          mf.content_options,
+          mf.sequence
+        FROM swift.message_fields mf
+        WHERE mf.message_type_id = ${messageTypeId}
+        ORDER BY mf.sequence
+      `);
+      
+      return result.recordset.map((row: any) => ({
+        field_code: row.tag,
+        field_name: row.field_name,
+        format: row.content_options || 'Text',
+        max_length: row.content_options?.length || 255,
+        is_mandatory: row.is_mandatory,
+        sequence_number: row.sequence,
+        description: `SWIFT field ${row.tag} - ${row.field_name}`,
+        field_id: row.field_id
+      }));
     } catch (error) {
       console.error('Error fetching SWIFT fields by message type from Azure:', error);
       throw error;
@@ -156,19 +153,43 @@ export class AzureDataService {
     try {
       const pool = await connectToAzureSQL();
       
-      // Generate authentic SWIFT field specifications based on MT700 standards
-      const fieldSpecs = [
-        { field_code: '20', specification: 'Documentary Credit Number - Unique alphanumeric identifier', data_type: 'Alphanumeric', constraints: 'Maximum 16 characters', examples: 'DC123456789' },
-        { field_code: '31C', specification: 'Date of Issue - YYMMDD format', data_type: 'Date', constraints: 'Must be valid date', examples: '231215' },
-        { field_code: '40A', specification: 'Form of Documentary Credit', data_type: 'Code', constraints: 'I=Irrevocable, R=Revocable', examples: 'I' },
-        { field_code: '50', specification: 'Applicant details including name and address', data_type: 'Text', constraints: 'Maximum 35 characters per line', examples: 'ABC TRADING COMPANY LTD' },
-        { field_code: '59', specification: 'Beneficiary details including name and address', data_type: 'Text', constraints: 'Maximum 35 characters per line', examples: 'XYZ EXPORTS LIMITED' },
-        { field_code: '32B', specification: 'Currency and amount of the credit', data_type: 'Currency Amount', constraints: 'ISO currency code + amount', examples: 'USD100000,00' },
-        { field_code: '45A', specification: 'Description of goods and/or services', data_type: 'Text', constraints: 'Multiple lines allowed', examples: 'COTTON FABRICS AS PER INVOICE' },
-        { field_code: '46A', specification: 'Documents required for presentation', data_type: 'Text', constraints: 'Detailed document list', examples: 'COMMERCIAL INVOICE IN TRIPLICATE' }
-      ];
+      // Get message_type_id first
+      const messageTypeResult = await pool.request().query(`
+        SELECT message_type_id 
+        FROM swift.message_types 
+        WHERE message_type = 'MT${messageTypeCode}' OR message_type = '${messageTypeCode}'
+      `);
       
-      return fieldSpecs;
+      if (messageTypeResult.recordset.length === 0) {
+        return [];
+      }
+      
+      const messageTypeId = messageTypeResult.recordset[0].message_type_id;
+      
+      // Get field specifications using correct table structure
+      const result = await pool.request().query(`
+        SELECT 
+          fs.field_spec_id,
+          fs.field_id,
+          fs.format_description,
+          fs.presence_description,
+          fs.definition_description,
+          mf.tag,
+          mf.field_name
+        FROM swift.field_specifications fs
+        INNER JOIN swift.message_fields mf ON fs.field_id = mf.field_id
+        WHERE mf.message_type_id = ${messageTypeId}
+        ORDER BY mf.sequence
+      `);
+      
+      return result.recordset.map((row: any) => ({
+        field_code: row.tag,
+        field_name: row.field_name,
+        specification: row.format_description || 'No specification available',
+        format: row.format_description || 'Text',
+        presence: row.presence_description || 'Optional',
+        definition: row.definition_description || 'Field definition not available'
+      }));
     } catch (error) {
       console.error('Error fetching field specifications from Azure:', error);
       throw error;
@@ -180,19 +201,39 @@ export class AzureDataService {
     try {
       const pool = await connectToAzureSQL();
       
-      // Generate authentic SWIFT validation rules based on MT700 standards
-      const validationRules = [
-        { field_code: '20', rule_type: 'Format', rule_description: 'Alphanumeric characters only, no spaces', validation_pattern: '^[A-Za-z0-9]{1,16}$', error_message: 'Invalid format: Use alphanumeric characters only' },
-        { field_code: '31C', rule_type: 'Date', rule_description: 'Valid date in YYMMDD format', validation_pattern: '^[0-9]{6}$', error_message: 'Invalid date format: Use YYMMDD' },
-        { field_code: '40A', rule_type: 'Code', rule_description: 'Must be I (Irrevocable) or R (Revocable)', validation_pattern: '^[IR]$', error_message: 'Invalid code: Use I or R only' },
-        { field_code: '50', rule_type: 'Text', rule_description: 'Maximum 35 characters per line, 4 lines maximum', validation_pattern: '^.{1,35}$', error_message: 'Line exceeds 35 characters' },
-        { field_code: '59', rule_type: 'Text', rule_description: 'Beneficiary name and address required', validation_pattern: '^.{1,35}$', error_message: 'Required field cannot be empty' },
-        { field_code: '32B', rule_type: 'Currency', rule_description: 'Valid ISO currency code followed by amount', validation_pattern: '^[A-Z]{3}[0-9,\\.]+$', error_message: 'Invalid currency format' },
-        { field_code: '45A', rule_type: 'Text', rule_description: 'Description of goods cannot be empty', validation_pattern: '^.+$', error_message: 'Goods description is mandatory' },
-        { field_code: '46A', rule_type: 'Text', rule_description: 'Document requirements must be specified', validation_pattern: '^.+$', error_message: 'Document requirements are mandatory' }
-      ];
+      // Get message_type_id first
+      const messageTypeResult = await pool.request().query(`
+        SELECT message_type_id 
+        FROM swift.message_types 
+        WHERE message_type = 'MT${messageTypeCode}' OR message_type = '${messageTypeCode}'
+      `);
       
-      return validationRules;
+      if (messageTypeResult.recordset.length === 0) {
+        return [];
+      }
+      
+      const messageTypeId = messageTypeResult.recordset[0].message_type_id;
+      
+      // Get field validation rules from Azure tables
+      const result = await pool.request().query(`
+        SELECT 
+          fvr.*,
+          mf.tag,
+          mf.field_name
+        FROM swift.field_validation_rules fvr
+        INNER JOIN swift.message_fields mf ON fvr.field_id = mf.field_id
+        WHERE mf.message_type_id = ${messageTypeId}
+        ORDER BY mf.sequence
+      `);
+      
+      return result.recordset.map((row: any) => ({
+        field_code: row.tag,
+        field_name: row.field_name,
+        rule_type: row.rule_type || 'Format',
+        rule_description: row.rule_description || 'Field validation rule',
+        validation_pattern: row.validation_pattern || '',
+        error_message: row.error_message || 'Validation failed'
+      }));
     } catch (error) {
       console.error('Error fetching field validation rules from Azure:', error);
       throw error;
