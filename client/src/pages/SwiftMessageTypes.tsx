@@ -27,6 +27,8 @@ export default function SwiftMessageTypes() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedTab, setSelectedTab] = useState("overview");
+  const [selectedMessage, setSelectedMessage] = useState<any>(null);
+  const [showMessageDetail, setShowMessageDetail] = useState(false);
 
   // Fetch SWIFT message types from Azure
   const { data: messageTypes, isLoading: loadingMessageTypes } = useQuery({
@@ -60,7 +62,9 @@ export default function SwiftMessageTypes() {
   const categories = Array.from(new Set((messageTypes || []).map((msg: any) => msg.category).filter(Boolean)));
 
   const handleMessageClick = (msgType: any) => {
-    console.log("Selected message type:", msgType);
+    setSelectedMessage(msgType);
+    setShowMessageDetail(true);
+    setActiveTab("details");
   };
 
   // Show loading state
@@ -141,10 +145,11 @@ export default function SwiftMessageTypes() {
 
         {/* Main Content Tabs */}
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="overview">Message Types Overview</TabsTrigger>
             <TabsTrigger value="fields">Field Definitions</TabsTrigger>
             <TabsTrigger value="validation">Validation Rules</TabsTrigger>
+            <TabsTrigger value="details" disabled={!selectedMessage}>Message Details</TabsTrigger>
           </TabsList>
 
           {/* Message Types Overview Tab */}
@@ -383,6 +388,105 @@ export default function SwiftMessageTypes() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Message Details Tab */}
+          <TabsContent value="details" className="space-y-6">
+            {selectedMessage ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    {selectedMessage.message_type} - {selectedMessage.message_type_name}
+                  </CardTitle>
+                  <CardDescription>
+                    Detailed specifications and usage information for this SWIFT message type
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Message Overview */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div>
+                        <h3 className="font-semibold text-lg mb-2">Message Information</h3>
+                        <div className="space-y-2">
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Message Type:</span>
+                            <Badge variant="secondary" className="font-mono">
+                              {selectedMessage.message_type}
+                            </Badge>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Category:</span>
+                            <Badge variant="outline">{selectedMessage.category}</Badge>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Status:</span>
+                            <Badge variant={selectedMessage.is_active ? "secondary" : "outline"}>
+                              {selectedMessage.is_active ? "Active" : "Inactive"}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <h3 className="font-semibold text-lg mb-2">Usage</h3>
+                        <p className="text-gray-600 text-sm">
+                          {selectedMessage.purpose || selectedMessage.description}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Related Fields */}
+                  <div>
+                    <h3 className="font-semibold text-lg mb-4">Related SWIFT Fields</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {(swiftFields || []).slice(0, 9).map((field: any, index: number) => (
+                        <Card key={index} className="border-l-4 border-l-blue-500">
+                          <CardContent className="p-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <Badge variant="outline" className="font-mono text-xs">
+                                {field.field_code}
+                              </Badge>
+                              <Badge variant="secondary" className="text-xs">
+                                {field.format}
+                              </Badge>
+                            </div>
+                            <h4 className="font-medium text-sm mb-1">{field.field_name}</h4>
+                            <p className="text-xs text-gray-600">
+                              Max Length: {field.max_length || 'Variable'}
+                            </p>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-4 pt-4 border-t">
+                    <Button variant="outline" onClick={() => setActiveTab("overview")}>
+                      Back to Overview
+                    </Button>
+                    <Button variant="outline" onClick={() => setActiveTab("fields")}>
+                      View All Fields
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <FileText className="h-12 w-12 text-gray-400 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No Message Selected</h3>
+                  <p className="text-gray-600 text-center">
+                    Click on a message type from the overview tab to view detailed information
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
         </Tabs>
       </div>
