@@ -55,20 +55,21 @@ export class AzureDataService {
   async getSwiftMessageTypes() {
     try {
       const pool = await connectToAzureSQL();
+      // Query all columns to understand the actual structure
       const result = await pool.request().query(`
-        SELECT 
-          message_type,
-          message_type_code,
-          message_type_name,
-          description,
-          category,
-          purpose,
-          is_active
-        FROM swift.message_types 
-        WHERE is_active = 1
-        ORDER BY message_type_code
+        SELECT TOP 50 * FROM swift.message_types
       `);
-      return result.recordset;
+      
+      // Map the results to the expected format for MT Intelligence
+      return result.recordset.map((row: any) => ({
+        message_type: row.MessageType || row.message_type || `MT${row.MessageTypeCode || row.message_type_code}`,
+        message_type_code: row.MessageTypeCode || row.message_type_code || row.Code,
+        message_type_name: row.MessageTypeName || row.message_type_name || row.Name || row.Description,
+        description: row.Description || row.description || row.Purpose || row.MessageTypeName,
+        category: row.Category || row.category || (row.MessageTypeCode || row.message_type_code || '').charAt(0),
+        purpose: row.Purpose || row.purpose || row.Description || 'SWIFT message processing',
+        is_active: row.IsActive !== undefined ? row.IsActive : (row.is_active !== undefined ? row.is_active : true)
+      }));
     } catch (error) {
       console.error('Error fetching SWIFT message types:', error);
       throw error;

@@ -881,6 +881,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Field specifications endpoint for MT Intelligence
+  app.get("/api/swift/fields-by-message/:messageType", async (req, res) => {
+    try {
+      const { messageType } = req.params;
+      const { azureDataService } = await import('./azureDataService');
+      const fields = await azureDataService.getSwiftFieldsByMessageType(messageType);
+      res.json(fields);
+    } catch (error) {
+      console.error("Error fetching SWIFT fields by message type:", error);
+      res.status(500).json({ error: "Failed to fetch SWIFT fields by message type" });
+    }
+  });
+
+  // Field specifications endpoint for MT Intelligence
+  app.get("/api/swift/field-specifications/:messageType", async (req, res) => {
+    try {
+      const { messageType } = req.params;
+      const { azureDataService } = await import('./azureDataService');
+      const specs = await azureDataService.getFieldSpecifications(messageType);
+      res.json(specs);
+    } catch (error) {
+      console.error("Error fetching field specifications:", error);
+      res.status(500).json({ error: "Failed to fetch field specifications" });
+    }
+  });
+
+  // Field validation rules endpoint for MT Intelligence
+  app.get("/api/swift/field-validation/:messageType", async (req, res) => {
+    try {
+      const { messageType } = req.params;
+      const { azureDataService } = await import('./azureDataService');
+      const rules = await azureDataService.getFieldValidationRules(messageType);
+      res.json(rules);
+    } catch (error) {
+      console.error("Error fetching field validation rules:", error);
+      res.status(500).json({ error: "Failed to fetch field validation rules" });
+    }
+  });
+
   app.post("/api/swift/validate", async (req, res) => {
     try {
       const { messageText, messageType } = req.body;
