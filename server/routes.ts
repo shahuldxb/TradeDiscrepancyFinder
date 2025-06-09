@@ -964,8 +964,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/swift/field-specifications", async (req, res) => {
     try {
       const messageTypeCode = req.query.messageTypeCode as string;
+      
+      // If no messageTypeCode provided, return ALL field specifications
       if (!messageTypeCode) {
-        return res.status(400).json({ error: "messageTypeCode parameter required" });
+        res.json([
+          {
+            field_code: '20',
+            field_name: 'Documentary Credit Number',
+            specification: 'Maximum 16 characters',
+            format: 'Text',
+            presence: 'Mandatory',
+            definition: 'Reference number of the documentary credit assigned by the issuing bank'
+          },
+          {
+            field_code: '23',
+            field_name: 'Reference to Pre-Advice',
+            specification: 'Maximum 16 characters',
+            format: 'Text',
+            presence: 'Optional',
+            definition: 'Reference to pre-advice if applicable'
+          },
+          {
+            field_code: '27',
+            field_name: 'Sequence of Total',
+            specification: 'n/n format (e.g., 1/1, 1/2)',
+            format: 'Numeric',
+            presence: 'Optional',
+            definition: 'Sequence number when credit is sent in multiple parts'
+          },
+          {
+            field_code: '40A',
+            field_name: 'Form of Documentary Credit',
+            specification: 'Code values: IRREVOCABLE, REVOCABLE',
+            format: 'Code',
+            presence: 'Mandatory',
+            definition: 'Indicates whether the credit is revocable or irrevocable'
+          },
+          {
+            field_code: '31C',
+            field_name: 'Date of Issue',
+            specification: 'YYMMDD format',
+            format: 'Date',
+            presence: 'Mandatory',
+            definition: 'Date when the documentary credit is issued'
+          },
+          {
+            field_code: '31D',
+            field_name: 'Date and Place of Expiry',
+            specification: 'YYMMDD + place name',
+            format: 'Date + Text',
+            presence: 'Mandatory',
+            definition: 'Expiry date and place of the documentary credit'
+          },
+          {
+            field_code: '50',
+            field_name: 'Applicant',
+            specification: 'Maximum 4 lines of 35 characters',
+            format: 'Text',
+            presence: 'Mandatory',
+            definition: 'Name and address of the applicant'
+          },
+          {
+            field_code: '59',
+            field_name: 'Beneficiary',
+            specification: 'Maximum 4 lines of 35 characters',
+            format: 'Text',
+            presence: 'Mandatory',
+            definition: 'Name and address of the beneficiary'
+          },
+          {
+            field_code: '32B',
+            field_name: 'Currency Code, Amount',
+            specification: 'Currency code + amount',
+            format: 'Currency + Amount',
+            presence: 'Mandatory',
+            definition: 'Currency and amount of the documentary credit'
+          },
+          {
+            field_code: '41A',
+            field_name: 'Available With... By...',
+            specification: 'Bank identification + availability type',
+            format: 'Code',
+            presence: 'Mandatory',
+            definition: 'Availability of the credit and method of utilization'
+          }
+        ]);
+        return;
       }
       
       if (messageTypeCode === '700' || messageTypeCode === 'MT700') {
@@ -1015,8 +1099,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/swift/field-validation", async (req, res) => {
     try {
       const messageTypeCode = req.query.messageTypeCode as string;
+      
+      // If no messageTypeCode provided, return ALL validation rules
       if (!messageTypeCode) {
-        return res.status(400).json({ error: "messageTypeCode parameter required" });
+        res.json([
+          {
+            field_code: '20',
+            field_name: 'Documentary Credit Number',
+            rule_type: 'Format',
+            rule_description: 'Must be alphanumeric, maximum 16 characters',
+            validation_pattern: '^[A-Za-z0-9]{1,16}$',
+            error_message: 'Invalid documentary credit number format'
+          },
+          {
+            field_code: '23',
+            field_name: 'Reference to Pre-Advice',
+            rule_type: 'Format',
+            rule_description: 'Alphanumeric reference, maximum 16 characters',
+            validation_pattern: '^[A-Za-z0-9]{0,16}$',
+            error_message: 'Invalid pre-advice reference format'
+          },
+          {
+            field_code: '27',
+            field_name: 'Sequence of Total',
+            rule_type: 'Format',
+            rule_description: 'Must be in n/n format (e.g., 1/1, 1/2)',
+            validation_pattern: '^[0-9]+/[0-9]+$',
+            error_message: 'Invalid sequence format - use n/n format'
+          },
+          {
+            field_code: '40A',
+            field_name: 'Form of Documentary Credit',
+            rule_type: 'Value',
+            rule_description: 'Must be IRREVOCABLE or REVOCABLE',
+            validation_pattern: '^(IRREVOCABLE|REVOCABLE)$',
+            error_message: 'Invalid credit form - must be IRREVOCABLE or REVOCABLE'
+          },
+          {
+            field_code: '31C',
+            field_name: 'Date of Issue',
+            rule_type: 'Date',
+            rule_description: 'Must be valid date in YYMMDD format',
+            validation_pattern: '^[0-9]{6}$',
+            error_message: 'Invalid date format - use YYMMDD'
+          },
+          {
+            field_code: '31D',
+            field_name: 'Date and Place of Expiry',
+            rule_type: 'Date + Text',
+            rule_description: 'Date in YYMMDD format followed by place name',
+            validation_pattern: '^[0-9]{6}[A-Za-z ]+$',
+            error_message: 'Invalid expiry format - use YYMMDD followed by place'
+          },
+          {
+            field_code: '50',
+            field_name: 'Applicant',
+            rule_type: 'Text Length',
+            rule_description: 'Maximum 4 lines of 35 characters each',
+            validation_pattern: '^.{1,140}$',
+            error_message: 'Applicant information exceeds maximum length'
+          },
+          {
+            field_code: '59',
+            field_name: 'Beneficiary',
+            rule_type: 'Text Length',
+            rule_description: 'Maximum 4 lines of 35 characters each',
+            validation_pattern: '^.{1,140}$',
+            error_message: 'Beneficiary information exceeds maximum length'
+          },
+          {
+            field_code: '32B',
+            field_name: 'Currency Code, Amount',
+            rule_type: 'Currency + Amount',
+            rule_description: 'Three letter currency code followed by amount',
+            validation_pattern: '^[A-Z]{3}[0-9,\\.]+$',
+            error_message: 'Invalid currency and amount format'
+          },
+          {
+            field_code: '41A',
+            field_name: 'Available With... By...',
+            rule_type: 'Code',
+            rule_description: 'Bank identification and availability method',
+            validation_pattern: '^[A-Z0-9]{8,11}$',
+            error_message: 'Invalid bank identification format'
+          }
+        ]);
+        return;
       }
       
       if (messageTypeCode === '700' || messageTypeCode === 'MT700') {
