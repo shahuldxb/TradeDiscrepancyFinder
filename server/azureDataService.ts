@@ -465,9 +465,9 @@ export class AzureDataService {
     try {
       const pool = await connectToAzureSQL();
       
-      // Use existing SWIFT tables for metrics instead of non-existent tables
+      // Use existing SWIFT tables for metrics with correct column names
       const swiftMessagesResult = await pool.request().query(`
-        SELECT COUNT(*) as total FROM swift.message_types WHERE is_active = 1
+        SELECT COUNT(*) as total FROM swift.message_types WHERE IsActive = 1
       `);
       
       const swiftFieldsResult = await pool.request().query(`
