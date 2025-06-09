@@ -294,7 +294,7 @@ export default function MTIntelligenceComplete() {
                             <div className="font-medium">{message.message_type_name}</div>
                           </TableCell>
                           <TableCell>
-                            <Badge className={getCategoryColor(message.category)}>
+                            <Badge className={getCategoryBadgeColor(message.category)}>
                               Category {message.category}
                             </Badge>
                           </TableCell>
