@@ -51,6 +51,7 @@ export default function MTIntelligenceComplete() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMessage, setSelectedMessage] = useState<SwiftMessage | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [activeTab, setActiveTab] = useState('overview');
 
   // Fetch SWIFT message types from Azure database
   const { data: messages = [], isLoading: messagesLoading, error: messagesError } = useQuery<SwiftMessage[]>({
@@ -58,7 +59,7 @@ export default function MTIntelligenceComplete() {
     enabled: true,
   });
 
-  // Fetch fields for selected message
+  // Fetch fields for selected message (only when field details tab is active)
   const { data: messageFields = [], isLoading: fieldsLoading } = useQuery<SwiftField[]>({
     queryKey: ['/api/swift/fields-by-message', selectedMessage?.message_type_code],
     queryFn: async () => {
@@ -67,10 +68,10 @@ export default function MTIntelligenceComplete() {
       if (!response.ok) throw new Error('Failed to fetch fields');
       return response.json();
     },
-    enabled: !!selectedMessage?.message_type_code,
+    enabled: !!selectedMessage?.message_type_code && activeTab === 'fields',
   });
 
-  // Fetch field specifications
+  // Fetch field specifications (only when specifications tab is active)
   const { data: fieldSpecs = [], isLoading: specsLoading } = useQuery<FieldSpecification[]>({
     queryKey: ['/api/swift/field-specifications', selectedMessage?.message_type_code],
     queryFn: async () => {
@@ -79,10 +80,10 @@ export default function MTIntelligenceComplete() {
       if (!response.ok) throw new Error('Failed to fetch specifications');
       return response.json();
     },
-    enabled: !!selectedMessage?.message_type_code,
+    enabled: !!selectedMessage?.message_type_code && activeTab === 'specifications',
   });
 
-  // Fetch validation rules
+  // Fetch validation rules (only when validation tab is active)
   const { data: validationRules = [], isLoading: validationLoading } = useQuery<FieldValidation[]>({
     queryKey: ['/api/swift/field-validation', selectedMessage?.message_type_code],
     queryFn: async () => {
@@ -91,7 +92,7 @@ export default function MTIntelligenceComplete() {
       if (!response.ok) throw new Error('Failed to fetch validation rules');
       return response.json();
     },
-    enabled: !!selectedMessage?.message_type_code,
+    enabled: !!selectedMessage?.message_type_code && activeTab === 'validation',
   });
 
   // Filter messages based on search and category
@@ -236,238 +237,293 @@ export default function MTIntelligenceComplete() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Message Types Grid */}
-        <Card>
-          <CardHeader>
-            <CardTitle>SWIFT Message Types</CardTitle>
-            <CardDescription>
-              {messagesLoading ? 'Loading...' : `${filteredMessages.length} of ${totalMessages} messages`}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2 max-h-96 overflow-y-auto">
-              {messagesLoading ? (
-                <div className="text-center text-muted-foreground">Loading messages...</div>
-              ) : filteredMessages.length === 0 ? (
-                <div className="text-center text-muted-foreground">No messages found</div>
-              ) : (
-                filteredMessages.map((message: SwiftMessage) => (
-                  <div
-                    key={message.message_type}
-                    className={`p-3 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors ${
-                      selectedMessage?.message_type === message.message_type ? 'bg-muted border-primary' : ''
-                    }`}
-                    onClick={() => handleMessageClick(message)}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{message.message_type}</span>
-                          <Badge className={getCategoryBadgeColor(message.category)}>
-                            Cat {message.category}
-                          </Badge>
-                          {message.is_active && (
-                            <Badge variant="outline" className="text-green-600 border-green-600">
-                              Active
+      {/* Main Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="overview">Message Types Overview</TabsTrigger>
+          <TabsTrigger value="fields" disabled={!selectedMessage}>
+            Fields {selectedMessage ? `(${selectedMessage.message_type})` : ''}
+          </TabsTrigger>
+          <TabsTrigger value="specifications" disabled={!selectedMessage}>
+            Specifications {selectedMessage ? `(${selectedMessage.message_type})` : ''}
+          </TabsTrigger>
+          <TabsTrigger value="validation" disabled={!selectedMessage}>
+            Validation {selectedMessage ? `(${selectedMessage.message_type})` : ''}
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Overview Tab - Main SWIFT Message Types Grid */}
+        <TabsContent value="overview" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>All SWIFT Message Types</CardTitle>
+              <CardDescription>
+                Complete grid view of all {totalMessages} SWIFT message types from Azure database
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Message Type</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Category</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Purpose</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {messagesLoading ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-8">
+                          Loading SWIFT message types from Azure database...
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredMessages.map((message: SwiftMessage) => (
+                        <TableRow 
+                          key={message.message_type}
+                          className={selectedMessage?.message_type === message.message_type ? 'bg-blue-50' : ''}
+                        >
+                          <TableCell className="font-mono font-semibold">
+                            {message.message_type}
+                          </TableCell>
+                          <TableCell className="max-w-xs">
+                            <div className="font-medium">{message.message_type_name}</div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={getCategoryColor(message.category)}>
+                              Category {message.category}
                             </Badge>
-                          )}
-                        </div>
-                        <p className="text-sm font-medium text-foreground mt-1">
-                          {message.message_type_name}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {message.description}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Message Details */}
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              {selectedMessage ? `${selectedMessage.message_type} Details` : 'Select a Message Type'}
-            </CardTitle>
-            <CardDescription>
-              {selectedMessage ? selectedMessage.message_type_name : 'Click on a message type to view details'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {selectedMessage ? (
-              <Tabs defaultValue="fields" className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="fields">Fields</TabsTrigger>
-                  <TabsTrigger value="specifications">Specifications</TabsTrigger>
-                  <TabsTrigger value="validation">Validation</TabsTrigger>
-                </TabsList>
-
-                {/* Fields Tab */}
-                <TabsContent value="fields" className="space-y-4">
-                  <div className="space-y-2">
-                    <h4 className="font-medium">Message Purpose</h4>
-                    <p className="text-sm text-muted-foreground">{selectedMessage.purpose}</p>
-                  </div>
-                  
-                  {fieldsLoading ? (
-                    <div className="text-center text-muted-foreground">Loading fields...</div>
-                  ) : messageFields.length === 0 ? (
-                    <div className="text-center text-muted-foreground">No fields found</div>
-                  ) : (
-                    <div className="space-y-4">
-                      <h4 className="font-medium">Message Fields ({messageFields.length})</h4>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Field</TableHead>
-                            <TableHead>Name</TableHead>
-                            <TableHead>Type</TableHead>
-                            <TableHead>Required</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {messageFields.map((field: SwiftField) => (
-                            <TableRow key={field.field_code}>
-                              <TableCell className="font-medium">{field.field_code}</TableCell>
-                              <TableCell>{field.field_name}</TableCell>
-                              <TableCell>
-                                <Badge variant="outline">{field.format}</Badge>
-                              </TableCell>
-                              <TableCell>
-                                {field.is_mandatory ? (
-                                  <Badge variant="destructive">Required</Badge>
-                                ) : (
-                                  <Badge variant="secondary">Optional</Badge>
-                                )}
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  )}
-                </TabsContent>
-
-                {/* Specifications Tab */}
-                <TabsContent value="specifications" className="space-y-4">
-                  {specsLoading ? (
-                    <div className="text-center text-muted-foreground">Loading specifications...</div>
-                  ) : fieldSpecs.length === 0 ? (
-                    <div className="text-center text-muted-foreground">No specifications found</div>
-                  ) : (
-                    <div className="space-y-4">
-                      <h4 className="font-medium">Field Specifications</h4>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Field</TableHead>
-                            <TableHead>Name</TableHead>
-                            <TableHead>Format</TableHead>
-                            <TableHead>Presence</TableHead>
-                            <TableHead>Definition</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {fieldSpecs.map((spec: FieldSpecification) => (
-                            <TableRow key={spec.field_code}>
-                              <TableCell className="font-medium">{spec.field_code}</TableCell>
-                              <TableCell>{spec.field_name}</TableCell>
-                              <TableCell className="font-mono text-xs">{spec.format}</TableCell>
-                              <TableCell>
-                                <Badge variant={spec.presence === 'Mandatory' ? 'destructive' : 'secondary'}>
-                                  {spec.presence}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-xs text-muted-foreground max-w-xs truncate">
-                                {spec.definition}
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  )}
-                </TabsContent>
-
-                {/* Validation Tab */}
-                <TabsContent value="validation" className="space-y-4">
-                  {validationLoading ? (
-                    <div className="text-center text-muted-foreground">Loading validation rules...</div>
-                  ) : validationRules.length === 0 ? (
-                    <div className="text-center text-muted-foreground">No validation rules found</div>
-                  ) : (
-                    <div className="space-y-4">
-                      <h4 className="font-medium">Validation Rules</h4>
-                      <div className="space-y-2">
-                        {validationRules.map((rule: FieldValidation, index: number) => (
-                          <div key={`${rule.field_code}-${index}`} className="border rounded-lg p-3">
-                            <div className="flex items-start gap-2">
-                              <CheckCircle className="h-4 w-4 text-blue-500" />
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-medium">{rule.field_code}</span>
-                                  <span className="text-sm text-muted-foreground">- {rule.field_name}</span>
-                                  <Badge variant="outline">{rule.rule_type}</Badge>
-                                </div>
-                                <p className="text-sm text-muted-foreground mt-1">
-                                  {rule.rule_description}
-                                </p>
-                                {rule.validation_pattern && (
-                                  <p className="text-xs font-mono bg-gray-100 p-1 rounded mt-1">
-                                    Pattern: {rule.validation_pattern}
-                                  </p>
-                                )}
-                                <p className="text-xs text-red-600 mt-1">
-                                  {rule.error_message}
-                                </p>
-                              </div>
+                          </TableCell>
+                          <TableCell>
+                            {message.is_active ? (
+                              <Badge className="bg-green-100 text-green-800">
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                Active
+                              </Badge>
+                            ) : (
+                              <Badge variant="secondary">
+                                <XCircle className="h-3 w-3 mr-1" />
+                                Inactive
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="max-w-md">
+                            <div className="text-sm text-gray-600 line-clamp-2">
+                              {message.purpose}
                             </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </TabsContent>
-              </Tabs>
-            ) : (
-              <div className="text-center text-muted-foreground py-8">
-                <Database className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Select a SWIFT message type to view detailed field information</p>
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              size="sm"
+                              variant={selectedMessage?.message_type === message.message_type ? "default" : "outline"}
+                              onClick={() => {
+                                setSelectedMessage(message);
+                                setActiveTab('fields');
+                              }}
+                            >
+                              View Fields
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
               </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-      {/* Category Statistics */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Message Category Distribution</CardTitle>
-          <CardDescription>SWIFT message types by category</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {categoryStats.map(stat => (
-              <div key={stat.category} className="border rounded-lg p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-2xl font-bold">{stat.count}</p>
-                    <p className="text-sm text-muted-foreground">Category {stat.category} Messages</p>
-                  </div>
-                  <Badge className={getCategoryBadgeColor(stat.category)}>
-                    Cat {stat.category}
-                  </Badge>
+        {/* Fields Tab Content */}
+        <TabsContent value="fields" className="space-y-4">
+          {!selectedMessage ? (
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center text-muted-foreground">
+                  Select a message type from the Overview tab to view field details
                 </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>{selectedMessage.message_type} - Field Details</CardTitle>
+                <CardDescription>{selectedMessage.message_type_name}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <h4 className="font-medium">Message Purpose</h4>
+                  <p className="text-sm text-muted-foreground">{selectedMessage.purpose}</p>
+                </div>
+                
+                {fieldsLoading ? (
+                  <div className="text-center text-muted-foreground py-8">Loading fields...</div>
+                ) : messageFields.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-8">No fields found</div>
+                ) : (
+                  <div className="space-y-4">
+                    <h4 className="font-medium">Message Fields ({messageFields.length})</h4>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Field Code</TableHead>
+                          <TableHead>Field Name</TableHead>
+                          <TableHead>Format</TableHead>
+                          <TableHead>Max Length</TableHead>
+                          <TableHead>Required</TableHead>
+                          <TableHead>Description</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {messageFields.map((field: SwiftField) => (
+                          <TableRow key={field.field_code}>
+                            <TableCell className="font-mono font-medium">{field.field_code}</TableCell>
+                            <TableCell>{field.field_name}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline">{field.format}</Badge>
+                            </TableCell>
+                            <TableCell>{field.max_length || 'N/A'}</TableCell>
+                            <TableCell>
+                              {field.is_mandatory ? (
+                                <Badge variant="destructive">Required</Badge>
+                              ) : (
+                                <Badge variant="secondary">Optional</Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="max-w-xs text-sm text-muted-foreground">
+                              {field.description}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* Specifications Tab Content */}
+        <TabsContent value="specifications" className="space-y-4">
+          {!selectedMessage ? (
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center text-muted-foreground">
+                  Select a message type from the Overview tab to view specifications
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>{selectedMessage.message_type} - Field Specifications</CardTitle>
+                <CardDescription>Technical specifications for all fields</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {specsLoading ? (
+                  <div className="text-center text-muted-foreground py-8">Loading specifications...</div>
+                ) : fieldSpecs.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-8">No specifications found</div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Field Code</TableHead>
+                        <TableHead>Field Name</TableHead>
+                        <TableHead>Format</TableHead>
+                        <TableHead>Presence</TableHead>
+                        <TableHead>Definition</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {fieldSpecs.map((spec: FieldSpecification) => (
+                        <TableRow key={spec.field_code}>
+                          <TableCell className="font-mono font-medium">{spec.field_code}</TableCell>
+                          <TableCell>{spec.field_name}</TableCell>
+                          <TableCell className="font-mono text-xs">{spec.format}</TableCell>
+                          <TableCell>
+                            <Badge variant={spec.presence === 'Mandatory' ? 'destructive' : 'secondary'}>
+                              {spec.presence}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground max-w-sm">
+                            {spec.definition}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* Validation Tab Content */}
+        <TabsContent value="validation" className="space-y-4">
+          {!selectedMessage ? (
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center text-muted-foreground">
+                  Select a message type from the Overview tab to view validation rules
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>{selectedMessage.message_type} - Validation Rules</CardTitle>
+                <CardDescription>Field validation rules and constraints</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {validationLoading ? (
+                  <div className="text-center text-muted-foreground py-8">Loading validation rules...</div>
+                ) : validationRules.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-8">No validation rules found</div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Field Code</TableHead>
+                        <TableHead>Field Name</TableHead>
+                        <TableHead>Rule Type</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Pattern</TableHead>
+                        <TableHead>Error Message</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {validationRules.map((rule: FieldValidation, index: number) => (
+                        <TableRow key={`${rule.field_code}-${index}`}>
+                          <TableCell className="font-mono font-medium">{rule.field_code}</TableCell>
+                          <TableCell>{rule.field_name}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{rule.rule_type}</Badge>
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground max-w-xs">
+                            {rule.rule_description}
+                          </TableCell>
+                          <TableCell className="font-mono text-xs">
+                            {rule.validation_pattern || 'N/A'}
+                          </TableCell>
+                          <TableCell className="text-xs text-red-600 max-w-xs">
+                            {rule.error_message}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
