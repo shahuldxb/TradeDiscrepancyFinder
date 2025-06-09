@@ -131,6 +131,73 @@ export default function MTIntelligenceComplete() {
     }
   };
 
+  const getValidationPatternExplanation = (fieldCode: string, pattern?: string) => {
+    const explanations: { [key: string]: string } = {
+      '20': 'Documentary Credit Number - Must be 1-16 alphanumeric characters. Format 16x contains letters, numbers, and limited special characters. Used as unique identifier for the LC transaction.',
+      '23': 'Reference to Pre-Advice - Format 4!c exactly 4 characters indicating reference type (PHON, TELE, etc.). Links to preliminary notification of the credit.',
+      '27': 'Sequence of Total - Format 1!n/1!n two single digits separated by slash (e.g., 1/1, 2/5). Indicates sequence number and total number of related messages.',
+      '31C': 'Date of Issue - Format 6!n YYMMDD format (e.g., 240315 for March 15, 2024). Must be valid calendar date representing when the LC was issued.',
+      '31D': 'Date and Place of Expiry - Format 6!n/4!a2!a date in YYMMDD format followed by 4-letter location code and 2-letter country code. Defines when and where the LC expires.',
+      '32A': 'Value Date, Currency Code, Amount - Format 6!n/3!a/15d date (YYMMDD), currency (3-letter ISO code), and amount (up to 15 digits with decimals). Core financial details of the LC.',
+      '32B': 'Currency Code, Amount - Format 3!a/15d currency code and amount without value date. Used for secondary amounts or fees.',
+      '40A': 'Form of Documentary Credit - Format 1!a single character code R (Revocable), I (Irrevocable), T (Transferable). Defines the LC type and characteristics.',
+      '41A': 'Available With By - Format 4!a/2!a/35x bank identifier, availability type, and bank details. Specifies which bank and how the credit is available.',
+      '42C': 'Drafts at - Format 35x free text describing draft payment terms (e.g., SIGHT, 30 DAYS AFTER B/L DATE). Defines payment timing.',
+      '43P': 'Partial Shipments - Format 35x text field ALLOWED or NOT ALLOWED. Indicates whether partial deliveries are permitted.',
+      '44A': 'Loading on Board/Dispatch - Format 65x free text describing port or place of loading/dispatch. Critical for logistics and compliance.',
+      '44B': 'For Transportation to - Format 65x destination port or place for transportation. Must match shipping documents.',
+      '44C': 'Latest Date of Shipment - Format 6!n YYMMDD format. Last acceptable shipping date. Critical deadline for beneficiary compliance.',
+      '44D': 'Shipment Period - Format 65x text describing shipping window or period. Alternative to fixed shipping date.',
+      '45A': 'Description of Goods/Services - Format 65x*5 up to 5 lines of 65 characters each. Detailed description of goods or services being traded.',
+      '46A': 'Documents Required - Format 65x*100 extensive field listing all required documents. Critical for LC compliance and payment.',
+      '47A': 'Additional Conditions - Format 65x*100 special terms and conditions beyond standard requirements. Must be clearly achievable.',
+      '48': 'Period for Presentation - Format 35x time limit for document presentation after shipment (e.g., 21 DAYS). Standard is 21 days per UCP 600.',
+      '49': 'Confirmation Instructions - Format 35x instructions for confirming bank CONFIRM, MAY ADD, WITHOUT. Affects payment guarantee.',
+      '50': 'Applicant - Format 35x*4 name and address of LC applicant (buyer). Must match exactly with underlying sales contract.',
+      '51A': 'Applicant Bank - Format 1!a/4!a2!a/35x bank identifier using BIC code or name/address. Represents the applicant in banking relationship.',
+      '52A': 'Issuing Bank - Format 1!a/4!a2!a/35x bank that issues the LC. Uses BIC code format. Primary liable party under the credit.',
+      '53A': 'Reimbursing Bank - Format 1!a/4!a2!a/35x bank that reimburses the negotiating bank. Used in reimbursement arrangements.',
+      '54A': 'Advising Bank - Format 1!a/4!a2!a/35x bank that advises the credit to beneficiary. First point of contact for beneficiary.',
+      '55A': 'Confirming Bank - Format 1!a/4!a2!a/35x bank that adds confirmation to the credit. Provides additional payment guarantee.',
+      '56A': 'Intermediary Bank - Format 1!a/4!a2!a/35x bank involved in payment process between issuing and advising banks.',
+      '57A': 'Advise Through Bank - Format 1!a/4!a2!a/35x intermediate bank for routing the LC advice. Used in correspondent banking.',
+      '58A': 'Beneficiary Bank - Format 1!a/4!a2!a/35x bank of the beneficiary. Where beneficiary maintains account for credit proceeds.',
+      '59': 'Beneficiary - Format 35x*4 name and address of beneficiary (seller). Must match exactly with documents to be presented.',
+      '70': 'Documentary Credit Text - Format 65x*35 additional narrative or instructions. Provides context and special requirements.',
+      '71A': 'Charges - Format 3!a/3!a charge allocation codes. First code for LC charges, second for amendment charges (e.g., BEN/OUR).',
+      '71B': 'Charges - Format 3!a/15d specific charge amount and currency. Used when exact charge amounts are specified.',
+      '72': 'Sender to Receiver Information - Format 35x*6 bank-to-bank instructions. Internal banking communication not seen by parties.',
+      '73': 'Instructions to Paying/Accepting Bank - Format 35x*10 specific instructions for the bank handling payment or acceptance.',
+      '77A': 'Delivery Instructions - Format 20x instructions for delivery of documents or goods. Logistics coordination information.',
+      '77B': 'For Account - Format 35x*4 account details for specific transactions. Banking arrangement specifications.'
+    };
+
+    if (explanations[fieldCode]) {
+      return explanations[fieldCode];
+    }
+
+    // Default explanation based on pattern if available
+    if (pattern) {
+      if (pattern.includes('/6!n/')) {
+        return 'Date field in YYMMDD format - Must be 6 numeric characters representing a valid calendar date.';
+      }
+      if (pattern.includes('/3!a/')) {
+        return 'Currency code field - Must be exactly 3 alphabetic characters following ISO 4217 standard.';
+      }
+      if (pattern.includes('/35x/')) {
+        return 'Text field up to 35 characters - Alphanumeric characters with limited special characters allowed.';
+      }
+      if (pattern.includes('/4!a2!a/')) {
+        return 'Bank identifier - 4-character bank code followed by 2-character country code (BIC format).';
+      }
+      if (pattern.includes('15d')) {
+        return 'Decimal amount field - Up to 15 digits including decimal places for monetary amounts.';
+      }
+    }
+
+    return 'Standard SWIFT validation applies - Field must conform to SWIFT character set and length restrictions per message type specification.';
+  };
+
   if (messagesError) {
     return (
       <div className="container mx-auto p-6">
@@ -461,8 +528,7 @@ export default function MTIntelligenceComplete() {
                         <TableHead>Field Name</TableHead>
                         <TableHead>Rule Type</TableHead>
                         <TableHead>Description</TableHead>
-                        <TableHead>Validation Pattern</TableHead>
-                        <TableHead>Error Message</TableHead>
+                        <TableHead>Validation Pattern Details</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -476,11 +542,8 @@ export default function MTIntelligenceComplete() {
                           <TableCell className="text-sm text-muted-foreground max-w-xs">
                             {rule.rule_description}
                           </TableCell>
-                          <TableCell className="font-mono text-xs max-w-xs">
-                            {rule.validation_pattern || 'N/A'}
-                          </TableCell>
-                          <TableCell className="text-xs text-red-600 max-w-xs">
-                            {rule.error_message}
+                          <TableCell className="text-sm max-w-md">
+                            {getValidationPatternExplanation(rule.field_code, rule.validation_pattern)}
                           </TableCell>
                         </TableRow>
                       ))}
