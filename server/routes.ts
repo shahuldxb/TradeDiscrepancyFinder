@@ -885,8 +885,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/swift/fields-by-message", async (req, res) => {
     try {
       const messageTypeCode = req.query.messageTypeCode as string;
+      
+      // If no messageTypeCode provided, return ALL fields from Azure database
       if (!messageTypeCode) {
-        return res.status(400).json({ error: "messageTypeCode parameter required" });
+        try {
+          const { azureDataService } = await import('./azureDataService');
+          const allFields = await azureDataService.getSwiftFields();
+          return res.json(allFields);
+        } catch (error) {
+          console.error("Error fetching all SWIFT fields:", error);
+          return res.status(500).json({ error: "Failed to fetch all SWIFT fields" });
+        }
       }
       
       // Return SWIFT field data for MT700 directly to ensure functionality

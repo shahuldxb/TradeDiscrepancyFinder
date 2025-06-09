@@ -59,40 +59,37 @@ export default function MTIntelligenceComplete() {
     enabled: true,
   });
 
-  // Fetch fields for selected message (only when field details tab is active)
-  const { data: messageFields = [], isLoading: fieldsLoading } = useQuery<SwiftField[]>({
-    queryKey: ['/api/swift/fields-by-message', selectedMessage?.message_type_code],
+  // Fetch ALL fields from database (when fields tab is active)
+  const { data: allFields = [], isLoading: fieldsLoading } = useQuery<SwiftField[]>({
+    queryKey: ['/api/swift/fields-by-message'],
     queryFn: async () => {
-      if (!selectedMessage?.message_type_code) return [];
-      const response = await fetch(`/api/swift/fields-by-message?messageTypeCode=${selectedMessage.message_type_code}`);
+      const response = await fetch('/api/swift/fields-by-message');
       if (!response.ok) throw new Error('Failed to fetch fields');
       return response.json();
     },
-    enabled: !!selectedMessage?.message_type_code && activeTab === 'fields',
+    enabled: activeTab === 'fields',
   });
 
-  // Fetch field specifications (only when specifications tab is active)
-  const { data: fieldSpecs = [], isLoading: specsLoading } = useQuery<FieldSpecification[]>({
-    queryKey: ['/api/swift/field-specifications', selectedMessage?.message_type_code],
+  // Fetch ALL field specifications (when specifications tab is active)
+  const { data: allFieldSpecs = [], isLoading: specsLoading } = useQuery<FieldSpecification[]>({
+    queryKey: ['/api/swift/field-specifications'],
     queryFn: async () => {
-      if (!selectedMessage?.message_type_code) return [];
-      const response = await fetch(`/api/swift/field-specifications?messageTypeCode=${selectedMessage.message_type_code}`);
+      const response = await fetch('/api/swift/field-specifications');
       if (!response.ok) throw new Error('Failed to fetch specifications');
       return response.json();
     },
-    enabled: !!selectedMessage?.message_type_code && activeTab === 'specifications',
+    enabled: activeTab === 'specifications',
   });
 
-  // Fetch validation rules (only when validation tab is active)
-  const { data: validationRules = [], isLoading: validationLoading } = useQuery<FieldValidation[]>({
-    queryKey: ['/api/swift/field-validation', selectedMessage?.message_type_code],
+  // Fetch ALL validation rules (when validation tab is active)
+  const { data: allValidationRules = [], isLoading: validationLoading } = useQuery<FieldValidation[]>({
+    queryKey: ['/api/swift/field-validation'],
     queryFn: async () => {
-      if (!selectedMessage?.message_type_code) return [];
-      const response = await fetch(`/api/swift/field-validation?messageTypeCode=${selectedMessage.message_type_code}`);
+      const response = await fetch('/api/swift/field-validation');
       if (!response.ok) throw new Error('Failed to fetch validation rules');
       return response.json();
     },
-    enabled: !!selectedMessage?.message_type_code && activeTab === 'validation',
+    enabled: activeTab === 'validation',
   });
 
   // Filter messages based on search and category
@@ -199,9 +196,9 @@ export default function MTIntelligenceComplete() {
             <Shield className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{messageFields.length}</div>
+            <div className="text-2xl font-bold">{allFields.length}</div>
             <p className="text-xs text-muted-foreground">
-              {selectedMessage ? `${selectedMessage.message_type} fields` : 'Select message'}
+              Total SWIFT fields
             </p>
           </CardContent>
         </Card>
@@ -241,15 +238,9 @@ export default function MTIntelligenceComplete() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="overview">Message Types Overview</TabsTrigger>
-          <TabsTrigger value="fields" disabled={!selectedMessage}>
-            Fields {selectedMessage ? `(${selectedMessage.message_type})` : ''}
-          </TabsTrigger>
-          <TabsTrigger value="specifications" disabled={!selectedMessage}>
-            Specifications {selectedMessage ? `(${selectedMessage.message_type})` : ''}
-          </TabsTrigger>
-          <TabsTrigger value="validation" disabled={!selectedMessage}>
-            Validation {selectedMessage ? `(${selectedMessage.message_type})` : ''}
-          </TabsTrigger>
+          <TabsTrigger value="fields">All Fields</TabsTrigger>
+          <TabsTrigger value="specifications">All Specifications</TabsTrigger>
+          <TabsTrigger value="validation">All Validation Rules</TabsTrigger>
         </TabsList>
 
         {/* Overview Tab - Main SWIFT Message Types Grid */}
@@ -340,111 +331,95 @@ export default function MTIntelligenceComplete() {
 
         {/* Fields Tab Content */}
         <TabsContent value="fields" className="space-y-4">
-          {!selectedMessage ? (
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-center text-muted-foreground">
-                  Select a message type from the Overview tab to view field details
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card>
-              <CardHeader>
-                <CardTitle>{selectedMessage.message_type} - Field Details</CardTitle>
-                <CardDescription>{selectedMessage.message_type_name}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <h4 className="font-medium">Message Purpose</h4>
-                  <p className="text-sm text-muted-foreground">{selectedMessage.purpose}</p>
-                </div>
-                
-                {fieldsLoading ? (
-                  <div className="text-center text-muted-foreground py-8">Loading fields...</div>
-                ) : messageFields.length === 0 ? (
-                  <div className="text-center text-muted-foreground py-8">No fields found</div>
-                ) : (
-                  <div className="space-y-4">
-                    <h4 className="font-medium">Message Fields ({messageFields.length})</h4>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Field Code</TableHead>
-                          <TableHead>Field Name</TableHead>
-                          <TableHead>Format</TableHead>
-                          <TableHead>Max Length</TableHead>
-                          <TableHead>Required</TableHead>
-                          <TableHead>Description</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {messageFields.map((field: SwiftField) => (
-                          <TableRow key={field.field_code}>
-                            <TableCell className="font-mono font-medium">{field.field_code}</TableCell>
-                            <TableCell>{field.field_name}</TableCell>
-                            <TableCell>
-                              <Badge variant="outline">{field.format}</Badge>
-                            </TableCell>
-                            <TableCell>{field.max_length || 'N/A'}</TableCell>
-                            <TableCell>
-                              {field.is_mandatory ? (
-                                <Badge variant="destructive">Required</Badge>
-                              ) : (
-                                <Badge variant="secondary">Optional</Badge>
-                              )}
-                            </TableCell>
-                            <TableCell className="max-w-xs text-sm text-muted-foreground">
-                              {field.description}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-
-        {/* Specifications Tab Content */}
-        <TabsContent value="specifications" className="space-y-4">
-          {!selectedMessage ? (
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-center text-muted-foreground">
-                  Select a message type from the Overview tab to view specifications
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card>
-              <CardHeader>
-                <CardTitle>{selectedMessage.message_type} - Field Specifications</CardTitle>
-                <CardDescription>Technical specifications for all fields</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {specsLoading ? (
-                  <div className="text-center text-muted-foreground py-8">Loading specifications...</div>
-                ) : fieldSpecs.length === 0 ? (
-                  <div className="text-center text-muted-foreground py-8">No specifications found</div>
-                ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle>All SWIFT Field Codes</CardTitle>
+              <CardDescription>Complete list of all SWIFT field codes from Azure database</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {fieldsLoading ? (
+                <div className="text-center text-muted-foreground py-8">Loading all fields...</div>
+              ) : allFields.length === 0 ? (
+                <div className="text-center text-muted-foreground py-8">No fields found</div>
+              ) : (
+                <div className="space-y-4">
+                  <h4 className="font-medium">Total Fields: {allFields.length}</h4>
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Field Code</TableHead>
                         <TableHead>Field Name</TableHead>
                         <TableHead>Format</TableHead>
+                        <TableHead>Max Length</TableHead>
+                        <TableHead>Required</TableHead>
+                        <TableHead>Sequence</TableHead>
+                        <TableHead>Description</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {allFields.map((field: SwiftField, index: number) => (
+                        <TableRow key={`${field.field_code}-${index}`}>
+                          <TableCell className="font-mono font-medium">{field.field_code}</TableCell>
+                          <TableCell>{field.field_name}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{field.format}</Badge>
+                          </TableCell>
+                          <TableCell>{field.max_length || 'N/A'}</TableCell>
+                          <TableCell>
+                            {field.is_mandatory ? (
+                              <Badge variant="destructive">Required</Badge>
+                            ) : (
+                              <Badge variant="secondary">Optional</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>{field.sequence_number || 'N/A'}</TableCell>
+                          <TableCell className="max-w-xs text-sm text-muted-foreground">
+                            {field.description}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Specifications Tab Content */}
+        <TabsContent value="specifications" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>All SWIFT Field Specifications</CardTitle>
+              <CardDescription>Complete technical specifications for all SWIFT fields from Azure database</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {specsLoading ? (
+                <div className="text-center text-muted-foreground py-8">Loading all specifications...</div>
+              ) : allFieldSpecs.length === 0 ? (
+                <div className="text-center text-muted-foreground py-8">No specifications found</div>
+              ) : (
+                <div className="space-y-4">
+                  <h4 className="font-medium">Total Specifications: {allFieldSpecs.length}</h4>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Field Code</TableHead>
+                        <TableHead>Field Name</TableHead>
+                        <TableHead>Specification</TableHead>
+                        <TableHead>Format</TableHead>
                         <TableHead>Presence</TableHead>
                         <TableHead>Definition</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {fieldSpecs.map((spec: FieldSpecification) => (
-                        <TableRow key={spec.field_code}>
+                      {allFieldSpecs.map((spec: FieldSpecification, index: number) => (
+                        <TableRow key={`${spec.field_code}-${index}`}>
                           <TableCell className="font-mono font-medium">{spec.field_code}</TableCell>
                           <TableCell>{spec.field_name}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground max-w-xs">
+                            {spec.specification}
+                          </TableCell>
                           <TableCell className="font-mono text-xs">{spec.format}</TableCell>
                           <TableCell>
                             <Badge variant={spec.presence === 'Mandatory' ? 'destructive' : 'secondary'}>
@@ -458,34 +433,27 @@ export default function MTIntelligenceComplete() {
                       ))}
                     </TableBody>
                   </Table>
-                )}
-              </CardContent>
-            </Card>
-          )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Validation Tab Content */}
         <TabsContent value="validation" className="space-y-4">
-          {!selectedMessage ? (
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-center text-muted-foreground">
-                  Select a message type from the Overview tab to view validation rules
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card>
-              <CardHeader>
-                <CardTitle>{selectedMessage.message_type} - Validation Rules</CardTitle>
-                <CardDescription>Field validation rules and constraints</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {validationLoading ? (
-                  <div className="text-center text-muted-foreground py-8">Loading validation rules...</div>
-                ) : validationRules.length === 0 ? (
-                  <div className="text-center text-muted-foreground py-8">No validation rules found</div>
-                ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle>All SWIFT Field Validation Rules</CardTitle>
+              <CardDescription>Complete validation rules and constraints for all SWIFT fields from Azure database</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {validationLoading ? (
+                <div className="text-center text-muted-foreground py-8">Loading all validation rules...</div>
+              ) : allValidationRules.length === 0 ? (
+                <div className="text-center text-muted-foreground py-8">No validation rules found</div>
+              ) : (
+                <div className="space-y-4">
+                  <h4 className="font-medium">Total Validation Rules: {allValidationRules.length}</h4>
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -493,12 +461,12 @@ export default function MTIntelligenceComplete() {
                         <TableHead>Field Name</TableHead>
                         <TableHead>Rule Type</TableHead>
                         <TableHead>Description</TableHead>
-                        <TableHead>Pattern</TableHead>
+                        <TableHead>Validation Pattern</TableHead>
                         <TableHead>Error Message</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {validationRules.map((rule: FieldValidation, index: number) => (
+                      {allValidationRules.map((rule: FieldValidation, index: number) => (
                         <TableRow key={`${rule.field_code}-${index}`}>
                           <TableCell className="font-mono font-medium">{rule.field_code}</TableCell>
                           <TableCell>{rule.field_name}</TableCell>
@@ -508,7 +476,7 @@ export default function MTIntelligenceComplete() {
                           <TableCell className="text-sm text-muted-foreground max-w-xs">
                             {rule.rule_description}
                           </TableCell>
-                          <TableCell className="font-mono text-xs">
+                          <TableCell className="font-mono text-xs max-w-xs">
                             {rule.validation_pattern || 'N/A'}
                           </TableCell>
                           <TableCell className="text-xs text-red-600 max-w-xs">
@@ -518,10 +486,10 @@ export default function MTIntelligenceComplete() {
                       ))}
                     </TableBody>
                   </Table>
-                )}
-              </CardContent>
-            </Card>
-          )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
