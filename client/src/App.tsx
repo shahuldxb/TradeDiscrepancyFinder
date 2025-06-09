@@ -18,7 +18,6 @@ import AgentMonitor from "@/pages/AgentMonitor";
 import AgentDesigner from "@/pages/AgentDesigner";
 
 import TradeFinanceDocuments from "@/pages/TradeFinanceDocuments";
-import UCPRules from "@/pages/UCPRules";
 import MT700Lifecycle from "@/pages/MT700Lifecycle";
 import MessageBuilder from "@/pages/MessageBuilder";
 import MTIntelligence from "@/pages/MTIntelligenceComplete";
@@ -102,9 +101,6 @@ function Router() {
             <Route path="/analysis/business" component={DiscrepancyAnalysis} />
             <Route path="/analysis/risk" component={DiscrepancyAnalysis} />
             <Route path="/analysis/audit" component={DiscrepancyAnalysis} />
-            
-            {/* UCP Rules */}
-            <Route path="/ucp-rules" component={UCPRules} />
             
             {/* System Admin Routes */}
             <Route path="/admin/users" component={AgentMonitor} />

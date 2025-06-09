@@ -135,13 +135,8 @@ const navigationItems = [
   {
     name: "Compliance & Rules",
     icon: Scale,
-    description: "UCP and validation rules",
+    description: "Analysis and validation tools",
     subItems: [
-      {
-        name: "UCP Rule Engine",
-        href: "/ucp-rules",
-        description: "UCP 600 validation rules",
-      },
       {
         name: "Discrepancy Analysis",
         href: "/analysis",
