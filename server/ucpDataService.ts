@@ -117,10 +117,10 @@ export class UCPDataService {
     try {
       const pool = await connectToAzureSQL();
       const result = await pool.request().query(`
-        SELECT r.*, a.articlenumber, a.title as article_title 
-        FROM public.ucprules r
-        LEFT JOIN public.ucp_articles a ON r.articleid = a.articleid
-        ORDER BY r.rulecode
+        SELECT r.*, a.ArticleNumber, a.Title as article_title 
+        FROM swift.UCPRules r
+        LEFT JOIN swift.UCP_Articles a ON r.ArticleID = a.ID
+        ORDER BY r.RuleCode
       `);
       return result.recordset;
     } catch (error) {
@@ -635,14 +635,14 @@ export class UCPDataService {
       const pool = await connectToAzureSQL();
       const result = await pool.request().query(`
         SELECT 
-          (SELECT COUNT(*) FROM ucp_articles WHERE isactive = true) as active_articles,
-          (SELECT COUNT(*) FROM ucprules) as active_rules,
-          0 as active_usage_rules,
-          0 as active_field_rules,
-          0 as active_compliance_rules,
-          0 as active_owners,
-          0 as passed_validations,
-          0 as failed_validations
+          (SELECT COUNT(*) FROM swift.UCP_Articles WHERE IsActive = true) as active_articles,
+          (SELECT COUNT(*) FROM swift.UCPRules WHERE IsActive = true) as active_rules,
+          (SELECT COUNT(*) FROM swift.ucp_usage_rules WHERE IsActive = true) as active_usage_rules,
+          (SELECT COUNT(*) FROM swift.UCP_message_field_rules WHERE IsActive = true) as active_field_rules,
+          (SELECT COUNT(*) FROM swift.UCP_document_compliance_rules WHERE IsActive = true) as active_compliance_rules,
+          (SELECT COUNT(*) FROM swift.UCP_Business_Process_Owners WHERE IsActive = true) as active_owners,
+          (SELECT COUNT(*) FROM swift.UCP_validation_results WHERE ValidationStatus = 'PASSED') as passed_validations,
+          (SELECT COUNT(*) FROM swift.UCP_validation_results WHERE ValidationStatus = 'FAILED') as failed_validations
       `);
       return result.recordset[0];
     } catch (error) {
