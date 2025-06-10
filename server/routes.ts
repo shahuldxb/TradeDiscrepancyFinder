@@ -2717,7 +2717,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // UCP Articles (Base Table) - Foundation of all UCP rules
   app.get('/api/ucp600/articles', async (req, res) => {
     try {
-      const articles = await ucpPostgresService.getUCPArticles();
+      const articles = await ucpDataService.getUCPArticles();
       res.json(articles);
     } catch (error) {
       console.error('Error fetching UCP Articles:', error);
@@ -2760,7 +2760,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // UCPRules (Derived from Articles)
   app.get('/api/ucp600/rules', async (req, res) => {
     try {
-      const rules = await ucpPostgresService.getUCPRules();
+      const rules = await ucpDataService.getUCPRules();
       res.json(rules);
     } catch (error) {
       console.error('Error fetching UCP Rules:', error);
@@ -3019,7 +3019,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/ucp600/statistics', async (req, res) => {
     try {
-      const statistics = await ucpPostgresService.getUCPStatistics();
+      const statistics = await ucpDataService.getUCPStatistics();
       res.json(statistics);
     } catch (error) {
       console.error('Error fetching UCP Statistics:', error);
