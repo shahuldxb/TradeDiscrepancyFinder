@@ -539,27 +539,11 @@ export class UCPDataService {
   async getValidationResults(filters: any = {}) {
     try {
       const pool = await connectToAzureSQL();
-      let query = `
-        SELECT vr.*, r.rule_code, r.rule_name 
-        FROM swift.UCP_validation_results vr
-        LEFT JOIN swift.UCPRules r ON vr.rule_id = r.id
-        WHERE 1=1
+      const query = `
+        SELECT ValidationResultID, ValidationBatchID, TransactionID, RuleID, RuleCode
+        FROM swift.UCP_validation_results
+        ORDER BY ValidationResultID DESC
       `;
-      
-      if (filters.validation_status) {
-        query += ` AND vr.validation_status = '${filters.validation_status}'`;
-      }
-      if (filters.document_id) {
-        query += ` AND vr.document_id = ${filters.document_id}`;
-      }
-      if (filters.date_from) {
-        query += ` AND vr.validation_timestamp >= '${filters.date_from}'`;
-      }
-      if (filters.date_to) {
-        query += ` AND vr.validation_timestamp <= '${filters.date_to}'`;
-      }
-      
-      query += ' ORDER BY vr.validation_timestamp DESC';
       
       const result = await pool.request().query(query);
       return result.recordset;
@@ -573,27 +557,11 @@ export class UCPDataService {
   async getRuleExecutionHistory(filters: any = {}) {
     try {
       const pool = await connectToAzureSQL();
-      let query = `
-        SELECT reh.*, r.rule_code, r.rule_name 
-        FROM swift.UCP_Rule_Execution_History reh
-        LEFT JOIN swift.UCPRules r ON reh.rule_id = r.id
-        WHERE 1=1
+      const query = `
+        SELECT ExecutionHistoryID, ExecutionBatchID, RuleID, RuleCode, TransactionID
+        FROM swift.UCP_Rule_Execution_History
+        ORDER BY ExecutionHistoryID DESC
       `;
-      
-      if (filters.execution_status) {
-        query += ` AND reh.execution_status = '${filters.execution_status}'`;
-      }
-      if (filters.rule_id) {
-        query += ` AND reh.rule_id = ${filters.rule_id}`;
-      }
-      if (filters.date_from) {
-        query += ` AND reh.execution_timestamp >= '${filters.date_from}'`;
-      }
-      if (filters.date_to) {
-        query += ` AND reh.execution_timestamp <= '${filters.date_to}'`;
-      }
-      
-      query += ' ORDER BY reh.execution_timestamp DESC';
       
       const result = await pool.request().query(query);
       return result.recordset;
@@ -622,7 +590,7 @@ export class UCPDataService {
       const pool = await connectToAzureSQL();
       const result = await pool.request()
         .input('articleId', articleId)
-        .query('SELECT * FROM swift.UCPRules WHERE article_id = @articleId AND is_active = 1 ORDER BY rule_code');
+        .query('SELECT * FROM swift.UCPRules WHERE ArticleID = @articleId AND IsActive = 1 ORDER BY RuleCode');
       return result.recordset;
     } catch (error) {
       console.error('Error fetching Rules by Article:', error);
