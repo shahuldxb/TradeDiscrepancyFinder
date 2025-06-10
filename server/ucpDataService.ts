@@ -41,82 +41,11 @@ export class UCPDataService {
   async getUCPArticles() {
     try {
       const pool = await connectToAzureSQL();
-      
-      // Check all swift schema tables to see what exists
-      const allTablesResult = await pool.request().query(`
-        SELECT TABLE_NAME 
-        FROM INFORMATION_SCHEMA.TABLES 
-        WHERE TABLE_SCHEMA = 'swift'
-        ORDER BY TABLE_NAME
-      `);
-      
-      console.log('All swift schema tables:', allTablesResult.recordset.map(t => t.TABLE_NAME));
-      
-      // Look for any tables that might contain UCP or article data
-      const potentialUCPTables = allTablesResult.recordset.filter(table => 
-        table.TABLE_NAME.toLowerCase().includes('ucp') ||
-        table.TABLE_NAME.toLowerCase().includes('article') ||
-        table.TABLE_NAME.toLowerCase().includes('rule') ||
-        table.TABLE_NAME.toLowerCase().includes('compliance')
-      );
-      
-      if (potentialUCPTables.length === 0) {
-        // Create sample UCP data structure for demonstration
-        return {
-          message: 'No UCP tables found in database',
-          availableTables: allTablesResult.recordset.map(t => t.TABLE_NAME),
-          sampleStructure: {
-            articles: [
-              {
-                id: 1,
-                article_number: 'Article 1',
-                title: 'General Provisions and Definitions',
-                content: 'The Uniform Customs and Practice for Documentary Credits...',
-                section: 'General',
-                is_active: true
-              }
-            ]
-          }
-        };
-      }
-      
-      // Try each potential table to see what data structure exists
-      const tableData = {};
-      for (const table of potentialUCPTables) {
-        try {
-          // Get column structure
-          const columnsResult = await pool.request().query(`
-            SELECT COLUMN_NAME, DATA_TYPE 
-            FROM INFORMATION_SCHEMA.COLUMNS 
-            WHERE TABLE_SCHEMA = 'swift' AND TABLE_NAME = '${table.TABLE_NAME}'
-            ORDER BY ORDINAL_POSITION
-          `);
-          
-          // Get sample data
-          const sampleResult = await pool.request().query(`SELECT TOP 3 * FROM swift.${table.TABLE_NAME}`);
-          
-          tableData[table.TABLE_NAME] = {
-            columns: columnsResult.recordset,
-            sampleData: sampleResult.recordset,
-            rowCount: sampleResult.recordset.length
-          };
-        } catch (tableError) {
-          console.log(`Error accessing table ${table.TABLE_NAME}:`, (tableError as Error).message);
-        }
-      }
-      
-      return {
-        potentialUCPTables: potentialUCPTables.map(t => t.TABLE_NAME),
-        allTables: allTablesResult.recordset.map(t => t.TABLE_NAME),
-        tableStructures: tableData
-      };
-      
+      const result = await pool.request().query('SELECT * FROM swift.UCP_Articles ORDER BY ID');
+      return result.recordset;
     } catch (error) {
       console.error('Error fetching UCP Articles:', error);
-      return {
-        error: 'Database connection failed',
-        details: (error as Error).message
-      };
+      throw error;
     }
   }
 

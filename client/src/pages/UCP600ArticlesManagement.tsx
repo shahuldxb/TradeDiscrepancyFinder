@@ -49,9 +49,13 @@ export default function UCP600ArticlesManagement() {
     revision_number: 1
   });
 
-  const { data: articles = [], isLoading } = useQuery({
+  const { data: articlesResponse, isLoading, error } = useQuery({
     queryKey: ["/api/ucp600/articles"]
   });
+
+  // Handle different response types - could be array of articles or debug info
+  const articles = Array.isArray(articlesResponse) ? articlesResponse : [];
+  const debugInfo = !Array.isArray(articlesResponse) ? articlesResponse : null;
 
   const { data: statistics } = useQuery({
     queryKey: ["/api/ucp600/statistics"]
