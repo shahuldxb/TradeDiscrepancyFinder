@@ -94,6 +94,11 @@ const navigationItems = [
     description: "UCP 600 Articles and Rules Management",
     subItems: [
       {
+        name: "UCP Dashboard",
+        href: "/ucp600/dashboard",
+        description: "UCP 600 analytics and overview",
+      },
+      {
         name: "UCP Articles",
         href: "/ucp600/articles",
         description: "Manage UCP 600 articles (base table)",

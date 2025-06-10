@@ -32,6 +32,7 @@ import IncotermsManagement from "@/pages/IncotermsManagement";
 import IncotermsDataGrid from "@/pages/IncotermsDataGrid";
 import IncotermsMatrix from "@/pages/IncotermsMatrix";
 import UCP600ArticlesManagement from "@/pages/UCP600ArticlesManagement";
+import UCPDashboard from "@/pages/UCPDashboard";
 
 import NotFound from "@/pages/not-found";
 
@@ -46,6 +47,7 @@ function Router() {
             <Route path="/" component={Dashboard} />
             
             {/* UCP 600 Management Routes */}
+            <Route path="/ucp600/dashboard" component={UCPDashboard} />
             <Route path="/ucp600/articles" component={UCP600ArticlesManagement} />
             <Route path="/ucp600/rules" component={UCP600ArticlesManagement} />
             <Route path="/ucp600/usage-rules" component={UCP600ArticlesManagement} />
