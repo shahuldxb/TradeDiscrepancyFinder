@@ -41,7 +41,7 @@ export class UCPDataService {
   async getUCPArticles() {
     try {
       const pool = await connectToAzureSQL();
-      const result = await pool.request().query('SELECT * FROM swift.UCP_Articles ORDER BY ID');
+      const result = await pool.request().query('SELECT * FROM ucp_articles ORDER BY articleid');
       return result.recordset;
     } catch (error) {
       console.error('Error fetching UCP Articles:', error);
@@ -635,14 +635,14 @@ export class UCPDataService {
       const pool = await connectToAzureSQL();
       const result = await pool.request().query(`
         SELECT 
-          (SELECT COUNT(*) FROM swift.UCP_Articles WHERE is_active = 1) as active_articles,
-          (SELECT COUNT(*) FROM swift.UCPRules WHERE is_active = 1) as active_rules,
-          (SELECT COUNT(*) FROM swift.ucp_usage_rules WHERE is_active = 1) as active_usage_rules,
-          (SELECT COUNT(*) FROM swift.UCP_message_field_rules WHERE is_active = 1) as active_field_rules,
-          (SELECT COUNT(*) FROM swift.UCP_document_compliance_rules WHERE is_active = 1) as active_compliance_rules,
-          (SELECT COUNT(*) FROM swift.UCP_Business_Process_Owners WHERE is_active = 1) as active_owners,
-          (SELECT COUNT(*) FROM swift.UCP_validation_results WHERE validation_status = 'PASSED') as passed_validations,
-          (SELECT COUNT(*) FROM swift.UCP_validation_results WHERE validation_status = 'FAILED') as failed_validations
+          (SELECT COUNT(*) FROM ucp_articles WHERE isactive = true) as active_articles,
+          (SELECT COUNT(*) FROM ucprules) as active_rules,
+          0 as active_usage_rules,
+          0 as active_field_rules,
+          0 as active_compliance_rules,
+          0 as active_owners,
+          0 as passed_validations,
+          0 as failed_validations
       `);
       return result.recordset[0];
     } catch (error) {
