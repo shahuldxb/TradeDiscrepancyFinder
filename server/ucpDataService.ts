@@ -117,10 +117,11 @@ export class UCPDataService {
     try {
       const pool = await connectToAzureSQL();
       const result = await pool.request().query(`
-        SELECT r.*, a.ArticleNumber, a.Title as article_title 
-        FROM swift.UCPRules r
-        LEFT JOIN swift.UCP_Articles a ON r.ArticleID = a.ID
-        ORDER BY r.RuleCode
+        SELECT RuleID, RuleCode, RuleName, RuleText, DetailedDescription, 
+               ArticleID, Priority, IsActive, CreatedDate, LastModifiedDate
+        FROM swift.UCPRules
+        WHERE IsActive = 1
+        ORDER BY RuleCode
       `);
       return result.recordset;
     } catch (error) {
