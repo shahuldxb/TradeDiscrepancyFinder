@@ -41,7 +41,7 @@ export class UCPDataService {
   async getUCPArticles() {
     try {
       const pool = await connectToAzureSQL();
-      const result = await pool.request().query('SELECT * FROM ucp_articles ORDER BY articleid');
+      const result = await pool.request().query('SELECT * FROM public.ucp_articles ORDER BY articleid');
       return result.recordset;
     } catch (error) {
       console.error('Error fetching UCP Articles:', error);
@@ -117,10 +117,10 @@ export class UCPDataService {
     try {
       const pool = await connectToAzureSQL();
       const result = await pool.request().query(`
-        SELECT r.*, a.article_number, a.title as article_title 
-        FROM swift.UCPRules r
-        LEFT JOIN swift.UCP_Articles a ON r.article_id = a.id
-        ORDER BY r.rule_code
+        SELECT r.*, a.articlenumber, a.title as article_title 
+        FROM public.ucprules r
+        LEFT JOIN public.ucp_articles a ON r.articleid = a.articleid
+        ORDER BY r.rulecode
       `);
       return result.recordset;
     } catch (error) {
