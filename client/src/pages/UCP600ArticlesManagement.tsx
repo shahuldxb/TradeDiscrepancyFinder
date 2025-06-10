@@ -311,24 +311,24 @@ export default function UCP600ArticlesManagement() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredArticles.map((article: UCPArticle) => (
+                      {filteredArticles.map((article: any) => (
                         <TableRow key={article.id}>
-                          <TableCell className="font-medium">{article.article_number}</TableCell>
+                          <TableCell className="font-medium">{article.articlenumber}</TableCell>
                           <TableCell className="max-w-xs">
                             <div className="truncate" title={article.title}>
                               {article.title}
                             </div>
                           </TableCell>
-                          <TableCell>{article.section}</TableCell>
-                          <TableCell>{article.subsection || "-"}</TableCell>
+                          <TableCell>{article.section || "General"}</TableCell>
+                          <TableCell>-</TableCell>
                           <TableCell>
-                            <Badge variant={article.is_active ? "default" : "secondary"}>
-                              {article.is_active ? "Active" : "Inactive"}
+                            <Badge variant={article.isactive ? "default" : "secondary"}>
+                              {article.isactive ? "Active" : "Inactive"}
                             </Badge>
                           </TableCell>
-                          <TableCell>{article.revision_number}</TableCell>
+                          <TableCell>1.0</TableCell>
                           <TableCell>
-                            {new Date(article.effective_date).toLocaleDateString()}
+                            {new Date(article.createddate).toLocaleDateString()}
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex gap-2 justify-end">

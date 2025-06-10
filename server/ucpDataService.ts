@@ -41,7 +41,7 @@ export class UCPDataService {
   async getUCPArticles() {
     try {
       const pool = await connectToAzureSQL();
-      const result = await pool.request().query('SELECT * FROM swift.UCP_Articles ORDER BY ID');
+      const result = await pool.request().query('SELECT * FROM swift.ucp_articles ORDER BY id');
       return result.recordset;
     } catch (error) {
       console.error('Error fetching UCP Articles:', error);
@@ -635,14 +635,14 @@ export class UCPDataService {
       const pool = await connectToAzureSQL();
       const result = await pool.request().query(`
         SELECT 
-          (SELECT COUNT(*) FROM swift.UCP_Articles WHERE IsActive = true) as active_articles,
-          (SELECT COUNT(*) FROM swift.UCPRules WHERE IsActive = true) as active_rules,
-          (SELECT COUNT(*) FROM swift.ucp_usage_rules WHERE IsActive = true) as active_usage_rules,
-          (SELECT COUNT(*) FROM swift.UCP_message_field_rules WHERE IsActive = true) as active_field_rules,
-          (SELECT COUNT(*) FROM swift.UCP_document_compliance_rules WHERE IsActive = true) as active_compliance_rules,
-          (SELECT COUNT(*) FROM swift.UCP_Business_Process_Owners WHERE IsActive = true) as active_owners,
-          (SELECT COUNT(*) FROM swift.UCP_validation_results WHERE ValidationStatus = 'PASSED') as passed_validations,
-          (SELECT COUNT(*) FROM swift.UCP_validation_results WHERE ValidationStatus = 'FAILED') as failed_validations
+          (SELECT COUNT(*) FROM swift.ucp_articles WHERE isactive = 't') as active_articles,
+          (SELECT COUNT(*) FROM swift.ucprules WHERE isactive = 't') as active_rules,
+          (SELECT COUNT(*) FROM swift.ucp_usage_rules WHERE isactive = 't') as active_usage_rules,
+          (SELECT COUNT(*) FROM swift.ucp_message_field_rules WHERE isactive = 't') as active_field_rules,
+          (SELECT COUNT(*) FROM swift.ucp_document_compliance_rules WHERE isactive = 't') as active_compliance_rules,
+          (SELECT COUNT(*) FROM swift.ucp_business_process_owners WHERE isactive = 't') as active_owners,
+          (SELECT COUNT(*) FROM swift.ucp_validation_results WHERE validationstatus = 'PASSED') as passed_validations,
+          (SELECT COUNT(*) FROM swift.ucp_validation_results WHERE validationstatus = 'FAILED') as failed_validations
       `);
       return result.recordset[0];
     } catch (error) {
