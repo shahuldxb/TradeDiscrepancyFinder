@@ -41,7 +41,7 @@ export class UCPDataService {
   async getUCPArticles() {
     try {
       const pool = await connectToAzureSQL();
-      const result = await pool.request().query('SELECT * FROM public.ucp_articles ORDER BY articleid');
+      const result = await pool.request().query('SELECT * FROM swift.UCP_Articles ORDER BY ID');
       return result.recordset;
     } catch (error) {
       console.error('Error fetching UCP Articles:', error);
