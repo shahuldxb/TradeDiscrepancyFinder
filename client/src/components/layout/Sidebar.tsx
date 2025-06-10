@@ -89,23 +89,6 @@ const navigationItems = [
     ],
   },
   {
-    name: "Test Drive",
-    icon: Beaker,
-    description: "Test OCR and document processing",
-    subItems: [
-      {
-        name: "OCR Agent",
-        href: "/test-drive/ocr",
-        description: "Upload and extract text from documents",
-      },
-      {
-        name: "Agent Code",
-        href: "/test-drive/agent-code",
-        description: "View CrewAI agent implementations",
-      },
-    ],
-  },
-  {
     name: "UCP 600",
     icon: FileText,
     description: "UCP 600 Articles and Rules Management",
@@ -149,6 +132,23 @@ const navigationItems = [
         name: "Rule Execution History",
         href: "/ucp600/execution-history",
         description: "Rule execution audit trail",
+      },
+    ],
+  },
+  {
+    name: "Test Drive",
+    icon: Beaker,
+    description: "Test OCR and document processing",
+    subItems: [
+      {
+        name: "OCR Agent",
+        href: "/test-drive/ocr",
+        description: "Upload and extract text from documents",
+      },
+      {
+        name: "Agent Code",
+        href: "/test-drive/agent-code",
+        description: "View CrewAI agent implementations",
       },
     ],
   },

@@ -42,50 +42,80 @@ export class UCPDataService {
     try {
       const pool = await connectToAzureSQL();
       
-      // Try to find and query UCP tables with actual column names
-      try {
-        // First, let's see what UCP tables exist
-        const tablesResult = await pool.request().query(`
-          SELECT TABLE_NAME 
-          FROM INFORMATION_SCHEMA.TABLES 
-          WHERE TABLE_SCHEMA = 'swift' AND (TABLE_NAME LIKE '%UCP%' OR TABLE_NAME LIKE '%ucp%')
-        `);
-        
-        if (tablesResult.recordset.length === 0) {
-          return { 
-            error: 'No UCP tables found in swift schema',
-            message: 'Please check if UCP tables exist in your Azure database'
-          };
-        }
-        
-        console.log('Available UCP tables:', tablesResult.recordset.map(t => t.TABLE_NAME));
-        
-        // Try to query the first UCP table found with SELECT * to see actual data
-        const firstTable = tablesResult.recordset[0].TABLE_NAME;
-        const result = await pool.request().query(`SELECT TOP 10 * FROM swift.${firstTable}`);
-        
+      // Check all swift schema tables to see what exists
+      const allTablesResult = await pool.request().query(`
+        SELECT TABLE_NAME 
+        FROM INFORMATION_SCHEMA.TABLES 
+        WHERE TABLE_SCHEMA = 'swift'
+        ORDER BY TABLE_NAME
+      `);
+      
+      console.log('All swift schema tables:', allTablesResult.recordset.map(t => t.TABLE_NAME));
+      
+      // Look for any tables that might contain UCP or article data
+      const potentialUCPTables = allTablesResult.recordset.filter(table => 
+        table.TABLE_NAME.toLowerCase().includes('ucp') ||
+        table.TABLE_NAME.toLowerCase().includes('article') ||
+        table.TABLE_NAME.toLowerCase().includes('rule') ||
+        table.TABLE_NAME.toLowerCase().includes('compliance')
+      );
+      
+      if (potentialUCPTables.length === 0) {
+        // Create sample UCP data structure for demonstration
         return {
-          tableName: firstTable,
-          availableTables: tablesResult.recordset.map(t => t.TABLE_NAME),
-          data: result.recordset,
-          columns: result.recordset.length > 0 ? Object.keys(result.recordset[0]) : []
-        };
-        
-      } catch (queryError) {
-        // If there's still an error, let's get table structures
-        const discovery = await this.discoverUCPTables();
-        return {
-          error: 'Error querying UCP tables',
-          queryError: queryError.message,
-          discovery: discovery
+          message: 'No UCP tables found in database',
+          availableTables: allTablesResult.recordset.map(t => t.TABLE_NAME),
+          sampleStructure: {
+            articles: [
+              {
+                id: 1,
+                article_number: 'Article 1',
+                title: 'General Provisions and Definitions',
+                content: 'The Uniform Customs and Practice for Documentary Credits...',
+                section: 'General',
+                is_active: true
+              }
+            ]
+          }
         };
       }
+      
+      // Try each potential table to see what data structure exists
+      const tableData = {};
+      for (const table of potentialUCPTables) {
+        try {
+          // Get column structure
+          const columnsResult = await pool.request().query(`
+            SELECT COLUMN_NAME, DATA_TYPE 
+            FROM INFORMATION_SCHEMA.COLUMNS 
+            WHERE TABLE_SCHEMA = 'swift' AND TABLE_NAME = '${table.TABLE_NAME}'
+            ORDER BY ORDINAL_POSITION
+          `);
+          
+          // Get sample data
+          const sampleResult = await pool.request().query(`SELECT TOP 3 * FROM swift.${table.TABLE_NAME}`);
+          
+          tableData[table.TABLE_NAME] = {
+            columns: columnsResult.recordset,
+            sampleData: sampleResult.recordset,
+            rowCount: sampleResult.recordset.length
+          };
+        } catch (tableError) {
+          console.log(`Error accessing table ${table.TABLE_NAME}:`, (tableError as Error).message);
+        }
+      }
+      
+      return {
+        potentialUCPTables: potentialUCPTables.map(t => t.TABLE_NAME),
+        allTables: allTablesResult.recordset.map(t => t.TABLE_NAME),
+        tableStructures: tableData
+      };
       
     } catch (error) {
       console.error('Error fetching UCP Articles:', error);
       return {
-        error: 'Database connection or query failed',
-        details: error.message
+        error: 'Database connection failed',
+        details: (error as Error).message
       };
     }
   }
