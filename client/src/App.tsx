@@ -31,6 +31,7 @@ import AgentCode from "@/pages/AgentCode";
 import IncotermsManagement from "@/pages/IncotermsManagement";
 import IncotermsDataGrid from "@/pages/IncotermsDataGrid";
 import IncotermsMatrix from "@/pages/IncotermsMatrix";
+import UCP600ArticlesManagement from "@/pages/UCP600ArticlesManagement";
 
 import NotFound from "@/pages/not-found";
 
@@ -45,6 +46,16 @@ function Router() {
           <Switch>
             <Route path="/" component={Dashboard} />
             
+            {/* UCP 600 Management Routes */}
+            <Route path="/ucp600/articles" component={UCP600ArticlesManagement} />
+            <Route path="/ucp600/rules" component={UCP600ArticlesManagement} />
+            <Route path="/ucp600/usage-rules" component={UCP600ArticlesManagement} />
+            <Route path="/ucp600/message-field-rules" component={UCP600ArticlesManagement} />
+            <Route path="/ucp600/document-compliance" component={UCP600ArticlesManagement} />
+            <Route path="/ucp600/business-owners" component={UCP600ArticlesManagement} />
+            <Route path="/ucp600/validation-results" component={UCP600ArticlesManagement} />
+            <Route path="/ucp600/execution-history" component={UCP600ArticlesManagement} />
+
             {/* Incoterms Management Routes */}
             <Route path="/incoterms" component={IncotermsManagement} />
             <Route path="/incoterms-grid" component={IncotermsDataGrid} />

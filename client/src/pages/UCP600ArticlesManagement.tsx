@@ -50,13 +50,11 @@ export default function UCP600ArticlesManagement() {
   });
 
   const { data: articles = [], isLoading } = useQuery({
-    queryKey: ["/api/ucp600/articles"],
-    queryFn: () => apiRequest("/api/ucp600/articles")
+    queryKey: ["/api/ucp600/articles"]
   });
 
   const { data: statistics } = useQuery({
-    queryKey: ["/api/ucp600/statistics"],
-    queryFn: () => apiRequest("/api/ucp600/statistics")
+    queryKey: ["/api/ucp600/statistics"]
   });
 
   const createMutation = useMutation({
@@ -144,7 +142,8 @@ export default function UCP600ArticlesManagement() {
   };
 
   // Filter articles based on search and section
-  const filteredArticles = articles.filter((article: UCPArticle) => {
+  const articlesArray = Array.isArray(articles) ? articles as UCPArticle[] : [];
+  const filteredArticles = articlesArray.filter((article: UCPArticle) => {
     const matchesSearch = article.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          article.article_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          article.content.toLowerCase().includes(searchTerm.toLowerCase());
@@ -153,7 +152,7 @@ export default function UCP600ArticlesManagement() {
   });
 
   // Get unique sections for filter
-  const sections = Array.from(new Set(articles.map((article: UCPArticle) => article.section)));
+  const sections = Array.from(new Set(articlesArray.map((article: UCPArticle) => article.section)));
 
   return (
     <div className="container mx-auto px-6 py-8">
