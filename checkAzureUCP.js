@@ -1,10 +1,10 @@
 import sql from 'mssql';
 
 const config = {
-  user: process.env.AZURE_SQL_USER,
-  password: process.env.AZURE_SQL_PASSWORD,
-  server: process.env.AZURE_SQL_SERVER,
-  database: process.env.AZURE_SQL_DATABASE,
+  user: 'shahul',
+  password: 'Apple123!@#',
+  server: 'shahulmi.database.windows.net',
+  database: 'tf_genie',
   options: {
     encrypt: true,
     trustServerCertificate: false
