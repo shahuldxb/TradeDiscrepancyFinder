@@ -287,10 +287,9 @@ export class UCPDataService {
     try {
       const pool = await connectToAzureSQL();
       const result = await pool.request().query(`
-        SELECT mfr.*, r.rule_code, r.rule_name 
-        FROM swift.UCP_message_field_rules mfr
-        LEFT JOIN swift.UCPRules r ON mfr.rule_id = r.id
-        ORDER BY mfr.message_type, mfr.field_code
+        SELECT FieldRuleID, FieldRuleCode, MessageType, FieldTag, FieldName
+        FROM swift.UCP_message_field_rules
+        ORDER BY MessageType, FieldTag
       `);
       return result.recordset;
     } catch (error) {
@@ -373,10 +372,9 @@ export class UCPDataService {
     try {
       const pool = await connectToAzureSQL();
       const result = await pool.request().query(`
-        SELECT dcr.*, r.rule_code, r.rule_name 
-        FROM swift.UCP_document_compliance_rules dcr
-        LEFT JOIN swift.UCPRules r ON dcr.rule_id = r.id
-        ORDER BY dcr.document_type, dcr.compliance_category
+        SELECT ComplianceRuleID, ComplianceRuleCode, DocumentType, DocumentSubType, ComplianceRequirement
+        FROM swift.UCP_document_compliance_rules
+        ORDER BY DocumentType, DocumentSubType
       `);
       return result.recordset;
     } catch (error) {
@@ -457,10 +455,9 @@ export class UCPDataService {
     try {
       const pool = await connectToAzureSQL();
       const result = await pool.request().query(`
-        SELECT bpo.*, r.rule_code, r.rule_name 
-        FROM swift.UCP_Business_Process_Owners bpo
-        LEFT JOIN swift.UCPRules r ON bpo.rule_id = r.id
-        ORDER BY bpo.business_process, bpo.owner_name
+        SELECT OwnerID, OwnerCode, OwnerName, Department, Role
+        FROM swift.UCP_Business_Process_Owners
+        ORDER BY OwnerName, Department
       `);
       return result.recordset;
     } catch (error) {
