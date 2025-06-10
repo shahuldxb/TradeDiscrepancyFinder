@@ -175,11 +175,11 @@ export class UCPDataService {
         .input('is_active', ruleData.is_active)
         .query(`
           UPDATE swift.UCPRules 
-          SET rule_code = @rule_code, rule_name = @rule_name, rule_description = @rule_description,
-              article_id = @article_id, rule_category = @rule_category, priority_level = @priority_level,
-              is_mandatory = @is_mandatory, validation_logic = @validation_logic, 
-              error_message = @error_message, is_active = @is_active, updated_at = GETDATE()
-          WHERE id = @id
+          SET RuleCode = @rule_code, RuleName = @rule_name, DetailedDescription = @rule_description,
+              ArticleID = @article_id, Priority = @priority_level,
+              ValidationLogic = @validation_logic, 
+              IsActive = @is_active, LastModifiedDate = GETDATE()
+          WHERE RuleID = @id
         `);
       return result;
     } catch (error) {
@@ -193,7 +193,7 @@ export class UCPDataService {
       const pool = await connectToAzureSQL();
       const result = await pool.request()
         .input('id', id)
-        .query('DELETE FROM swift.UCPRules WHERE id = @id');
+        .query('DELETE FROM swift.UCPRules WHERE RuleID = @id');
       return result;
     } catch (error) {
       console.error('Error deleting UCP Rule:', error);
@@ -206,10 +206,12 @@ export class UCPDataService {
     try {
       const pool = await connectToAzureSQL();
       const result = await pool.request().query(`
-        SELECT ur.*, r.rule_code, r.rule_name 
-        FROM swift.ucp_usage_rules ur
-        LEFT JOIN swift.UCPRules r ON ur.rule_id = r.id
-        ORDER BY ur.usage_context, ur.sequence_order
+        SELECT UsageRuleID, UsageRuleCode, SWIFTMessageType, FieldTag, FieldName, 
+               UsagePattern, ValidationRule, BusinessContext, DetailedExplanation,
+               MandatoryOptional, Priority, IsActive, CreatedDate, LastModifiedDate
+        FROM swift.ucp_usage_rules
+        WHERE IsActive = 1
+        ORDER BY UsageRuleCode
       `);
       return result.recordset;
     } catch (error) {
