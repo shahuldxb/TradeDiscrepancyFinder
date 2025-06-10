@@ -293,6 +293,25 @@ export default function UCP600ArticlesManagement() {
             </CardContent>
           </Card>
 
+          {/* Edit Dialog */}
+          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Edit UCP Article</DialogTitle>
+                <DialogDescription>
+                  Update the UCP 600 article details
+                </DialogDescription>
+              </DialogHeader>
+              <ArticleForm 
+                formData={formData}
+                setFormData={setFormData}
+                onSubmit={handleUpdate}
+                isLoading={updateMutation.isPending}
+                submitLabel="Update Article"
+              />
+            </DialogContent>
+          </Dialog>
+
           {/* Articles Table */}
           <Card>
             <CardHeader>
