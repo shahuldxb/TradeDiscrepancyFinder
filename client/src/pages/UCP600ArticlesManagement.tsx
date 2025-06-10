@@ -33,6 +33,7 @@ export default function UCP600ArticlesManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSection, setSelectedSection] = useState("all");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingArticle, setEditingArticle] = useState<UCPArticle | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -125,18 +126,19 @@ export default function UCP600ArticlesManagement() {
     }
   };
 
-  const handleEdit = (article: UCPArticle) => {
+  const handleEdit = (article: any) => {
     setEditingArticle(article);
     setFormData({
-      article_number: article.article_number,
-      title: article.title,
-      content: article.content,
-      section: article.section,
-      subsection: article.subsection || "",
-      is_active: article.is_active,
-      effective_date: article.effective_date.split('T')[0],
-      revision_number: article.revision_number
+      article_number: article.ArticleNumber || article.article_number || "",
+      title: article.Title || article.title || "",
+      content: article.Content || article.content || "",
+      section: article.Section || article.section || "",
+      subsection: article.Subsection || article.subsection || "",
+      is_active: article.IsActive !== undefined ? article.IsActive : (article.is_active || true),
+      effective_date: article.EffectiveDate || article.effective_date || new Date().toISOString().split('T')[0],
+      revision_number: article.RevisionNumber || article.revision_number || 1
     });
+    setIsEditDialogOpen(true);
   };
 
   const handleDelete = (id: number) => {
@@ -148,15 +150,20 @@ export default function UCP600ArticlesManagement() {
   // Filter articles based on search and section
   const articlesArray = Array.isArray(articles) ? articles as UCPArticle[] : [];
   const filteredArticles = articlesArray.filter((article: UCPArticle) => {
-    const matchesSearch = article.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         article.article_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         article.content.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesSection = selectedSection === "all" || article.section === selectedSection;
+    const title = article.Title || article.title || '';
+    const articleNumber = article.ArticleNumber || article.article_number || '';
+    const content = article.Content || article.content || '';
+    const section = article.Section || article.section || '';
+    
+    const matchesSearch = title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         articleNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         content.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSection = selectedSection === "all" || section === selectedSection;
     return matchesSearch && matchesSection;
   });
 
   // Get unique sections for filter
-  const sections = Array.from(new Set(articlesArray.map((article: UCPArticle) => article.section)));
+  const sections = Array.from(new Set(articlesArray.map((article: UCPArticle) => article.Section || article.section || 'General')));
 
   return (
     <div className="container mx-auto px-6 py-8">
@@ -311,26 +318,30 @@ export default function UCP600ArticlesManagement() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredArticles.map((article: any) => (
-                        <TableRow key={article.id}>
-                          <TableCell className="font-medium">{article.articlenumber}</TableCell>
+                      {filteredArticles.map((article: any, index: number) => (
+                        <TableRow 
+                          key={article.ArticleID || article.id || index}
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => handleEdit(article)}
+                        >
+                          <TableCell className="font-medium">{article.ArticleNumber || article.article_number}</TableCell>
                           <TableCell className="max-w-xs">
-                            <div className="truncate" title={article.title}>
-                              {article.title}
+                            <div className="truncate" title={article.Title || article.title}>
+                              {article.Title || article.title}
                             </div>
                           </TableCell>
-                          <TableCell>{article.section || "General"}</TableCell>
+                          <TableCell>{article.Section || article.section || "General"}</TableCell>
                           <TableCell>-</TableCell>
                           <TableCell>
-                            <Badge variant={article.isactive ? "default" : "secondary"}>
-                              {article.isactive ? "Active" : "Inactive"}
+                            <Badge variant={article.IsActive || article.isactive ? "default" : "secondary"}>
+                              {article.IsActive || article.isactive ? "Active" : "Inactive"}
                             </Badge>
                           </TableCell>
                           <TableCell>1.0</TableCell>
                           <TableCell>
-                            {new Date(article.createddate).toLocaleDateString()}
+                            {article.CreatedDate || article.createddate ? new Date(article.CreatedDate || article.createddate).toLocaleDateString() : 'N/A'}
                           </TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                             <div className="flex gap-2 justify-end">
                               <Dialog>
                                 <DialogTrigger asChild>
