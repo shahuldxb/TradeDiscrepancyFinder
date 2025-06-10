@@ -51,15 +51,25 @@ export default function UCP600ArticlesManagement() {
   const queryClient = useQueryClient();
 
   // Form state for create/edit
-  const [formData, setFormData] = useState({
-    article_number: "",
-    title: "",
-    content: "",
-    section: "",
-    subsection: "",
-    is_active: true,
-    effective_date: "",
-    revision_number: 1
+  const [formData, setFormData] = useState<Partial<UCPArticle>>({
+    ArticleNumber: "",
+    Title: "",
+    Description: "",
+    FullText: "",
+    BusinessRationale: "",
+    PracticalImplications: "",
+    CommonMisinterpretations: "",
+    BestPractices: "",
+    RelatedArticles: "",
+    ArticleType: "",
+    Category: "",
+    ComplexityLevel: "",
+    BusinessCriticality: "",
+    BusinessOwner: "",
+    SubjectMatterExpert: "",
+    LastReviewDate: "",
+    NextReviewDue: "",
+    IsActive: true
   });
 
   const { data: articlesResponse, isLoading, error } = useQuery({
@@ -144,7 +154,7 @@ export default function UCP600ArticlesManagement() {
 
   const handleUpdate = () => {
     if (editingArticle) {
-      updateMutation.mutate({ id: editingArticle.id, data: formData });
+      updateMutation.mutate({ id: editingArticle.ArticleID, data: formData });
     }
   };
 
