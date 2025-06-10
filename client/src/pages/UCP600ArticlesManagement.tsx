@@ -16,17 +16,29 @@ import { Edit, Trash2, Plus, FileText, BarChart3, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface UCPArticle {
-  id: number;
-  article_number: string;
-  title: string;
-  content: string;
-  section: string;
-  subsection?: string;
-  is_active: boolean;
-  effective_date: string;
-  revision_number: number;
-  created_at: string;
-  updated_at?: string;
+  ArticleID: number;
+  ArticleNumber: string;
+  Title: string;
+  Description: string;
+  FullText: string;
+  BusinessRationale?: string;
+  PracticalImplications?: string;
+  CommonMisinterpretations?: string;
+  BestPractices?: string;
+  RelatedArticles?: string;
+  ArticleType?: string;
+  Category?: string;
+  ComplexityLevel?: string;
+  BusinessCriticality?: string;
+  BusinessOwner?: string;
+  SubjectMatterExpert?: string;
+  LastReviewDate?: string;
+  NextReviewDue?: string;
+  IsActive: boolean;
+  CreatedDate: string;
+  CreatedBy?: string;
+  LastModifiedDate?: string;
+  LastModifiedBy?: string;
 }
 
 export default function UCP600ArticlesManagement() {
@@ -105,14 +117,24 @@ export default function UCP600ArticlesManagement() {
 
   const resetForm = () => {
     setFormData({
-      article_number: "",
-      title: "",
-      content: "",
-      section: "",
-      subsection: "",
-      is_active: true,
-      effective_date: "",
-      revision_number: 1
+      ArticleNumber: "",
+      Title: "",
+      Description: "",
+      FullText: "",
+      BusinessRationale: "",
+      PracticalImplications: "",
+      CommonMisinterpretations: "",
+      BestPractices: "",
+      RelatedArticles: "",
+      ArticleType: "",
+      Category: "",
+      ComplexityLevel: "",
+      BusinessCriticality: "",
+      BusinessOwner: "",
+      SubjectMatterExpert: "",
+      LastReviewDate: "",
+      NextReviewDue: "",
+      IsActive: true
     });
   };
 
@@ -129,14 +151,29 @@ export default function UCP600ArticlesManagement() {
   const handleEdit = (article: any) => {
     setEditingArticle(article);
     setFormData({
-      article_number: article.ArticleNumber || article.article_number || "",
-      title: article.Title || article.title || "",
-      content: article.Content || article.content || "",
-      section: article.Section || article.section || "",
-      subsection: article.Subsection || article.subsection || "",
-      is_active: article.IsActive !== undefined ? article.IsActive : (article.is_active || true),
-      effective_date: article.EffectiveDate || article.effective_date || new Date().toISOString().split('T')[0],
-      revision_number: article.RevisionNumber || article.revision_number || 1
+      ArticleID: article.ArticleID,
+      ArticleNumber: article.ArticleNumber || "",
+      Title: article.Title || "",
+      Description: article.Description || "",
+      FullText: article.FullText || "",
+      BusinessRationale: article.BusinessRationale || "",
+      PracticalImplications: article.PracticalImplications || "",
+      CommonMisinterpretations: article.CommonMisinterpretations || "",
+      BestPractices: article.BestPractices || "",
+      RelatedArticles: article.RelatedArticles || "",
+      ArticleType: article.ArticleType || "",
+      Category: article.Category || "",
+      ComplexityLevel: article.ComplexityLevel || "",
+      BusinessCriticality: article.BusinessCriticality || "",
+      BusinessOwner: article.BusinessOwner || "",
+      SubjectMatterExpert: article.SubjectMatterExpert || "",
+      LastReviewDate: article.LastReviewDate || "",
+      NextReviewDue: article.NextReviewDue || "",
+      IsActive: article.IsActive !== undefined ? article.IsActive : true,
+      CreatedDate: article.CreatedDate || "",
+      CreatedBy: article.CreatedBy || "",
+      LastModifiedDate: article.LastModifiedDate || "",
+      LastModifiedBy: article.LastModifiedBy || ""
     });
     setIsEditDialogOpen(true);
   };
@@ -150,20 +187,20 @@ export default function UCP600ArticlesManagement() {
   // Filter articles based on search and section
   const articlesArray = Array.isArray(articles) ? articles as UCPArticle[] : [];
   const filteredArticles = articlesArray.filter((article: UCPArticle) => {
-    const title = article.Title || article.title || '';
-    const articleNumber = article.ArticleNumber || article.article_number || '';
-    const content = article.Content || article.content || '';
-    const section = article.Section || article.section || '';
+    const title = article.Title || '';
+    const articleNumber = article.ArticleNumber || '';
+    const description = article.Description || '';
+    const category = article.Category || '';
     
     const matchesSearch = title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          articleNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         content.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesSection = selectedSection === "all" || section === selectedSection;
+                         description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSection = selectedSection === "all" || category === selectedSection;
     return matchesSearch && matchesSection;
   });
 
   // Get unique sections for filter
-  const sections = Array.from(new Set(articlesArray.map((article: UCPArticle) => article.Section || article.section || 'General')));
+  const sections = Array.from(new Set(articlesArray.map((article: UCPArticle) => article.Category || 'General')));
 
   return (
     <div className="container mx-auto px-6 py-8">
@@ -485,93 +522,216 @@ interface ArticleFormProps {
 
 function ArticleForm({ formData, setFormData, onSubmit, isLoading, submitLabel }: ArticleFormProps) {
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-4">
+    <div className="space-y-6 max-h-[70vh] overflow-y-auto">
+      {/* Basic Information */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold border-b pb-2">Basic Information</h3>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="ArticleNumber">Article Number *</Label>
+            <Input
+              id="ArticleNumber"
+              value={formData.ArticleNumber || ''}
+              onChange={(e) => setFormData({ ...formData, ArticleNumber: e.target.value })}
+              placeholder="e.g., 1, 2a, 14"
+              required
+            />
+          </div>
+          <div>
+            <Label htmlFor="ArticleType">Article Type</Label>
+            <Input
+              id="ArticleType"
+              value={formData.ArticleType || ''}
+              onChange={(e) => setFormData({ ...formData, ArticleType: e.target.value })}
+              placeholder="e.g., Fundamental, Procedural"
+            />
+          </div>
+        </div>
+
         <div>
-          <Label htmlFor="article_number">Article Number *</Label>
+          <Label htmlFor="Title">Article Title *</Label>
           <Input
-            id="article_number"
-            value={formData.article_number}
-            onChange={(e) => setFormData({ ...formData, article_number: e.target.value })}
-            placeholder="e.g., 1, 2a, 14"
+            id="Title"
+            value={formData.Title || ''}
+            onChange={(e) => setFormData({ ...formData, Title: e.target.value })}
+            placeholder="Enter the article title"
             required
           />
         </div>
+
         <div>
-          <Label htmlFor="revision_number">Revision Number</Label>
-          <Input
-            id="revision_number"
-            type="number"
-            value={formData.revision_number}
-            onChange={(e) => setFormData({ ...formData, revision_number: parseInt(e.target.value) })}
-            min="1"
+          <Label htmlFor="Description">Description *</Label>
+          <Textarea
+            id="Description"
+            value={formData.Description || ''}
+            onChange={(e) => setFormData({ ...formData, Description: e.target.value })}
+            placeholder="Brief description of the article"
+            required
+            rows={3}
           />
         </div>
-      </div>
 
-      <div>
-        <Label htmlFor="title">Article Title *</Label>
-        <Input
-          id="title"
-          value={formData.title}
-          onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-          placeholder="Enter the article title"
-          required
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="section">Section *</Label>
-          <Input
-            id="section"
-            value={formData.section}
-            onChange={(e) => setFormData({ ...formData, section: e.target.value })}
-            placeholder="e.g., General Provisions"
+          <Label htmlFor="FullText">Full Text Content *</Label>
+          <Textarea
+            id="FullText"
+            value={formData.FullText || ''}
+            onChange={(e) => setFormData({ ...formData, FullText: e.target.value })}
+            placeholder="Enter the full text of the UCP article"
+            rows={6}
             required
           />
         </div>
+      </div>
+
+      {/* Business Context */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold border-b pb-2">Business Context</h3>
+        
         <div>
-          <Label htmlFor="subsection">Subsection</Label>
+          <Label htmlFor="BusinessRationale">Business Rationale</Label>
+          <Textarea
+            id="BusinessRationale"
+            value={formData.BusinessRationale || ''}
+            onChange={(e) => setFormData({ ...formData, BusinessRationale: e.target.value })}
+            placeholder="Why this article exists and its business purpose"
+            rows={3}
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="PracticalImplications">Practical Implications</Label>
+          <Textarea
+            id="PracticalImplications"
+            value={formData.PracticalImplications || ''}
+            onChange={(e) => setFormData({ ...formData, PracticalImplications: e.target.value })}
+            placeholder="Real-world impact and implementation considerations"
+            rows={3}
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="CommonMisinterpretations">Common Misinterpretations</Label>
+          <Textarea
+            id="CommonMisinterpretations"
+            value={formData.CommonMisinterpretations || ''}
+            onChange={(e) => setFormData({ ...formData, CommonMisinterpretations: e.target.value })}
+            placeholder="Common mistakes or misunderstandings about this article"
+            rows={3}
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="BestPractices">Best Practices</Label>
+          <Textarea
+            id="BestPractices"
+            value={formData.BestPractices || ''}
+            onChange={(e) => setFormData({ ...formData, BestPractices: e.target.value })}
+            placeholder="Recommended approaches and best practices"
+            rows={3}
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="RelatedArticles">Related Articles</Label>
           <Input
-            id="subsection"
-            value={formData.subsection}
-            onChange={(e) => setFormData({ ...formData, subsection: e.target.value })}
-            placeholder="Optional subsection"
+            id="RelatedArticles"
+            value={formData.RelatedArticles || ''}
+            onChange={(e) => setFormData({ ...formData, RelatedArticles: e.target.value })}
+            placeholder="e.g., Articles 2-39, Article 14a"
           />
         </div>
       </div>
 
-      <div>
-        <Label htmlFor="content">Article Content *</Label>
-        <Textarea
-          id="content"
-          value={formData.content}
-          onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-          placeholder="Enter the full text of the UCP article"
-          rows={6}
-          required
-        />
-      </div>
+      {/* Classification */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold border-b pb-2">Classification</h3>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="Category">Category</Label>
+            <Input
+              id="Category"
+              value={formData.Category || ''}
+              onChange={(e) => setFormData({ ...formData, Category: e.target.value })}
+              placeholder="e.g., Application, Documents, Payment"
+            />
+          </div>
+          <div>
+            <Label htmlFor="ComplexityLevel">Complexity Level</Label>
+            <Input
+              id="ComplexityLevel"
+              value={formData.ComplexityLevel || ''}
+              onChange={(e) => setFormData({ ...formData, ComplexityLevel: e.target.value })}
+              placeholder="e.g., Basic, Intermediate, Advanced"
+            />
+          </div>
+        </div>
 
-      <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="effective_date">Effective Date *</Label>
+          <Label htmlFor="BusinessCriticality">Business Criticality</Label>
           <Input
-            id="effective_date"
-            type="date"
-            value={formData.effective_date}
-            onChange={(e) => setFormData({ ...formData, effective_date: e.target.value })}
-            required
+            id="BusinessCriticality"
+            value={formData.BusinessCriticality || ''}
+            onChange={(e) => setFormData({ ...formData, BusinessCriticality: e.target.value })}
+            placeholder="e.g., Critical, High, Medium, Low"
           />
         </div>
-        <div className="flex items-center space-x-2 pt-6">
+      </div>
+
+      {/* Ownership & Review */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold border-b pb-2">Ownership & Review</h3>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="BusinessOwner">Business Owner</Label>
+            <Input
+              id="BusinessOwner"
+              value={formData.BusinessOwner || ''}
+              onChange={(e) => setFormData({ ...formData, BusinessOwner: e.target.value })}
+              placeholder="e.g., Trade Finance Legal Counsel"
+            />
+          </div>
+          <div>
+            <Label htmlFor="SubjectMatterExpert">Subject Matter Expert</Label>
+            <Input
+              id="SubjectMatterExpert"
+              value={formData.SubjectMatterExpert || ''}
+              onChange={(e) => setFormData({ ...formData, SubjectMatterExpert: e.target.value })}
+              placeholder="e.g., UCP Expert"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="LastReviewDate">Last Review Date</Label>
+            <Input
+              id="LastReviewDate"
+              type="date"
+              value={formData.LastReviewDate ? formData.LastReviewDate.split('T')[0] : ''}
+              onChange={(e) => setFormData({ ...formData, LastReviewDate: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label htmlFor="NextReviewDue">Next Review Due</Label>
+            <Input
+              id="NextReviewDue"
+              type="date"
+              value={formData.NextReviewDue ? formData.NextReviewDue.split('T')[0] : ''}
+              onChange={(e) => setFormData({ ...formData, NextReviewDue: e.target.value })}
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-2">
           <Switch
-            id="is_active"
-            checked={formData.is_active}
-            onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
+            id="IsActive"
+            checked={formData.IsActive || false}
+            onCheckedChange={(checked) => setFormData({ ...formData, IsActive: checked })}
           />
-          <Label htmlFor="is_active">Active Article</Label>
+          <Label htmlFor="IsActive">Active Article</Label>
         </div>
       </div>
 
