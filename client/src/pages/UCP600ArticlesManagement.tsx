@@ -326,13 +326,13 @@ export default function UCP600ArticlesManagement() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Article Number</TableHead>
-                        <TableHead>Title</TableHead>
-                        <TableHead>Section</TableHead>
-                        <TableHead>Subsection</TableHead>
+                        <TableHead>Article</TableHead>
+                        <TableHead>Title & Description</TableHead>
+                        <TableHead>Business Context</TableHead>
+                        <TableHead>Category</TableHead>
+                        <TableHead>Owner</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead>Revision</TableHead>
-                        <TableHead>Effective Date</TableHead>
+                        <TableHead>Last Updated</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -343,22 +343,79 @@ export default function UCP600ArticlesManagement() {
                           className="cursor-pointer hover:bg-muted/50"
                           onClick={() => handleEdit(article)}
                         >
-                          <TableCell className="font-medium">{article.ArticleNumber || article.article_number}</TableCell>
-                          <TableCell className="max-w-xs">
-                            <div className="truncate" title={article.Title || article.title}>
-                              {article.Title || article.title}
+                          <TableCell className="font-medium">
+                            <div className="flex flex-col">
+                              <span className="font-bold text-lg">{article.ArticleNumber}</span>
+                              <span className="text-xs text-muted-foreground">{article.ArticleType}</span>
                             </div>
                           </TableCell>
-                          <TableCell>{article.Section || article.section || "General"}</TableCell>
-                          <TableCell>-</TableCell>
-                          <TableCell>
-                            <Badge variant={article.IsActive || article.isactive ? "default" : "secondary"}>
-                              {article.IsActive || article.isactive ? "Active" : "Inactive"}
-                            </Badge>
+                          <TableCell className="max-w-md">
+                            <div className="space-y-1">
+                              <div className="font-semibold text-sm" title={article.Title}>
+                                {article.Title}
+                              </div>
+                              <div className="text-xs text-muted-foreground line-clamp-2" title={article.Description}>
+                                {article.Description}
+                              </div>
+                              {article.FullText && article.FullText !== article.Description && (
+                                <div className="text-xs text-blue-600 italic line-clamp-1" title={article.FullText}>
+                                  {article.FullText}
+                                </div>
+                              )}
+                            </div>
                           </TableCell>
-                          <TableCell>1.0</TableCell>
+                          <TableCell className="max-w-sm">
+                            <div className="space-y-1 text-xs">
+                              {article.BusinessRationale && (
+                                <div className="text-green-700">
+                                  <span className="font-medium">Rationale:</span> {article.BusinessRationale}
+                                </div>
+                              )}
+                              {article.PracticalImplications && (
+                                <div className="text-blue-700">
+                                  <span className="font-medium">Impact:</span> {article.PracticalImplications}
+                                </div>
+                              )}
+                              {article.BestPractices && (
+                                <div className="text-purple-700">
+                                  <span className="font-medium">Best Practice:</span> {article.BestPractices}
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
                           <TableCell>
-                            {article.CreatedDate || article.createddate ? new Date(article.CreatedDate || article.createddate).toLocaleDateString() : 'N/A'}
+                            <div className="space-y-1">
+                              <Badge variant="outline" className="text-xs">
+                                {article.Category}
+                              </Badge>
+                              <div className="text-xs text-muted-foreground">
+                                {article.ComplexityLevel} | {article.BusinessCriticality}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            <div className="space-y-1">
+                              <div className="font-medium">{article.BusinessOwner}</div>
+                              <div className="text-muted-foreground">{article.SubjectMatterExpert}</div>
+                              {article.NextReviewDue && (
+                                <div className="text-orange-600">
+                                  Review: {new Date(article.NextReviewDue).toLocaleDateString()}
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="space-y-1">
+                              <Badge variant={article.IsActive ? "default" : "secondary"}>
+                                {article.IsActive ? "Active" : "Inactive"}
+                              </Badge>
+                              <div className="text-xs text-muted-foreground">
+                                {article.LastModifiedBy} | {new Date(article.LastModifiedDate).toLocaleDateString()}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {article.CreatedDate ? new Date(article.CreatedDate).toLocaleDateString() : 'N/A'}
                           </TableCell>
                           <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                             <div className="flex gap-2 justify-end">
