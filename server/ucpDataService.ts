@@ -2,15 +2,91 @@ import { connectToAzureSQL } from './azureSqlConnection';
 
 export class UCPDataService {
   
+  // First, let's discover what UCP tables actually exist and their structure
+  async discoverUCPTables() {
+    try {
+      const pool = await connectToAzureSQL();
+      
+      // Find all UCP-related tables
+      const tablesResult = await pool.request().query(`
+        SELECT TABLE_NAME 
+        FROM INFORMATION_SCHEMA.TABLES 
+        WHERE TABLE_SCHEMA = 'swift' AND (TABLE_NAME LIKE '%UCP%' OR TABLE_NAME LIKE '%ucp%')
+        ORDER BY TABLE_NAME
+      `);
+      
+      console.log('UCP tables found:', tablesResult.recordset.map(t => t.TABLE_NAME));
+      
+      // For each table, get its structure
+      const tableStructures = {};
+      for (const table of tablesResult.recordset) {
+        const columnsResult = await pool.request().query(`
+          SELECT COLUMN_NAME, DATA_TYPE, IS_NULLABLE
+          FROM INFORMATION_SCHEMA.COLUMNS 
+          WHERE TABLE_SCHEMA = 'swift' AND TABLE_NAME = '${table.TABLE_NAME}'
+          ORDER BY ORDINAL_POSITION
+        `);
+        tableStructures[table.TABLE_NAME] = columnsResult.recordset;
+        console.log(`Table ${table.TABLE_NAME} columns:`, columnsResult.recordset.map(c => c.COLUMN_NAME));
+      }
+      
+      return { tables: tablesResult.recordset, structures: tableStructures };
+    } catch (error) {
+      console.error('Error discovering UCP tables:', error);
+      throw error;
+    }
+  }
+
   // UCP_Articles (Base Table) - Foundation of all UCP rules
   async getUCPArticles() {
     try {
       const pool = await connectToAzureSQL();
-      const result = await pool.request().query('SELECT * FROM swift.UCP_Articles ORDER BY article_number');
-      return result.recordset;
+      
+      // Try to find and query UCP tables with actual column names
+      try {
+        // First, let's see what UCP tables exist
+        const tablesResult = await pool.request().query(`
+          SELECT TABLE_NAME 
+          FROM INFORMATION_SCHEMA.TABLES 
+          WHERE TABLE_SCHEMA = 'swift' AND (TABLE_NAME LIKE '%UCP%' OR TABLE_NAME LIKE '%ucp%')
+        `);
+        
+        if (tablesResult.recordset.length === 0) {
+          return { 
+            error: 'No UCP tables found in swift schema',
+            message: 'Please check if UCP tables exist in your Azure database'
+          };
+        }
+        
+        console.log('Available UCP tables:', tablesResult.recordset.map(t => t.TABLE_NAME));
+        
+        // Try to query the first UCP table found with SELECT * to see actual data
+        const firstTable = tablesResult.recordset[0].TABLE_NAME;
+        const result = await pool.request().query(`SELECT TOP 10 * FROM swift.${firstTable}`);
+        
+        return {
+          tableName: firstTable,
+          availableTables: tablesResult.recordset.map(t => t.TABLE_NAME),
+          data: result.recordset,
+          columns: result.recordset.length > 0 ? Object.keys(result.recordset[0]) : []
+        };
+        
+      } catch (queryError) {
+        // If there's still an error, let's get table structures
+        const discovery = await this.discoverUCPTables();
+        return {
+          error: 'Error querying UCP tables',
+          queryError: queryError.message,
+          discovery: discovery
+        };
+      }
+      
     } catch (error) {
       console.error('Error fetching UCP Articles:', error);
-      throw error;
+      return {
+        error: 'Database connection or query failed',
+        details: error.message
+      };
     }
   }
 

@@ -3026,6 +3026,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Debug endpoint to inspect UCP table structures
+  app.get('/api/ucp600/inspect-tables', async (req, res) => {
+    try {
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+      
+      // Find all UCP-related tables
+      const tablesResult = await pool.request().query(`
+        SELECT TABLE_SCHEMA, TABLE_NAME 
+        FROM INFORMATION_SCHEMA.TABLES 
+        WHERE TABLE_SCHEMA = 'swift' AND (TABLE_NAME LIKE '%UCP%' OR TABLE_NAME LIKE '%ucp%')
+        ORDER BY TABLE_NAME
+      `);
+      
+      const tableInfo = [];
+      
+      for (const table of tablesResult.recordset) {
+        const tableName = `${table.TABLE_SCHEMA}.${table.TABLE_NAME}`;
+        
+        // Get column structure
+        const columnsResult = await pool.request().query(`
+          SELECT COLUMN_NAME, DATA_TYPE, IS_NULLABLE, COLUMN_DEFAULT
+          FROM INFORMATION_SCHEMA.COLUMNS 
+          WHERE TABLE_SCHEMA = '${table.TABLE_SCHEMA}' AND TABLE_NAME = '${table.TABLE_NAME}'
+          ORDER BY ORDINAL_POSITION
+        `);
+        
+        // Get sample data (first row)
+        let sampleData = null;
+        try {
+          const sampleResult = await pool.request().query(`SELECT TOP 1 * FROM ${tableName}`);
+          sampleData = sampleResult.recordset[0] || null;
+        } catch (sampleError) {
+          sampleData = { error: sampleError.message };
+        }
+        
+        tableInfo.push({
+          tableName: table.TABLE_NAME,
+          schema: table.TABLE_SCHEMA,
+          columns: columnsResult.recordset,
+          sampleData
+        });
+      }
+      
+      res.json({ tables: tableInfo });
+    } catch (error) {
+      console.error('Error inspecting UCP tables:', error);
+      res.status(500).json({ error: 'Failed to inspect UCP tables', details: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
