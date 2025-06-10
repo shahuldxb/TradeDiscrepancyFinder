@@ -5,11 +5,11 @@ const [server, portStr] = serverWithPort.includes(',') ? serverWithPort.split(',
 const port = parseInt(portStr) || 1433;
 
 const config = {
-  server: server,
-  port: port,
-  database: process.env.AZURE_SQL_DATABASE || 'TF_genie',
-  user: process.env.AZURE_SQL_USERNAME || 'shahul',
-  password: process.env.AZURE_SQL_PASSWORD || 'Apple123!@#',
+  server: 'shahulmi.database.windows.net',
+  port: 1433,
+  database: 'tf_genie',
+  user: 'shahul',
+  password: 'Apple123!@#',
   options: {
     encrypt: true,
     trustServerCertificate: false
