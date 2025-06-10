@@ -3027,7 +3027,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Debug endpoint to inspect UCP table structures
-  app.get('/api/ucp600/inspect-tables', async (req, res) => {
+  app.get('/api/debug/ucp-tables', async (req, res) => {
     try {
       const { connectToAzureSQL } = await import('./azureSqlConnection');
       const pool = await connectToAzureSQL();
@@ -3039,6 +3039,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         WHERE TABLE_SCHEMA = 'swift' AND (TABLE_NAME LIKE '%UCP%' OR TABLE_NAME LIKE '%ucp%')
         ORDER BY TABLE_NAME
       `);
+      
+      if (tablesResult.recordset.length === 0) {
+        return res.json({ 
+          message: 'No UCP tables found',
+          allTables: await pool.request().query(`
+            SELECT TABLE_SCHEMA, TABLE_NAME 
+            FROM INFORMATION_SCHEMA.TABLES 
+            WHERE TABLE_SCHEMA = 'swift'
+            ORDER BY TABLE_NAME
+          `).then(r => r.recordset)
+        });
+      }
       
       const tableInfo = [];
       
@@ -3053,27 +3065,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ORDER BY ORDINAL_POSITION
         `);
         
-        // Get sample data (first row)
+        // Get row count
+        let rowCount = 0;
         let sampleData = null;
         try {
-          const sampleResult = await pool.request().query(`SELECT TOP 1 * FROM ${tableName}`);
-          sampleData = sampleResult.recordset[0] || null;
+          const countResult = await pool.request().query(`SELECT COUNT(*) as count FROM ${tableName}`);
+          rowCount = countResult.recordset[0].count;
+          
+          if (rowCount > 0) {
+            const sampleResult = await pool.request().query(`SELECT TOP 3 * FROM ${tableName}`);
+            sampleData = sampleResult.recordset;
+          }
         } catch (sampleError) {
-          sampleData = { error: sampleError.message };
+          sampleData = { error: (sampleError as Error).message };
         }
         
         tableInfo.push({
           tableName: table.TABLE_NAME,
           schema: table.TABLE_SCHEMA,
+          rowCount,
           columns: columnsResult.recordset,
           sampleData
         });
       }
       
-      res.json({ tables: tableInfo });
+      res.json({ 
+        ucpTables: tableInfo,
+        totalTables: tablesResult.recordset.length
+      });
     } catch (error) {
       console.error('Error inspecting UCP tables:', error);
-      res.status(500).json({ error: 'Failed to inspect UCP tables', details: error.message });
+      res.status(500).json({ error: 'Failed to inspect UCP tables', details: (error as Error).message });
     }
   });
 
