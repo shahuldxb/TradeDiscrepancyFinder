@@ -106,6 +106,53 @@ const navigationItems = [
     ],
   },
   {
+    name: "UCP 600",
+    icon: FileText,
+    description: "UCP 600 Articles and Rules Management",
+    subItems: [
+      {
+        name: "UCP Articles",
+        href: "/ucp600/articles",
+        description: "Manage UCP 600 articles (base table)",
+      },
+      {
+        name: "UCP Rules",
+        href: "/ucp600/rules",
+        description: "Manage UCP rules derived from articles",
+      },
+      {
+        name: "Usage Rules",
+        href: "/ucp600/usage-rules",
+        description: "Manage UCP usage rules",
+      },
+      {
+        name: "Message Field Rules",
+        href: "/ucp600/message-field-rules",
+        description: "SWIFT message field validation rules",
+      },
+      {
+        name: "Document Compliance",
+        href: "/ucp600/document-compliance",
+        description: "Document compliance rules",
+      },
+      {
+        name: "Business Process Owners",
+        href: "/ucp600/business-owners",
+        description: "Manage business process owners",
+      },
+      {
+        name: "Validation Results",
+        href: "/ucp600/validation-results",
+        description: "View validation results",
+      },
+      {
+        name: "Rule Execution History",
+        href: "/ucp600/execution-history",
+        description: "Rule execution audit trail",
+      },
+    ],
+  },
+  {
     name: "Incoterms Management",
     icon: Globe,
     description: "Incoterms 2020 rules and validation",

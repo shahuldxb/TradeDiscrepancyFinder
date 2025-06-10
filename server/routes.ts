@@ -17,6 +17,7 @@ import { crewAI, processDocumentSetWithAgents } from "./crewai";
 import { runDiscrepancyAnalysis, getDiscrepancies } from "./discrepancyEngine";
 import { azureDataService } from "./azureDataService";
 import { azureAgentService } from "./azureAgentService";
+import { ucpDataService } from "./ucpDataService";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -2705,6 +2706,323 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating agent environment:", error);
       res.status(500).json({ message: "Failed to update environment" });
+    }
+  });
+
+  // ===============================================
+  // UCP 600 Management System API Routes
+  // ===============================================
+  
+  // UCP Articles (Base Table) - Foundation of all UCP rules
+  app.get('/api/ucp600/articles', async (req, res) => {
+    try {
+      const articles = await ucpDataService.getUCPArticles();
+      res.json(articles);
+    } catch (error) {
+      console.error('Error fetching UCP Articles:', error);
+      res.status(500).json({ error: 'Failed to fetch UCP Articles' });
+    }
+  });
+
+  app.post('/api/ucp600/articles', async (req, res) => {
+    try {
+      const result = await ucpDataService.createUCPArticle(req.body);
+      res.json({ success: true, message: 'UCP Article created successfully' });
+    } catch (error) {
+      console.error('Error creating UCP Article:', error);
+      res.status(500).json({ error: 'Failed to create UCP Article' });
+    }
+  });
+
+  app.put('/api/ucp600/articles/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const result = await ucpDataService.updateUCPArticle(id, req.body);
+      res.json({ success: true, message: 'UCP Article updated successfully' });
+    } catch (error) {
+      console.error('Error updating UCP Article:', error);
+      res.status(500).json({ error: 'Failed to update UCP Article' });
+    }
+  });
+
+  app.delete('/api/ucp600/articles/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const result = await ucpDataService.deleteUCPArticle(id);
+      res.json({ success: true, message: 'UCP Article deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting UCP Article:', error);
+      res.status(500).json({ error: 'Failed to delete UCP Article' });
+    }
+  });
+
+  // UCPRules (Derived from Articles)
+  app.get('/api/ucp600/rules', async (req, res) => {
+    try {
+      const rules = await ucpDataService.getUCPRules();
+      res.json(rules);
+    } catch (error) {
+      console.error('Error fetching UCP Rules:', error);
+      res.status(500).json({ error: 'Failed to fetch UCP Rules' });
+    }
+  });
+
+  app.post('/api/ucp600/rules', async (req, res) => {
+    try {
+      const result = await ucpDataService.createUCPRule(req.body);
+      res.json({ success: true, message: 'UCP Rule created successfully' });
+    } catch (error) {
+      console.error('Error creating UCP Rule:', error);
+      res.status(500).json({ error: 'Failed to create UCP Rule' });
+    }
+  });
+
+  app.put('/api/ucp600/rules/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const result = await ucpDataService.updateUCPRule(id, req.body);
+      res.json({ success: true, message: 'UCP Rule updated successfully' });
+    } catch (error) {
+      console.error('Error updating UCP Rule:', error);
+      res.status(500).json({ error: 'Failed to update UCP Rule' });
+    }
+  });
+
+  app.delete('/api/ucp600/rules/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const result = await ucpDataService.deleteUCPRule(id);
+      res.json({ success: true, message: 'UCP Rule deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting UCP Rule:', error);
+      res.status(500).json({ error: 'Failed to delete UCP Rule' });
+    }
+  });
+
+  // ucp_usage_rules
+  app.get('/api/ucp600/usage-rules', async (req, res) => {
+    try {
+      const usageRules = await ucpDataService.getUsageRules();
+      res.json(usageRules);
+    } catch (error) {
+      console.error('Error fetching Usage Rules:', error);
+      res.status(500).json({ error: 'Failed to fetch Usage Rules' });
+    }
+  });
+
+  app.post('/api/ucp600/usage-rules', async (req, res) => {
+    try {
+      const result = await ucpDataService.createUsageRule(req.body);
+      res.json({ success: true, message: 'Usage Rule created successfully' });
+    } catch (error) {
+      console.error('Error creating Usage Rule:', error);
+      res.status(500).json({ error: 'Failed to create Usage Rule' });
+    }
+  });
+
+  app.put('/api/ucp600/usage-rules/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const result = await ucpDataService.updateUsageRule(id, req.body);
+      res.json({ success: true, message: 'Usage Rule updated successfully' });
+    } catch (error) {
+      console.error('Error updating Usage Rule:', error);
+      res.status(500).json({ error: 'Failed to update Usage Rule' });
+    }
+  });
+
+  app.delete('/api/ucp600/usage-rules/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const result = await ucpDataService.deleteUsageRule(id);
+      res.json({ success: true, message: 'Usage Rule deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting Usage Rule:', error);
+      res.status(500).json({ error: 'Failed to delete Usage Rule' });
+    }
+  });
+
+  // UCP_message_field_rules
+  app.get('/api/ucp600/message-field-rules', async (req, res) => {
+    try {
+      const fieldRules = await ucpDataService.getMessageFieldRules();
+      res.json(fieldRules);
+    } catch (error) {
+      console.error('Error fetching Message Field Rules:', error);
+      res.status(500).json({ error: 'Failed to fetch Message Field Rules' });
+    }
+  });
+
+  app.post('/api/ucp600/message-field-rules', async (req, res) => {
+    try {
+      const result = await ucpDataService.createMessageFieldRule(req.body);
+      res.json({ success: true, message: 'Message Field Rule created successfully' });
+    } catch (error) {
+      console.error('Error creating Message Field Rule:', error);
+      res.status(500).json({ error: 'Failed to create Message Field Rule' });
+    }
+  });
+
+  app.put('/api/ucp600/message-field-rules/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const result = await ucpDataService.updateMessageFieldRule(id, req.body);
+      res.json({ success: true, message: 'Message Field Rule updated successfully' });
+    } catch (error) {
+      console.error('Error updating Message Field Rule:', error);
+      res.status(500).json({ error: 'Failed to update Message Field Rule' });
+    }
+  });
+
+  app.delete('/api/ucp600/message-field-rules/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const result = await ucpDataService.deleteMessageFieldRule(id);
+      res.json({ success: true, message: 'Message Field Rule deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting Message Field Rule:', error);
+      res.status(500).json({ error: 'Failed to delete Message Field Rule' });
+    }
+  });
+
+  // UCP_document_compliance_rules
+  app.get('/api/ucp600/document-compliance', async (req, res) => {
+    try {
+      const complianceRules = await ucpDataService.getDocumentComplianceRules();
+      res.json(complianceRules);
+    } catch (error) {
+      console.error('Error fetching Document Compliance Rules:', error);
+      res.status(500).json({ error: 'Failed to fetch Document Compliance Rules' });
+    }
+  });
+
+  app.post('/api/ucp600/document-compliance', async (req, res) => {
+    try {
+      const result = await ucpDataService.createDocumentComplianceRule(req.body);
+      res.json({ success: true, message: 'Document Compliance Rule created successfully' });
+    } catch (error) {
+      console.error('Error creating Document Compliance Rule:', error);
+      res.status(500).json({ error: 'Failed to create Document Compliance Rule' });
+    }
+  });
+
+  app.put('/api/ucp600/document-compliance/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const result = await ucpDataService.updateDocumentComplianceRule(id, req.body);
+      res.json({ success: true, message: 'Document Compliance Rule updated successfully' });
+    } catch (error) {
+      console.error('Error updating Document Compliance Rule:', error);
+      res.status(500).json({ error: 'Failed to update Document Compliance Rule' });
+    }
+  });
+
+  app.delete('/api/ucp600/document-compliance/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const result = await ucpDataService.deleteDocumentComplianceRule(id);
+      res.json({ success: true, message: 'Document Compliance Rule deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting Document Compliance Rule:', error);
+      res.status(500).json({ error: 'Failed to delete Document Compliance Rule' });
+    }
+  });
+
+  // UCP_Business_Process_Owners
+  app.get('/api/ucp600/business-owners', async (req, res) => {
+    try {
+      const owners = await ucpDataService.getBusinessProcessOwners();
+      res.json(owners);
+    } catch (error) {
+      console.error('Error fetching Business Process Owners:', error);
+      res.status(500).json({ error: 'Failed to fetch Business Process Owners' });
+    }
+  });
+
+  app.post('/api/ucp600/business-owners', async (req, res) => {
+    try {
+      const result = await ucpDataService.createBusinessProcessOwner(req.body);
+      res.json({ success: true, message: 'Business Process Owner created successfully' });
+    } catch (error) {
+      console.error('Error creating Business Process Owner:', error);
+      res.status(500).json({ error: 'Failed to create Business Process Owner' });
+    }
+  });
+
+  app.put('/api/ucp600/business-owners/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const result = await ucpDataService.updateBusinessProcessOwner(id, req.body);
+      res.json({ success: true, message: 'Business Process Owner updated successfully' });
+    } catch (error) {
+      console.error('Error updating Business Process Owner:', error);
+      res.status(500).json({ error: 'Failed to update Business Process Owner' });
+    }
+  });
+
+  app.delete('/api/ucp600/business-owners/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const result = await ucpDataService.deleteBusinessProcessOwner(id);
+      res.json({ success: true, message: 'Business Process Owner deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting Business Process Owner:', error);
+      res.status(500).json({ error: 'Failed to delete Business Process Owner' });
+    }
+  });
+
+  // UCP_validation_results (Read-Only)
+  app.get('/api/ucp600/validation-results', async (req, res) => {
+    try {
+      const validationResults = await ucpDataService.getValidationResults(req.query);
+      res.json(validationResults);
+    } catch (error) {
+      console.error('Error fetching Validation Results:', error);
+      res.status(500).json({ error: 'Failed to fetch Validation Results' });
+    }
+  });
+
+  // UCP_Rule_Execution_History (Read-Only)
+  app.get('/api/ucp600/execution-history', async (req, res) => {
+    try {
+      const executionHistory = await ucpDataService.getRuleExecutionHistory(req.query);
+      res.json(executionHistory);
+    } catch (error) {
+      console.error('Error fetching Rule Execution History:', error);
+      res.status(500).json({ error: 'Failed to fetch Rule Execution History' });
+    }
+  });
+
+  // Utility endpoints for relationships and statistics
+  app.get('/api/ucp600/articles-by-section/:section', async (req, res) => {
+    try {
+      const { section } = req.params;
+      const articles = await ucpDataService.getArticlesBySection(section);
+      res.json(articles);
+    } catch (error) {
+      console.error('Error fetching Articles by Section:', error);
+      res.status(500).json({ error: 'Failed to fetch Articles by Section' });
+    }
+  });
+
+  app.get('/api/ucp600/rules-by-article/:articleId', async (req, res) => {
+    try {
+      const articleId = parseInt(req.params.articleId);
+      const rules = await ucpDataService.getRulesByArticle(articleId);
+      res.json(rules);
+    } catch (error) {
+      console.error('Error fetching Rules by Article:', error);
+      res.status(500).json({ error: 'Failed to fetch Rules by Article' });
+    }
+  });
+
+  app.get('/api/ucp600/statistics', async (req, res) => {
+    try {
+      const statistics = await ucpDataService.getUCPStatistics();
+      res.json(statistics);
+    } catch (error) {
+      console.error('Error fetching UCP Statistics:', error);
+      res.status(500).json({ error: 'Failed to fetch UCP Statistics' });
     }
   });
 
