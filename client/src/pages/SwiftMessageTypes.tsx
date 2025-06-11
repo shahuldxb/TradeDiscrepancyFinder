@@ -47,6 +47,18 @@ export default function SwiftMessageTypes() {
     retry: false,
   });
 
+  // Fetch pre-parsed validation rules from Azure database
+  const { data: validationRules, isLoading: loadingValidationRules } = useQuery({
+    queryKey: ["/api/swift/validation-rules-azure", selectedMessageType],
+    queryFn: async () => {
+      const params = selectedMessageType !== "all" ? `?messageType=${selectedMessageType}` : "";
+      const response = await fetch(`/api/swift/validation-rules-azure${params}`);
+      if (!response.ok) throw new Error('Failed to fetch validation rules');
+      return response.json();
+    },
+    retry: false,
+  });
+
   // Filter message types based on search and category
   const filteredMessageTypes = Array.isArray(messageTypes) ? messageTypes.filter((msgType: any) => {
     const matchesSearch = msgType.message_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -579,84 +591,12 @@ export default function SwiftMessageTypes() {
                             const isRequired = field.is_mandatory === 1 || field.is_mandatory === true;
                             const contentOptions = field.content_options || '';
                             
-                            // Parse SWIFT format specifications properly
-                            const parseSwiftFormat = (format: string) => {
-                              const parsedRules: string[] = [];
-                              
-                              // Pattern: 6!n (exactly 6 numeric)
-                              const exactNumeric = format.match(/(\d+)!n/g);
-                              if (exactNumeric) {
-                                exactNumeric.forEach(match => {
-                                  const length = match.replace('!n', '');
-                                  parsedRules.push(`Exactly ${length} numeric characters (mandatory)`);
-                                });
-                              }
-                              
-                              // Pattern: 29x (up to 29 alphanumeric)
-                              const alphanumeric = format.match(/(\d+)x/g);
-                              if (alphanumeric) {
-                                alphanumeric.forEach(match => {
-                                  const length = match.replace('x', '');
-                                  parsedRules.push(`Up to ${length} alphanumeric/special characters`);
-                                });
-                              }
-                              
-                              // Pattern: 6!a (exactly 6 alphabetic)
-                              const exactAlpha = format.match(/(\d+)!a/g);
-                              if (exactAlpha) {
-                                exactAlpha.forEach(match => {
-                                  const length = match.replace('!a', '');
-                                  parsedRules.push(`Exactly ${length} alphabetic characters (mandatory)`);
-                                });
-                              }
-                              
-                              // Pattern: 35a (up to 35 alphabetic)
-                              const alpha = format.match(/(\d+)a(?![dx!])/g);
-                              if (alpha) {
-                                alpha.forEach(match => {
-                                  const length = match.replace('a', '');
-                                  parsedRules.push(`Up to ${length} alphabetic characters`);
-                                });
-                              }
-                              
-                              // Pattern: 15d (decimal with up to 15 digits)
-                              const decimal = format.match(/(\d+)d/g);
-                              if (decimal) {
-                                decimal.forEach(match => {
-                                  const length = match.replace('d', '');
-                                  parsedRules.push(`Decimal number with up to ${length} digits`);
-                                });
-                              }
-                              
-                              // Check for CRLF
-                              if (format.includes('CRLF')) {
-                                parsedRules.push('Carriage return line feed allowed');
-                              }
-                              
-                              // Check for repetition
-                              if (format.includes('...')) {
-                                parsedRules.push('Field repetition allowed');
-                              }
-                              
-                              // Check for slashes
-                              if (format.includes('/')) {
-                                parsedRules.push('Forward slash separator used');
-                              }
-                              
-                              // Check for brackets (optional sections)
-                              if (format.includes('[') || format.includes(']')) {
-                                parsedRules.push('Contains optional sections');
-                              }
-                              
-                              // Check for braces (conditional sections)
-                              if (format.includes('{') || format.includes('}')) {
-                                parsedRules.push('Contains conditional sections');
-                              }
-                              
-                              return parsedRules;
-                            };
-                            
-                            const fieldValidationRules = parseSwiftFormat(contentOptions);
+                            // Get pre-parsed validation rules from Azure database
+                            const fieldValidationRules = Array.isArray(validationRules) 
+                              ? validationRules
+                                  .filter((rule: any) => rule.field_id === field.field_id)
+                                  .map((rule: any) => rule.validation_rule_description)
+                              : [];
 
                             return (
                               <tr key={field.field_id} className={`border-b hover:${isRequired ? 'bg-red-25' : 'bg-blue-25'} transition-colors`}>

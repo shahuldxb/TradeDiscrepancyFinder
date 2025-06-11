@@ -1317,3 +1317,56 @@ export class AzureDataService {
 }
 
 export const azureDataService = new AzureDataService();
+
+export async function getValidationRulesFromAzure(fieldId?: string, messageType?: string) {
+  try {
+    const pool = await connectToAzureSQL();
+    
+    let query = `
+      SELECT 
+        vr.rule_id,
+        vr.field_id,
+        vr.message_type_id,
+        vr.field_tag,
+        vr.field_name,
+        vr.content_options,
+        vr.validation_rule_type,
+        vr.validation_rule_description,
+        vr.rule_priority,
+        vr.is_mandatory,
+        vr.character_type,
+        vr.min_length,
+        vr.max_length,
+        vr.exact_length,
+        vr.allows_repetition,
+        vr.allows_crlf,
+        vr.allows_slash,
+        vr.has_optional_sections,
+        vr.has_conditional_sections,
+        mt.message_type_code
+      FROM swift.validation_rules vr
+      LEFT JOIN swift.message_types mt ON vr.message_type_id = mt.message_type_id
+      WHERE 1=1
+    `;
+    
+    const request = pool.request();
+    
+    if (fieldId) {
+      query += ` AND vr.field_id = @fieldId`;
+      request.input('fieldId', parseInt(fieldId));
+    }
+    
+    if (messageType) {
+      query += ` AND mt.message_type_code = @messageType`;
+      request.input('messageType', messageType);
+    }
+    
+    query += ` ORDER BY vr.field_id, vr.rule_priority`;
+    
+    const result = await request.query(query);
+    return result.recordset;
+  } catch (error: any) {
+    console.error('Error fetching validation rules from Azure:', error);
+    throw error;
+  }
+}
