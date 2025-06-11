@@ -2667,7 +2667,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Use existing ls_BusinessProcessWorkflows table from swift schema
       const result = await pool.request().query(`
         SELECT * FROM swift.ls_BusinessProcessWorkflows
-        ORDER BY workflow_id
       `);
       res.json(result.recordset);
     } catch (error) {
@@ -2766,11 +2765,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { connectToAzureSQL } = await import('./azureSqlConnection');
       const pool = await connectToAzureSQL();
       
-      // Get counts from ls_ tables
-      const workflowCount = await pool.request().query('SELECT COUNT(*) as total FROM ls_BusinessProcessWorkflows');
-      const rulesCount = await pool.request().query('SELECT COUNT(*) as total FROM ls_BusinessRules'); 
-      const statesCount = await pool.request().query('SELECT COUNT(*) as total FROM ls_LifecycleStates');
-      const historyCount = await pool.request().query('SELECT COUNT(*) as total FROM ls_StateTransitionHistory');
+      // Get counts from swift.ls_ tables
+      const workflowCount = await pool.request().query('SELECT COUNT(*) as total FROM swift.ls_BusinessProcessWorkflows');
+      const rulesCount = await pool.request().query('SELECT COUNT(*) as total FROM swift.ls_BusinessRules'); 
+      const statesCount = await pool.request().query('SELECT COUNT(*) as total FROM swift.ls_LifecycleStates');
+      const historyCount = await pool.request().query('SELECT COUNT(*) as total FROM swift.ls_StateTransitionHistory');
 
       const totalWorkflows = workflowCount.recordset[0]?.total || 0;
       
