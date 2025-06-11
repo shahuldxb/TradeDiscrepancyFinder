@@ -399,15 +399,24 @@
   
   /* Navigation styles */
   .nav-item {
-    @apply flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200;
+    @apply flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 w-full;
   }
   
   .nav-item:hover {
-    @apply bg-muted;
+    @apply bg-muted/50;
   }
   
   .nav-item.active {
     @apply bg-primary text-primary-foreground;
+  }
+  
+  /* Sidebar specific styles */
+  .sidebar-container {
+    @apply fixed top-0 left-0 h-full w-56 bg-sidebar border-r border-sidebar-border z-50;
+  }
+  
+  .sidebar-nav {
+    @apply flex flex-col h-full overflow-y-auto;
   }
   
   /* Table styles */
