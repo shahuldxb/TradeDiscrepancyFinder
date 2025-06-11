@@ -1,4 +1,4 @@
-const { getAzureConnection } = require('./server/azureSqlConnection');
+import { getAzureConnection } from './server/azureSqlConnection.js';
 
 async function checkDemoTables() {
   try {
