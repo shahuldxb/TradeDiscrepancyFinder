@@ -2110,6 +2110,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get Incoterms statistics
+  app.get('/api/incoterms/statistics', async (req, res) => {
+    try {
+      const { incotermsService } = await import('./incotermsService');
+      const statistics = await incotermsService.getIncotermsStatistics();
+      res.json(statistics);
+    } catch (error) {
+      console.error('Error fetching Incoterms statistics:', error);
+      res.status(500).json({ error: 'Failed to fetch statistics' });
+    }
+  });
+
+  // Get responsibility matrix
+  app.get('/api/incoterms/responsibility-matrix', async (req, res) => {
+    try {
+      const { incotermsService } = await import('./incotermsService');
+      const matrix = await incotermsService.getResponsibilityMatrix();
+      res.json(matrix);
+    } catch (error) {
+      console.error('Error fetching responsibility matrix:', error);
+      res.status(500).json({ error: 'Failed to fetch responsibility matrix' });
+    }
+  });
+
+  // Get specific Incoterm by code
+  app.get('/api/incoterms/:code', async (req, res) => {
+    try {
+      const { incotermsService } = await import('./incotermsService');
+      const incoterm = await incotermsService.getIncotermByCode(req.params.code);
+      if (!incoterm) {
+        return res.status(404).json({ error: 'Incoterm not found' });
+      }
+      res.json(incoterm);
+    } catch (error) {
+      console.error('Error fetching Incoterm:', error);
+      res.status(500).json({ error: 'Failed to fetch Incoterm' });
+    }
+  });
+
+  // Validate LC against Incoterm
+  app.post('/api/incoterms/validate-lc', async (req, res) => {
+    try {
+      const { lcNumber, incotermCode } = req.body;
+      if (!lcNumber || !incotermCode) {
+        return res.status(400).json({ error: 'LC number and Incoterm code are required' });
+      }
+
+      const { incotermsService } = await import('./incotermsService');
+      const result = await incotermsService.validateLCAgainstIncoterm(lcNumber, incotermCode);
+      res.json(result);
+    } catch (error) {
+      console.error('Error validating LC:', error);
+      res.status(500).json({ error: 'Failed to validate LC' });
+    }
+  });
+
+  // Validate documents against Incoterm
+  app.post('/api/incoterms/validate-documents', async (req, res) => {
+    try {
+      const { documents, incotermCode } = req.body;
+      if (!documents || !incotermCode) {
+        return res.status(400).json({ error: 'Documents and Incoterm code are required' });
+      }
+
+      const { incotermsService } = await import('./incotermsService');
+      const result = await incotermsService.validateDocumentsAgainstIncoterm(documents, incotermCode);
+      res.json(result);
+    } catch (error) {
+      console.error('Error validating documents:', error);
+      res.status(500).json({ error: 'Failed to validate documents' });
+    }
+  });
+
   // Incoterms table structure analysis
   app.get('/api/incoterms/tables/analysis', async (req, res) => {
     try {

@@ -28,6 +28,7 @@ import SwiftCategory7 from "@/pages/SwiftCategory7";
 import SkillsManagement from "@/pages/SkillsManagement";
 import OCRAgent from "@/pages/OCRAgent";
 import AgentCode from "@/pages/AgentCode";
+import Incoterms from "@/pages/Incoterms";
 import IncotermsManagement from "@/pages/IncotermsManagement";
 import IncotermsDataGrid from "@/pages/IncotermsDataGrid";
 import IncotermsMatrix from "@/pages/IncotermsMatrix";
@@ -64,10 +65,12 @@ function Router() {
             <Route path="/ucp600/execution-history" component={UCP600ArticlesManagement} />
 
             {/* Incoterms Management Routes */}
-            <Route path="/incoterms" component={IncotermsManagement} />
-            <Route path="/incoterms-grid" component={IncotermsDataGrid} />
+            <Route path="/incoterms" component={Incoterms} />
+            <Route path="/incoterms/management" component={IncotermsManagement} />
+            <Route path="/incoterms/grid" component={IncotermsDataGrid} />
             <Route path="/incoterms/matrix" component={IncotermsMatrix} />
-            <Route path="/incoterms/validation" component={IncotermsDataGrid} />
+            <Route path="/incoterms/validation" component={IncotermsValidation} />
+            <Route path="/incoterms/agents" component={IncotermsAgents} />
             <Route path="/incoterms/comparison" component={IncotermsDataGrid} />
             <Route path="/incoterms/statistics" component={IncotermsDataGrid} />
             
