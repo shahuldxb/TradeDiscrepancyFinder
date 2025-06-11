@@ -423,9 +423,9 @@ export default function SwiftMessageTypes() {
                             <tr key={field.field_id || field.field_code} className="border-b hover:bg-red-25 transition-colors">
                               <td className="p-3 font-mono text-blue-600">{field.field_id || 'N/A'}</td>
                               <td className="p-3">
-                                <div className="flex flex-col">
-                                  <span className="font-semibold text-base text-blue-700">
-                                    MT{field.message_type_id || '700'}
+                                <div className="flex flex-col min-w-[6rem]">
+                                  <span className="font-semibold text-base text-blue-700 font-mono">
+                                    {Array.isArray(messageTypes) && messageTypes.find((m: any) => m.message_type_id === field.message_type_id)?.message_type || 'MT700'}
                                   </span>
                                   <span className="text-xs text-gray-500">
                                     {Array.isArray(messageTypes) && messageTypes.find((m: any) => m.message_type_id === field.message_type_id)?.message_type_name || 'Issue LC'}
@@ -484,9 +484,9 @@ export default function SwiftMessageTypes() {
                             <tr key={field.field_id || field.field_code} className="border-b hover:bg-gray-50 transition-colors">
                               <td className="p-3 font-mono text-blue-600">{field.field_id || 'N/A'}</td>
                               <td className="p-3">
-                                <div className="flex flex-col">
-                                  <span className="font-semibold text-base text-blue-700">
-                                    MT{field.message_type_id || '700'}
+                                <div className="flex flex-col min-w-[6rem]">
+                                  <span className="font-semibold text-base text-blue-700 font-mono">
+                                    {Array.isArray(messageTypes) && messageTypes.find((m: any) => m.message_type_id === field.message_type_id)?.message_type || 'MT700'}
                                   </span>
                                   <span className="text-xs text-gray-500">
                                     {Array.isArray(messageTypes) && messageTypes.find((m: any) => m.message_type_id === field.message_type_id)?.message_type_name || 'Issue LC'}
