@@ -45,7 +45,7 @@ function Router() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <main className="flex-1 ml-64 overflow-auto">
+      <main className="flex-1 ml-56 overflow-auto">
         <div className="p-6">
           <Switch>
             <Route path="/" component={Dashboard} />

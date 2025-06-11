@@ -247,22 +247,22 @@ export default function Sidebar() {
   };
 
   return (
-    <nav className="w-64 bg-sidebar shadow-lg fixed h-full z-50 border-r border-sidebar-border">
+    <nav className="w-56 bg-sidebar shadow-lg fixed h-full z-50 border-r border-sidebar-border">
       {/* Header */}
-      <div className="p-6 border-b border-sidebar-border">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-sidebar-primary rounded-lg flex items-center justify-center">
-            <FileText className="h-6 w-6 text-sidebar-primary-foreground" />
+      <div className="p-4 border-b border-sidebar-border">
+        <div className="flex items-center space-x-2">
+          <div className="w-8 h-8 bg-sidebar-primary rounded-lg flex items-center justify-center">
+            <FileText className="h-5 w-5 text-sidebar-primary-foreground" />
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-sidebar-foreground">TradeFinance</h1>
-            <p className="text-sm text-sidebar-foreground/70">Discrepancy Finder</p>
+            <h1 className="text-base font-semibold text-sidebar-foreground">TradeFinance</h1>
+            <p className="text-xs text-sidebar-foreground/70">Discrepancy Finder</p>
           </div>
         </div>
       </div>
 
       {/* Navigation Items */}
-      <div className="p-4">
+      <div className="p-3">
         <div className="space-y-2">
           {navigationItems.map((item) => {
             const Icon = item.icon;
@@ -285,13 +285,13 @@ export default function Sidebar() {
                     )}
                   </button>
                   {isExpanded && (
-                    <div className="ml-6 mt-1 space-y-1">
+                    <div className="ml-4 mt-1 space-y-1">
                       {item.subItems.map((subItem) => {
                         const isSubActive = location === subItem.href;
                         return (
                           <Link key={subItem.name} href={subItem.href}>
                             <div
-                              className={`nav-item text-sm ${
+                              className={`py-2 px-3 rounded-md text-sm transition-colors ${
                                 isSubActive
                                   ? "bg-sidebar-primary text-sidebar-primary-foreground"
                                   : "text-sidebar-foreground hover:bg-sidebar-accent"
