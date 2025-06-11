@@ -22,10 +22,19 @@ import {
 } from "lucide-react";
 
 interface Incoterm {
-  incoterm_code: string;
-  incoterm_name: string;
-  transfer_of_risk: string;
-  mode_of_transport: string;
+  incoterm_id: number;
+  term_code: string;
+  term_name: string;
+  version: string;
+  full_description: string;
+  transport_mode_group: string;
+  risk_transfer_point_desc: string;
+  delivery_location_type: string;
+  insurance_obligation_party: string;
+  insurance_coverage_level: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export default function IncotermsManagement() {
@@ -33,15 +42,15 @@ export default function IncotermsManagement() {
   const [selectedTransport, setSelectedTransport] = useState("all");
 
   const { data: incoterms = [], isLoading } = useQuery({
-    queryKey: ['/api/incoterms/matrix/terms']
+    queryKey: ['/api/incoterms/swift/terms']
   });
 
   // Filter incoterms based on search and transport mode
-  const filteredIncoterms = incoterms.filter((incoterm: Incoterm) => {
-    const matchesSearch = incoterm.incoterm_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         incoterm.incoterm_name.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredIncoterms = (incoterms as Incoterm[]).filter((incoterm: Incoterm) => {
+    const matchesSearch = incoterm.term_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         incoterm.term_name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesTransport = selectedTransport === "all" || 
-                           incoterm.mode_of_transport.toLowerCase().includes(selectedTransport.toLowerCase());
+                           incoterm.transport_mode_group.toLowerCase().includes(selectedTransport.toLowerCase());
     return matchesSearch && matchesTransport;
   });
 
@@ -59,9 +68,10 @@ export default function IncotermsManagement() {
   };
 
   // Calculate statistics
+  const incotermsList = incoterms as Incoterm[];
   const stats = {
-    totalIncoterms: incoterms.length,
-    transportModes: [...new Set(incoterms.map((i: Incoterm) => i.mode_of_transport))].length,
+    totalIncoterms: incotermsList.length,
+    transportModes: [...new Set(incotermsList.map((i: Incoterm) => i.transport_mode_group))].length,
     searchResults: filteredIncoterms.length
   };
 
@@ -186,23 +196,24 @@ export default function IncotermsManagement() {
                 </TableHeader>
                 <TableBody>
                   {filteredIncoterms.map((incoterm: Incoterm) => (
-                    <TableRow key={incoterm.incoterm_code} className="hover:bg-gray-50">
+                    <TableRow key={incoterm.term_code} className="hover:bg-gray-50">
                       <TableCell className="font-mono font-bold text-blue-600">
-                        {incoterm.incoterm_code}
+                        {incoterm.term_code}
                       </TableCell>
                       <TableCell>
                         <div>
-                          <div className="font-medium">{incoterm.incoterm_name}</div>
+                          <div className="font-medium">{incoterm.term_name}</div>
+                          <div className="text-sm text-gray-500">v{incoterm.version}</div>
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-2">
-                          {getTransportIcon(incoterm.mode_of_transport)}
-                          <span>{incoterm.mode_of_transport}</span>
+                          {getTransportIcon(incoterm.transport_mode_group)}
+                          <span>{incoterm.transport_mode_group}</span>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">{incoterm.transfer_of_risk}</Badge>
+                        <Badge variant="outline">{incoterm.delivery_location_type}</Badge>
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-2">
@@ -231,9 +242,9 @@ export default function IncotermsManagement() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {[...new Set(incoterms.map((i: Incoterm) => i.mode_of_transport))].map((transport: string) => {
-                    const count = incoterms.filter((i: Incoterm) => i.mode_of_transport === transport).length;
-                    const percentage = ((count / incoterms.length) * 100).toFixed(1);
+                  {[...new Set(incotermsList.map((i: Incoterm) => i.transport_mode_group))].map((transport: string) => {
+                    const count = incotermsList.filter((i: Incoterm) => i.transport_mode_group === transport).length;
+                    const percentage = ((count / incotermsList.length) * 100).toFixed(1);
                     return (
                       <div key={transport} className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
@@ -258,18 +269,18 @@ export default function IncotermsManagement() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Risk Transfer Points</CardTitle>
-                <CardDescription>Where risk transfers from seller to buyer</CardDescription>
+                <CardTitle>Delivery Location Types</CardTitle>
+                <CardDescription>Types of delivery locations required</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {[...new Set(incoterms.map((i: Incoterm) => i.transfer_of_risk))].map((risk: string) => {
-                    const count = incoterms.filter((i: Incoterm) => i.transfer_of_risk === risk).length;
-                    const percentage = ((count / incoterms.length) * 100).toFixed(1);
+                  {[...new Set(incotermsList.map((i: Incoterm) => i.delivery_location_type))].map((location: string) => {
+                    const count = incotermsList.filter((i: Incoterm) => i.delivery_location_type === location).length;
+                    const percentage = ((count / incotermsList.length) * 100).toFixed(1);
                     return (
-                      <div key={risk} className="flex items-center justify-between">
+                      <div key={location} className="flex items-center justify-between">
                         <div className="flex-1">
-                          <div className="font-medium text-sm">{risk}</div>
+                          <div className="font-medium text-sm">{location}</div>
                           <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
                             <div 
                               className="bg-green-600 h-2 rounded-full" 

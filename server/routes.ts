@@ -2134,6 +2134,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get Incoterms from swift schema
+  app.get('/api/incoterms/swift/terms', async (req, res) => {
+    try {
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+      
+      const result = await pool.request().query(`
+        SELECT 
+          incoterm_id,
+          term_code,
+          term_name,
+          version,
+          full_description,
+          transport_mode_group,
+          risk_transfer_point_desc,
+          delivery_location_type,
+          insurance_obligation_party,
+          insurance_coverage_level,
+          is_active,
+          created_at,
+          updated_at
+        FROM swift.Incoterms 
+        WHERE is_active = 1 OR is_active IS NULL
+        ORDER BY term_code
+      `);
+      
+      res.json(result.recordset);
+    } catch (error) {
+      console.error('Error fetching Incoterms from swift schema:', error);
+      res.status(500).json({ error: 'Failed to fetch Incoterms data' });
+    }
+  });
+
   // Incoterms Matrix API Routes
   app.get('/api/incoterms/matrix/terms', async (req, res) => {
     try {
