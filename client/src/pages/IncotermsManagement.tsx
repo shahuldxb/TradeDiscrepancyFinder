@@ -22,10 +22,10 @@ import {
 } from "lucide-react";
 
 interface Incoterm {
-  term_code: string;
-  term_name: string;
+  incoterm_code: string;
+  incoterm_name: string;
   transfer_of_risk: string;
-  transport_mode_group: string;
+  mode_of_transport: string;
 }
 
 interface Obligation {
@@ -68,10 +68,10 @@ export default function IncotermsManagement() {
 
   // Filter incoterms based on search and transport mode
   const filteredIncoterms = (incoterms as Incoterm[]).filter((incoterm: Incoterm) => {
-    const matchesSearch = (incoterm.term_code || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (incoterm.term_name || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (incoterm.incoterm_code || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (incoterm.incoterm_name || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesTransport = selectedTransport === "all" || 
-                           (incoterm.transport_mode_group || '').toLowerCase().includes(selectedTransport.toLowerCase());
+                           (incoterm.mode_of_transport || '').toLowerCase().includes(selectedTransport.toLowerCase());
     return matchesSearch && matchesTransport;
   });
 
@@ -114,7 +114,7 @@ export default function IncotermsManagement() {
   const stats = {
     totalIncoterms: incotermsList.length,
     totalObligations: obligationsList.length,
-    transportModes: [...new Set(incotermsList.map((i: Incoterm) => i.transport_mode_group))].length,
+    transportModes: [...new Set(incotermsList.map((i: Incoterm) => i.mode_of_transport))].length,
     matrixEntries: matrixList.length
   };
 
