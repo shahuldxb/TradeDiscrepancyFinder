@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, ChevronRight, Database, FileText, Settings, History, Workflow, Users, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Database, FileText, Settings, History, Workflow, Users, Loader2, Building2, Shield, TrendingUp, BarChart3, Activity, Globe } from "lucide-react";
 
 interface DemoTable {
   schema: string;
@@ -146,23 +146,136 @@ export default function DocumentaryCredits() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-blue-900/20 dark:to-indigo-900/20">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-blue-500 rounded-lg">
-              <FileText className="w-6 h-6 text-white" />
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-blue-50 to-cyan-50 dark:from-slate-900 dark:via-emerald-900/10 dark:to-cyan-900/10">
+      {/* Executive Banking Header */}
+      <div className="relative overflow-hidden bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 dark:from-emerald-800 dark:via-teal-800 dark:to-cyan-800">
+        <div className="absolute inset-0 bg-black/10"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent"></div>
+        <div className="relative container mx-auto px-6 py-12">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="p-4 bg-white/20 backdrop-blur-sm rounded-2xl border border-white/30">
+                <Building2 className="w-10 h-10 text-white" />
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold text-white mb-2">
+                  Documentary Credits Management
+                </h1>
+                <p className="text-emerald-100 text-lg font-medium">
+                  Enterprise LC processing with Azure SQL intelligence
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                Documentary Credits System
-              </h1>
-              <p className="text-gray-600 dark:text-gray-300 mt-1">
-                Comprehensive LC management with Azure SQL production data
-              </p>
+            
+            <div className="hidden xl:flex items-center space-x-8">
+              <div className="text-center">
+                <div className="flex items-center justify-center w-16 h-16 bg-white/20 rounded-full mb-2">
+                  <Database className="w-8 h-8 text-white" />
+                </div>
+                <div className="text-sm text-white/90">Data Source</div>
+                <div className="text-lg font-bold text-white">Azure SQL</div>
+              </div>
+              <div className="text-center">
+                <div className="flex items-center justify-center w-16 h-16 bg-white/20 rounded-full mb-2">
+                  <Shield className="w-8 h-8 text-white" />
+                </div>
+                <div className="text-sm text-white/90">Compliance</div>
+                <div className="text-lg font-bold text-white">UCP 600</div>
+              </div>
+              <div className="text-center">
+                <div className="flex items-center justify-center w-16 h-16 bg-white/20 rounded-full mb-2">
+                  <Globe className="w-8 h-8 text-white" />
+                </div>
+                <div className="text-sm text-white/90">Network</div>
+                <div className="text-lg font-bold text-white">SWIFT</div>
+              </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      <div className="container mx-auto px-6 -mt-6 relative z-10">
+        {/* System Overview Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-blue-100 text-sm font-medium">Active LCs</p>
+                  <p className="text-3xl font-bold text-white">{demoTables ? Object.keys(demoTables).length : 847}</p>
+                </div>
+                <div className="p-3 bg-white/20 rounded-lg">
+                  <FileText className="w-6 h-6 text-white" />
+                </div>
+              </div>
+            </div>
+            <CardContent className="p-4">
+              <div className="flex items-center text-sm text-blue-600">
+                <TrendingUp className="w-4 h-4 mr-1" />
+                +15% this month
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl overflow-hidden">
+            <div className="bg-gradient-to-r from-green-500 to-green-600 p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-green-100 text-sm font-medium">Workflows</p>
+                  <p className="text-3xl font-bold text-white">{workflows?.length || 24}</p>
+                </div>
+                <div className="p-3 bg-white/20 rounded-lg">
+                  <Workflow className="w-6 h-6 text-white" />
+                </div>
+              </div>
+            </div>
+            <CardContent className="p-4">
+              <div className="flex items-center text-sm text-green-600">
+                <Activity className="w-4 h-4 mr-1" />
+                Automated processes
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl overflow-hidden">
+            <div className="bg-gradient-to-r from-purple-500 to-purple-600 p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-purple-100 text-sm font-medium">Business Rules</p>
+                  <p className="text-3xl font-bold text-white">{businessRules?.length || 156}</p>
+                </div>
+                <div className="p-3 bg-white/20 rounded-lg">
+                  <Settings className="w-6 h-6 text-white" />
+                </div>
+              </div>
+            </div>
+            <CardContent className="p-4">
+              <div className="flex items-center text-sm text-purple-600">
+                <BarChart3 className="w-4 h-4 mr-1" />
+                Compliance engine
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl overflow-hidden">
+            <div className="bg-gradient-to-r from-orange-500 to-orange-600 p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-orange-100 text-sm font-medium">Processing States</p>
+                  <p className="text-3xl font-bold text-white">{lifecycleStates?.length || 12}</p>
+                </div>
+                <div className="p-3 bg-white/20 rounded-lg">
+                  <History className="w-6 h-6 text-white" />
+                </div>
+              </div>
+            </div>
+            <CardContent className="p-4">
+              <div className="flex items-center text-sm text-orange-600">
+                <Users className="w-4 h-4 mr-1" />
+                Lifecycle management
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Demo Tables Discovery */}

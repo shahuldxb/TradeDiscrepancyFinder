@@ -2,6 +2,251 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Enterprise Banking Theme */
+@layer base {
+  :root {
+    --background: 210 11% 98%; /* #F5F7FA */
+    --foreground: 210 6% 21%; /* #333742 */
+    --card: 0 0% 100%; /* #FFFFFF */
+    --card-foreground: 210 6% 21%; /* #333742 */
+    --popover: 0 0% 100%; /* #FFFFFF */
+    --popover-foreground: 210 6% 21%; /* #333742 */
+    --primary: 220 90% 56%; /* #2563EB */
+    --primary-foreground: 0 0% 98%; /* #FAFAFA */
+    --secondary: 210 40% 95%; /* #F1F5F9 */
+    --secondary-foreground: 210 6% 21%; /* #333742 */
+    --muted: 210 40% 95%; /* #F1F5F9 */
+    --muted-foreground: 215 16% 47%; /* #64748B */
+    --accent: 210 40% 95%; /* #F1F5F9 */
+    --accent-foreground: 210 6% 21%; /* #333742 */
+    --destructive: 0 84% 60%; /* #EF4444 */
+    --destructive-foreground: 0 0% 98%; /* #FAFAFA */
+    --border: 214 32% 91%; /* #E2E8F0 */
+    --input: 214 32% 91%; /* #E2E8F0 */
+    --ring: 220 90% 56%; /* #2563EB */
+    --radius: 0.75rem;
+    
+    /* Custom Banking Variables */
+    --banking-primary: 220 90% 56%; /* #2563EB */
+    --banking-secondary: 160 84% 39%; /* #059669 */
+    --banking-accent: 262 83% 58%; /* #7C3AED */
+    --banking-success: 142 76% 36%; /* #16A34A */
+    --banking-warning: 38 92% 50%; /* #F59E0B */
+    --banking-error: 0 84% 60%; /* #EF4444 */
+    --banking-surface: 0 0% 100%; /* #FFFFFF */
+    --banking-surface-variant: 210 11% 96%; /* #F8FAFC */
+    --banking-outline: 214 32% 91%; /* #E2E8F0 */
+    --banking-shadow: 220 43% 11% / 0.1; /* rgba(15, 23, 42, 0.1) */
+  }
+
+  .dark {
+    --background: 222 84% 5%; /* #0F172A */
+    --foreground: 210 40% 98%; /* #F8FAFC */
+    --card: 222 84% 5%; /* #0F172A */
+    --card-foreground: 210 40% 98%; /* #F8FAFC */
+    --popover: 222 84% 5%; /* #0F172A */
+    --popover-foreground: 210 40% 98%; /* #F8FAFC */
+    --primary: 217 91% 60%; /* #3B82F6 */
+    --primary-foreground: 222 84% 5%; /* #0F172A */
+    --secondary: 217 32% 17%; /* #1E293B */
+    --secondary-foreground: 210 40% 98%; /* #F8FAFC */
+    --muted: 217 32% 17%; /* #1E293B */
+    --muted-foreground: 215 20% 65%; /* #94A3B8 */
+    --accent: 217 32% 17%; /* #1E293B */
+    --accent-foreground: 210 40% 98%; /* #F8FAFC */
+    --destructive: 0 62% 30%; /* #7F1D1D */
+    --destructive-foreground: 210 40% 98%; /* #F8FAFC */
+    --border: 217 32% 17%; /* #1E293B */
+    --input: 217 32% 17%; /* #1E293B */
+    --ring: 224 71% 4%; /* #1E293B */
+    
+    /* Dark Banking Variables */
+    --banking-primary: 217 91% 60%; /* #3B82F6 */
+    --banking-secondary: 160 84% 39%; /* #059669 */
+    --banking-accent: 262 83% 58%; /* #7C3AED */
+    --banking-success: 142 76% 36%; /* #16A34A */
+    --banking-warning: 38 92% 50%; /* #F59E0B */
+    --banking-error: 0 84% 60%; /* #EF4444 */
+    --banking-surface: 222 84% 5%; /* #0F172A */
+    --banking-surface-variant: 217 32% 17%; /* #1E293B */
+    --banking-outline: 217 32% 17%; /* #1E293B */
+    --banking-shadow: 0 0% 0% / 0.2; /* rgba(0, 0, 0, 0.2) */
+  }
+}
+
+@layer components {
+  /* Banking Card Components */
+  .banking-card {
+    @apply bg-white/90 backdrop-blur-sm border-0 shadow-xl rounded-xl overflow-hidden;
+  }
+  
+  .banking-card-header {
+    @apply bg-gradient-to-r from-slate-600 to-slate-700 px-6 py-4;
+  }
+  
+  .banking-card-title {
+    @apply text-xl font-bold text-white flex items-center space-x-3;
+  }
+  
+  .banking-card-subtitle {
+    @apply text-slate-200 text-sm;
+  }
+
+  /* Banking Button Variants */
+  .banking-btn-primary {
+    @apply bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 px-8 rounded-lg shadow-lg transition-all duration-200 transform hover:scale-105;
+  }
+  
+  .banking-btn-secondary {
+    @apply bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold py-3 px-8 rounded-lg shadow-lg transition-all duration-200 transform hover:scale-105;
+  }
+  
+  .banking-btn-accent {
+    @apply bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-semibold py-3 px-8 rounded-lg shadow-lg transition-all duration-200 transform hover:scale-105;
+  }
+
+  /* Banking Input Styles */
+  .banking-input {
+    @apply h-12 border-2 border-gray-200 focus:border-blue-500 rounded-lg bg-white transition-all duration-200;
+  }
+  
+  .banking-select {
+    @apply h-12 border-2 border-gray-200 focus:border-blue-500 rounded-lg bg-white;
+  }
+
+  /* Banking Status Badges */
+  .status-active {
+    @apply bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200;
+  }
+  
+  .status-pending {
+    @apply bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200;
+  }
+  
+  .status-inactive {
+    @apply bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200;
+  }
+  
+  .status-error {
+    @apply bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200;
+  }
+
+  /* Banking Metrics Cards */
+  .metric-card {
+    @apply bg-white/90 backdrop-blur-sm border-0 shadow-xl overflow-hidden rounded-xl;
+  }
+  
+  .metric-header {
+    @apply p-4 flex items-center justify-between;
+  }
+  
+  .metric-content {
+    @apply p-4 border-t border-gray-100;
+  }
+
+  /* Banking Table Styles */
+  .banking-table {
+    @apply w-full border-collapse bg-white/90 backdrop-blur-sm shadow-lg rounded-lg overflow-hidden;
+  }
+  
+  .banking-table-header {
+    @apply bg-gradient-to-r from-slate-600 to-slate-700 text-white;
+  }
+  
+  .banking-table-row {
+    @apply border-b border-gray-100 hover:bg-blue-50 transition-colors;
+  }
+  
+  .banking-table-cell {
+    @apply px-6 py-4 text-sm text-gray-900;
+  }
+
+  /* Banking Layout Components */
+  .banking-hero {
+    @apply relative overflow-hidden bg-gradient-to-r p-12;
+  }
+  
+  .banking-hero-overlay {
+    @apply absolute inset-0 bg-black/10;
+  }
+  
+  .banking-hero-content {
+    @apply relative z-10 flex items-center justify-between;
+  }
+  
+  .banking-hero-title {
+    @apply text-4xl font-bold text-white mb-2;
+  }
+  
+  .banking-hero-subtitle {
+    @apply text-lg font-medium opacity-90;
+  }
+
+  /* Banking Navigation */
+  .banking-nav {
+    @apply bg-white/80 backdrop-blur-sm border-0 shadow-lg;
+  }
+  
+  .banking-nav-item {
+    @apply transition-all duration-200 hover:bg-blue-50 rounded-lg;
+  }
+  
+  .banking-nav-active {
+    @apply bg-blue-600 text-white rounded-lg;
+  }
+
+  /* Banking Animations */
+  .banking-fade-in {
+    @apply animate-in fade-in duration-500;
+  }
+  
+  .banking-slide-up {
+    @apply animate-in slide-in-from-bottom-4 duration-500;
+  }
+  
+  .banking-scale-in {
+    @apply animate-in zoom-in-95 duration-300;
+  }
+
+  /* Banking Glass Effect */
+  .banking-glass {
+    @apply bg-white/10 backdrop-blur-md border border-white/20;
+  }
+  
+  .banking-glass-dark {
+    @apply bg-black/10 backdrop-blur-md border border-white/10;
+  }
+
+  /* Banking Gradients */
+  .gradient-blue {
+    @apply bg-gradient-to-r from-blue-500 to-blue-600;
+  }
+  
+  .gradient-green {
+    @apply bg-gradient-to-r from-green-500 to-green-600;
+  }
+  
+  .gradient-purple {
+    @apply bg-gradient-to-r from-purple-500 to-purple-600;
+  }
+  
+  .gradient-orange {
+    @apply bg-gradient-to-r from-orange-500 to-orange-600;
+  }
+  
+  .gradient-emerald {
+    @apply bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600;
+  }
+  
+  .gradient-indigo {
+    @apply bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600;
+  }
+  
+  .gradient-slate {
+    @apply bg-gradient-to-r from-slate-600 to-slate-700;
+  }
+}
+
 :root {
   --background: 210 11% 98%; /* #F5F7FA */
   --foreground: 215 25% 27%; /* #37474F */
