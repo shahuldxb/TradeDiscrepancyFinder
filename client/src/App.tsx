@@ -36,6 +36,7 @@ import IncotermsMatrix from "@/pages/IncotermsMatrix";
 import IncotermsValidation from "@/pages/IncotermsValidation";
 import IncotermsAgents from "@/pages/IncotermsAgents";
 import UCP600ArticlesManagement from "@/pages/UCP600ArticlesManagement";
+import UCP600RulesEngine from "@/pages/UCP600RulesEngine";
 import UCPDashboard from "@/pages/UCPDashboard";
 import DocumentaryCredits from "@/pages/DocumentaryCredits";
 
@@ -58,7 +59,7 @@ function Router() {
             {/* UCP 600 Management Routes */}
             <Route path="/ucp600/dashboard" component={UCPDashboard} />
             <Route path="/ucp600/articles" component={UCP600ArticlesManagement} />
-            <Route path="/ucp600/rules" component={UCP600ArticlesManagement} />
+            <Route path="/ucp600/rules" component={UCP600RulesEngine} />
             <Route path="/ucp600/usage-rules" component={UCP600ArticlesManagement} />
             <Route path="/ucp600/message-field-rules" component={UCP600ArticlesManagement} />
             <Route path="/ucp600/document-compliance" component={UCP600ArticlesManagement} />
