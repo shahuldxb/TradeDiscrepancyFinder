@@ -19,6 +19,7 @@ import { azureDataService } from "./azureDataService";
 import { azureAgentService } from "./azureAgentService";
 import { ucpDataService } from "./ucpDataService";
 import { ucpPostgresService } from "./ucpPostgresService";
+import { documentaryCreditService } from "./documentaryCreditService";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
