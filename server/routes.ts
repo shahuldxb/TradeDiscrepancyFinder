@@ -2134,6 +2134,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Incoterms Matrix API Routes
+  app.get('/api/incoterms/matrix/terms', async (req, res) => {
+    try {
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+      
+      const result = await pool.request().query(`
+        SELECT incoterm_code, incoterm_name, transfer_of_risk, mode_of_transport 
+        FROM MIncoterms 
+        ORDER BY incoterm_code
+      `);
+      
+      res.json(result.recordset);
+    } catch (error) {
+      console.error('Error fetching Incoterms terms:', error);
+      res.status(500).json({ error: 'Failed to fetch Incoterms terms' });
+    }
+  });
+
+  app.get('/api/incoterms/matrix/obligations', async (req, res) => {
+    try {
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+      
+      const result = await pool.request().query(`
+        SELECT obligation_id, obligation_name 
+        FROM MObligations 
+        ORDER BY obligation_id
+      `);
+      
+      res.json(result.recordset);
+    } catch (error) {
+      console.error('Error fetching obligations:', error);
+      res.status(500).json({ error: 'Failed to fetch obligations' });
+    }
+  });
+
+  app.get('/api/incoterms/matrix/responsibilities', async (req, res) => {
+    try {
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+      
+      const result = await pool.request().query(`
+        SELECT 
+          r.incoterm_code,
+          r.obligation_id,
+          o.obligation_name,
+          r.responsibility
+        FROM MIncotermObligationResponsibility r
+        INNER JOIN MObligations o ON r.obligation_id = o.obligation_id
+        ORDER BY r.incoterm_code, r.obligation_id
+      `);
+      
+      res.json(result.recordset);
+    } catch (error) {
+      console.error('Error fetching responsibility matrix:', error);
+      res.status(500).json({ error: 'Failed to fetch responsibility matrix' });
+    }
+  });
+
   // Get specific Incoterm by code
   app.get('/api/incoterms/:code', async (req, res) => {
     try {

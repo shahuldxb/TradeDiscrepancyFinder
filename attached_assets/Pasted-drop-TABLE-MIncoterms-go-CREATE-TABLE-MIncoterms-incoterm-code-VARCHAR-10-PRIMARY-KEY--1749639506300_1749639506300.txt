@@ -1,0 +1,216 @@
+drop TABLE MIncoterms 
+go
+
+CREATE TABLE MIncoterms (
+    incoterm_code VARCHAR(10) PRIMARY KEY,
+    incoterm_name VARCHAR(100) NOT NULL,
+    transfer_of_risk VARCHAR(100) NOT NULL,
+    mode_of_transport VARCHAR(100) NOT NULL
+);
+go
+
+drop TABLE MObligations
+go
+
+CREATE TABLE MObligations (
+    obligation_id INT,
+    obligation_name VARCHAR(100) NOT NULL
+);
+go
+
+drop TABLE MIncotermObligationResponsibility 
+go
+
+CREATE TABLE MIncotermObligationResponsibility (
+    incoterm_code VARCHAR(10),
+    obligation_id INT,
+    responsibility VARCHAR(20) NOT NULL
+);
+
+
+go
+
+
+INSERT INTO MIncoterms (incoterm_code, incoterm_name, transfer_of_risk, mode_of_transport) VALUES
+('EXW', 'Ex Works (Place)', 'At Buyer''s Disposal', 'Any Mode or Modes of Transport'),
+('FCA', 'Free Carrier (Place)', 'On Buyer''s Transport', 'Any Mode or Modes of Transport'),
+('FAS', 'Free Alongside Ship (Port)', 'Alongside Ship', 'Sea and Inland Waterway Transport'),
+('FOB', 'Free On Board (Port)', 'On Board Vessel', 'Sea and Inland Waterway Transport'),
+('CFR', 'Cost and Freight (Port)', 'On Board Vessel', 'Sea and Inland Waterway Transport'),
+('CIF', 'Cost Insurance & Freight (Port)', 'On Board Vessel', 'Sea and Inland Waterway Transport'),
+('CPT', 'Carriage Paid To (Place)', 'At Carrier', 'Any Mode or Modes of Transport'),
+('CIP', 'Carriage & Insurance Paid to (Place)', 'At Carrier', 'Any Mode or Modes of Transport'),
+('DAP', 'Delivered at Place (Place)', 'At Named Place', 'Any Mode or Modes of Transport'),
+('DPU', 'Delivered at Place Unloaded (Place)', 'At Named Place Unloaded', 'Any Mode or Modes of Transport'),
+('DDP', 'Delivered Duty Paid (Place)', 'At Named Place', 'Any Mode or Modes of Transport');
+
+INSERT INTO MObligations (obligation_name) VALUES
+('Export Packaging'),
+('Loading Charges'),
+('Delivery to Port/Place'),
+('Export Duty, Taxes & Customs Clearance'),
+('Origin Terminal Charges'),
+('Loading on Carriage'),
+('Carriage Charges'),
+('Insurance'),
+('Destination Terminal Charges'),
+('Delivery to Destination'),
+('Unloading at Destination'),
+('Import Duty, Taxes & Customs Clearance');
+
+INSERT INTO MIncotermObligationResponsibility (incoterm_code, obligation_id, responsibility) VALUES
+-- EXW
+('EXW', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Export Packaging'), 'Seller'),
+('EXW', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Loading Charges'), 'Buyer'),
+('EXW', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Delivery to Port/Place'), 'Buyer'),
+('EXW', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Export Duty, Taxes & Customs Clearance'), 'Buyer'),
+('EXW', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Origin Terminal Charges'), 'Buyer'),
+('EXW', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Loading on Carriage'), 'Buyer'),
+('EXW', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Carriage Charges'), 'Buyer'),
+('EXW', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Insurance'), 'Negotiable'),
+('EXW', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Destination Terminal Charges'), 'Buyer'),
+('EXW', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Delivery to Destination'), 'Buyer'),
+('EXW', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Unloading at Destination'), 'Buyer'),
+('EXW', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Import Duty, Taxes & Customs Clearance'), 'Buyer'),
+
+-- FCA
+('FCA', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Export Packaging'), 'Seller'),
+('FCA', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Loading Charges'), 'Seller'),
+('FCA', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Delivery to Port/Place'), 'Seller'),
+('FCA', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Export Duty, Taxes & Customs Clearance'), 'Seller'),
+('FCA', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Origin Terminal Charges'), 'Buyer'),
+('FCA', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Loading on Carriage'), 'Buyer'),
+('FCA', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Carriage Charges'), 'Buyer'),
+('FCA', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Insurance'), 'Negotiable'),
+('FCA', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Destination Terminal Charges'), 'Buyer'),
+('FCA', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Delivery to Destination'), 'Buyer'),
+('FCA', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Unloading at Destination'), 'Buyer'),
+('FCA', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Import Duty, Taxes & Customs Clearance'), 'Buyer'),
+
+-- FAS
+('FAS', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Export Packaging'), 'Seller'),
+('FAS', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Loading Charges'), 'Seller'),
+('FAS', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Delivery to Port/Place'), 'Seller'),
+('FAS', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Export Duty, Taxes & Customs Clearance'), 'Seller'),
+('FAS', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Origin Terminal Charges'), 'Seller'),
+('FAS', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Loading on Carriage'), 'Buyer'),
+('FAS', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Carriage Charges'), 'Buyer'),
+('FAS', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Insurance'), 'Negotiable'),
+('FAS', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Destination Terminal Charges'), 'Buyer'),
+('FAS', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Delivery to Destination'), 'Buyer'),
+('FAS', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Unloading at Destination'), 'Buyer'),
+('FAS', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Import Duty, Taxes & Customs Clearance'), 'Buyer'),
+
+-- FOB
+('FOB', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Export Packaging'), 'Seller'),
+('FOB', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Loading Charges'), 'Seller'),
+('FOB', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Delivery to Port/Place'), 'Seller'),
+('FOB', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Export Duty, Taxes & Customs Clearance'), 'Seller'),
+('FOB', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Origin Terminal Charges'), 'Seller'),
+('FOB', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Loading on Carriage'), 'Seller'),
+('FOB', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Carriage Charges'), 'Buyer'),
+('FOB', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Insurance'), 'Negotiable'),
+('FOB', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Destination Terminal Charges'), 'Buyer'),
+('FOB', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Delivery to Destination'), 'Buyer'),
+('FOB', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Unloading at Destination'), 'Buyer'),
+('FOB', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Import Duty, Taxes & Customs Clearance'), 'Buyer'),
+
+-- CFR
+('CFR', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Export Packaging'), 'Seller'),
+('CFR', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Loading Charges'), 'Seller'),
+('CFR', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Delivery to Port/Place'), 'Seller'),
+('CFR', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Export Duty, Taxes & Customs Clearance'), 'Seller'),
+('CFR', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Origin Terminal Charges'), 'Seller'),
+('CFR', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Loading on Carriage'), 'Seller'),
+('CFR', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Carriage Charges'), 'Seller'),
+('CFR', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Insurance'), 'Negotiable'),
+('CFR', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Destination Terminal Charges'), 'Buyer'),
+('CFR', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Delivery to Destination'), 'Buyer'),
+('CFR', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Unloading at Destination'), 'Buyer'),
+('CFR', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Import Duty, Taxes & Customs Clearance'), 'Buyer'),
+
+-- CIF
+('CIF', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Export Packaging'), 'Seller'),
+('CIF', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Loading Charges'), 'Seller'),
+('CIF', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Delivery to Port/Place'), 'Seller'),
+('CIF', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Export Duty, Taxes & Customs Clearance'), 'Seller'),
+('CIF', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Origin Terminal Charges'), 'Seller'),
+('CIF', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Loading on Carriage'), 'Seller'),
+('CIF', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Carriage Charges'), 'Seller'),
+('CIF', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Insurance'), '*Seller'),
+('CIF', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Destination Terminal Charges'), 'Buyer'),
+('CIF', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Delivery to Destination'), 'Buyer'),
+('CIF', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Unloading at Destination'), 'Buyer'),
+('CIF', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Import Duty, Taxes & Customs Clearance'), 'Buyer'),
+
+-- CPT
+('CPT', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Export Packaging'), 'Seller'),
+('CPT', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Loading Charges'), 'Seller'),
+('CPT', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Delivery to Port/Place'), 'Seller'),
+('CPT', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Export Duty, Taxes & Customs Clearance'), 'Seller'),
+('CPT', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Origin Terminal Charges'), 'Seller'),
+('CPT', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Loading on Carriage'), 'Seller'),
+('CPT', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Carriage Charges'), 'Seller'),
+('CPT', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Insurance'), 'Negotiable'),
+('CPT', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Destination Terminal Charges'), 'Seller'),
+('CPT', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Delivery to Destination'), 'Buyer'),
+('CPT', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Unloading at Destination'), 'Buyer'),
+('CPT', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Import Duty, Taxes & Customs Clearance'), 'Buyer'),
+
+-- CIP
+('CIP', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Export Packaging'), 'Seller'),
+('CIP', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Loading Charges'), 'Seller'),
+('CIP', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Delivery to Port/Place'), 'Seller'),
+('CIP', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Export Duty, Taxes & Customs Clearance'), 'Seller'),
+('CIP', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Origin Terminal Charges'), 'Seller'),
+('CIP', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Loading on Carriage'), 'Seller'),
+('CIP', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Carriage Charges'), 'Seller'),
+('CIP', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Insurance'), '**Seller'),
+('CIP', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Destination Terminal Charges'), 'Seller'),
+('CIP', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Delivery to Destination'), 'Buyer'),
+('CIP', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Unloading at Destination'), 'Buyer'),
+('CIP', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Import Duty, Taxes & Customs Clearance'), 'Buyer'),
+
+-- DAP
+('DAP', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Export Packaging'), 'Seller'),
+('DAP', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Loading Charges'), 'Seller'),
+('DAP', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Delivery to Port/Place'), 'Seller'),
+('DAP', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Export Duty, Taxes & Customs Clearance'), 'Seller'),
+('DAP', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Origin Terminal Charges'), 'Seller'),
+('DAP', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Loading on Carriage'), 'Seller'),
+('DAP', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Carriage Charges'), 'Seller'),
+('DAP', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Insurance'), 'Negotiable'),
+('DAP', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Destination Terminal Charges'), 'Seller'),
+('DAP', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Delivery to Destination'), 'Seller'),
+('DAP', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Unloading at Destination'), 'Buyer'),
+('DAP', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Import Duty, Taxes & Customs Clearance'), 'Buyer'),
+
+-- DPU
+('DPU', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Export Packaging'), 'Seller'),
+('DPU', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Loading Charges'), 'Seller'),
+('DPU', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Delivery to Port/Place'), 'Seller'),
+('DPU', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Export Duty, Taxes & Customs Clearance'), 'Seller'),
+('DPU', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Origin Terminal Charges'), 'Seller'),
+('DPU', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Loading on Carriage'), 'Seller'),
+('DPU', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Carriage Charges'), 'Seller'),
+('DPU', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Insurance'), 'Negotiable'),
+('DPU', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Destination Terminal Charges'), 'Seller'),
+('DPU', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Delivery to Destination'), 'Seller'),
+('DPU', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Unloading at Destination'), 'Seller'),
+('DPU', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Import Duty, Taxes & Customs Clearance'), 'Buyer'),
+
+-- DDP
+('DDP', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Export Packaging'), 'Seller'),
+('DDP', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Loading Charges'), 'Seller'),
+('DDP', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Delivery to Port/Place'), 'Seller'),
+('DDP', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Export Duty, Taxes & Customs Clearance'), 'Seller'),
+('DDP', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Origin Terminal Charges'), 'Seller'),
+('DDP', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Loading on Carriage'), 'Seller'),
+('DDP', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Carriage Charges'), 'Seller'),
+('DDP', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Insurance'), 'Negotiable'),
+('DDP', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Destination Terminal Charges'), 'Seller'),
+('DDP', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Delivery to Destination'), 'Seller'),
+('DDP', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Unloading at Destination'), 'Buyer'),
+('DDP', (SELECT obligation_id FROM Obligations WHERE obligation_name = 'Import Duty, Taxes & Customs Clearance'), 'Seller');
+
+
