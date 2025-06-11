@@ -118,13 +118,19 @@ const navigationItems = [
       },
       {
         name: "Terms Management",
-        href: "/incoterms/management",
         description: "Manage Incoterms definitions",
-      },
-      {
-        name: "Responsibility Matrix",
-        href: "/incoterms/matrix",
-        description: "Buyer/Seller responsibility matrix",
+        subItems: [
+          {
+            name: "Incoterms Management",
+            href: "/incoterms/management",
+            description: "Manage Incoterms definitions",
+          },
+          {
+            name: "Responsibility Matrix",
+            href: "/incoterms/matrix",
+            description: "Buyer/Seller responsibility matrix",
+          },
+        ],
       },
     ],
   },
