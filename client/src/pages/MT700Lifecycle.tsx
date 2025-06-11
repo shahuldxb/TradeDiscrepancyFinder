@@ -475,28 +475,31 @@ export default function MT700Lifecycle() {
                 </TableHeader>
                 <TableBody>
                   {lifecycleStates?.map((state) => (
-                    <TableRow key={state.state_id}>
+                    <TableRow key={state.ls_LifecycleStateID}>
                       <TableCell>
                         <div>
-                          <div className="font-medium">{state.state_name}</div>
-                          <div className="text-sm text-gray-500">{state.state_description}</div>
+                          <div className="font-medium">{state.ls_StateName}</div>
+                          <div className="text-sm text-gray-500">{state.ls_StateDescription}</div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">{state.state_type}</Badge>
+                        <Badge variant="outline">{state.ls_StateCategory}</Badge>
                       </TableCell>
                       <TableCell>
                         <div className="flex space-x-1">
-                          {state.is_initial_state && (
-                            <Badge className="bg-green-100 text-green-800 text-xs">Initial</Badge>
+                          {!state.ls_IsTerminalState && (
+                            <Badge className="bg-green-100 text-green-800 text-xs">Active</Badge>
                           )}
-                          {state.is_final_state && (
-                            <Badge className="bg-red-100 text-red-800 text-xs">Final</Badge>
+                          {state.ls_IsTerminalState && (
+                            <Badge className="bg-red-100 text-red-800 text-xs">Terminal</Badge>
+                          )}
+                          {state.ls_RequiresApproval && (
+                            <Badge className="bg-orange-100 text-orange-800 text-xs">Approval</Badge>
                           )}
                         </div>
                       </TableCell>
                       <TableCell className="text-sm text-gray-500">
-                        {new Date(state.created_date).toLocaleDateString()}
+                        {new Date(state.ls_CreatedDate).toLocaleDateString()}
                       </TableCell>
                       <TableCell>
                         <div className="flex space-x-2">
@@ -528,15 +531,21 @@ export default function MT700Lifecycle() {
               <CardContent>
                 <div className="space-y-4">
                   {businessRules?.slice(0, 10).map((rule) => (
-                    <div key={rule.rule_id} className="p-4 border rounded-lg">
+                    <div key={rule.ls_BusinessRuleID} className="p-4 border rounded-lg">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <div className="font-medium">{rule.rule_name}</div>
-                          <div className="text-sm text-gray-500 mt-1">{rule.rule_description}</div>
+                          <div className="font-medium">{rule.ls_RuleName}</div>
+                          <div className="text-sm text-gray-500 mt-1">{rule.ls_RuleDescription}</div>
                           <div className="flex items-center space-x-2 mt-2">
-                            <Badge variant="outline">{rule.rule_type}</Badge>
-                            {getPriorityBadge(rule.priority_level)}
-                            {rule.is_active ? (
+                            <Badge variant="outline">{rule.ls_RuleCategory}</Badge>
+                            <Badge className={
+                              rule.ls_Severity === "ERROR" ? "bg-red-100 text-red-800" :
+                              rule.ls_Severity === "WARNING" ? "bg-orange-100 text-orange-800" :
+                              "bg-blue-100 text-blue-800"
+                            }>
+                              {rule.ls_Severity}
+                            </Badge>
+                            {rule.ls_IsActive ? (
                               <Badge className="bg-green-100 text-green-800">Active</Badge>
                             ) : (
                               <Badge className="bg-gray-100 text-gray-800">Inactive</Badge>
@@ -559,18 +568,24 @@ export default function MT700Lifecycle() {
               <CardContent>
                 <div className="space-y-4">
                   {transitionRules?.slice(0, 10).map((rule) => (
-                    <div key={rule.rule_id} className="p-4 border rounded-lg">
+                    <div key={rule.ls_TransitionRuleID} className="p-4 border rounded-lg">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <div className="font-medium">{rule.rule_name}</div>
+                          <div className="font-medium">{rule.ls_TriggerEvent}</div>
                           <div className="text-xs text-gray-500 mt-1">
-                            State {rule.from_state_id} → State {rule.to_state_id}
+                            State {rule.ls_FromStateID} → State {rule.ls_ToStateID}
                           </div>
                           <div className="text-sm text-gray-600 mt-2">
-                            {rule.condition_expression}
+                            {rule.ls_BusinessRuleExpression || rule.ls_TransitionConditions || "No conditions specified"}
                           </div>
                           <div className="flex items-center space-x-2 mt-2">
-                            {rule.is_active ? (
+                            {rule.ls_IsAutomaticTransition && (
+                              <Badge className="bg-blue-100 text-blue-800">Automatic</Badge>
+                            )}
+                            {rule.ls_RequiresApproval && (
+                              <Badge className="bg-orange-100 text-orange-800">Requires Approval</Badge>
+                            )}
+                            {rule.ls_IsActive ? (
                               <Badge className="bg-green-100 text-green-800">Active</Badge>
                             ) : (
                               <Badge className="bg-gray-100 text-gray-800">Inactive</Badge>
@@ -606,28 +621,30 @@ export default function MT700Lifecycle() {
                 </TableHeader>
                 <TableBody>
                   {examinationStates?.map((state) => (
-                    <TableRow key={state.state_id}>
+                    <TableRow key={state.ls_ExaminationStateID}>
                       <TableCell>
                         <div>
-                          <div className="font-medium">{state.state_name}</div>
-                          <div className="text-sm text-gray-500">{state.state_description}</div>
+                          <div className="font-medium">{state.ls_StateName}</div>
+                          <div className="text-sm text-gray-500">{state.ls_StateDescription}</div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">{state.examination_type}</Badge>
+                        <Badge variant="outline">{state.ls_ExaminationPhase}</Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge className="bg-blue-100 text-blue-800">{state.approval_level}</Badge>
+                        <Badge className={state.ls_IsTerminalState ? "bg-red-100 text-red-800" : "bg-blue-100 text-blue-800"}>
+                          {state.ls_IsTerminalState ? "Terminal" : "Active"}
+                        </Badge>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-1">
                           <Clock className="h-4 w-4 text-gray-400" />
-                          <span className="text-sm">{state.max_processing_time_hours}h</span>
+                          <span className="text-sm">{state.ls_MaxProcessingDays} days</span>
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="text-sm text-gray-600 max-w-xs truncate">
-                          {state.required_documents}
+                          Order: {state.ls_SortOrder}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -658,30 +675,30 @@ export default function MT700Lifecycle() {
                 </TableHeader>
                 <TableBody>
                   {transitionHistory?.map((history) => (
-                    <TableRow key={history.history_id}>
+                    <TableRow key={history.ls_TransitionHistoryID}>
                       <TableCell>
                         <div>
-                          <div className="font-medium">{history.entity_id}</div>
-                          <div className="text-sm text-gray-500">{history.entity_type}</div>
+                          <div className="font-medium">Instrument {history.ls_InstrumentID}</div>
+                          <div className="text-sm text-gray-500">{history.ls_TriggerEvent}</div>
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-2">
-                          <span className="text-sm">State {history.from_state_id}</span>
+                          <span className="text-sm">State {history.ls_FromStateID}</span>
                           <ArrowRight className="h-3 w-3 text-gray-400" />
-                          <span className="text-sm">State {history.to_state_id}</span>
+                          <span className="text-sm">State {history.ls_ToStateID}</span>
                         </div>
                       </TableCell>
                       <TableCell className="text-sm text-gray-500">
-                        {new Date(history.transition_timestamp).toLocaleString()}
+                        {new Date(history.ls_TransitionDate).toLocaleString()}
                       </TableCell>
                       <TableCell>
                         <div className="text-sm text-gray-600 max-w-xs truncate">
-                          {history.transition_reason}
+                          {history.ls_TransitionReason}
                         </div>
                       </TableCell>
                       <TableCell className="text-sm text-gray-500">
-                        {history.user_id || 'System'}
+                        {history.ls_ProcessedBy || 'System'}
                       </TableCell>
                     </TableRow>
                   ))}
