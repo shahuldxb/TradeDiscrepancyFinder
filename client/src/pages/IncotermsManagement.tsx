@@ -326,13 +326,62 @@ export default function IncotermsManagement() {
                   <div className="overflow-x-auto overflow-y-auto max-h-[600px] border border-gray-200 rounded-lg">
                     <Table>
                       <TableHeader className="sticky top-0 bg-white z-10">
-                        <TableRow>
-                          <TableHead className="w-64 sticky left-0 bg-white z-20 border-r border-gray-200">Obligation</TableHead>
-                          {incotermsList.map((incoterm: Incoterm) => (
-                            <TableHead key={incoterm.incoterm_code} className="text-center min-w-[120px] px-2">
-                              <div className="font-mono font-bold text-xs">{incoterm.incoterm_code}</div>
-                              <div className="text-xs font-normal text-gray-600 mt-1 leading-tight">
-                                {incoterm.incoterm_name}
+                        {/* Category Header Row */}
+                        <TableRow className="bg-yellow-100 border-b-2 border-yellow-300">
+                          <TableHead className="w-64 sticky left-0 bg-yellow-100 z-20 border-r border-gray-200 text-center font-bold text-sm">
+                            Groups
+                          </TableHead>
+                          {/* Freight Collect Terms */}
+                          <TableHead colSpan={4} className="text-center bg-yellow-200 border-r-2 border-yellow-400 font-bold text-sm">
+                            Freight Collect Terms
+                          </TableHead>
+                          {/* Freight Prepaid Terms */}
+                          <TableHead colSpan={7} className="text-center bg-yellow-300 font-bold text-sm">
+                            Freight Prepaid Terms
+                          </TableHead>
+                        </TableRow>
+                        
+                        {/* Transport Mode Header Row */}
+                        <TableRow className="bg-blue-50 border-b border-blue-200">
+                          <TableHead className="w-64 sticky left-0 bg-blue-50 z-20 border-r border-gray-200 text-center font-semibold text-xs">
+                            Incoterm®
+                          </TableHead>
+                          {/* Any Mode - Collect */}
+                          <TableHead className="text-center min-w-[100px] px-1 bg-blue-100 border-r border-blue-300 text-xs">
+                            <div className="font-semibold">Any Mode or Modes of Transport</div>
+                          </TableHead>
+                          {/* Sea and Inland - Collect */}
+                          <TableHead colSpan={3} className="text-center bg-blue-150 border-r-2 border-blue-400 text-xs">
+                            <div className="font-semibold">Sea and Inland Waterway Transport</div>
+                          </TableHead>
+                          {/* Any Mode - Prepaid */}
+                          <TableHead colSpan={7} className="text-center bg-blue-200 text-xs">
+                            <div className="font-semibold">Any Mode or Modes of Transport</div>
+                          </TableHead>
+                        </TableRow>
+
+                        {/* Incoterm Codes Row */}
+                        <TableRow className="bg-gray-50">
+                          <TableHead className="w-64 sticky left-0 bg-gray-50 z-20 border-r border-gray-200 text-center font-medium text-xs">
+                            Transfer of Risk
+                          </TableHead>
+                          {[
+                            { code: 'EXW', name: 'Ex Works (Place)', color: 'bg-red-100' },
+                            { code: 'FCA', name: 'Free Carrier (Place)', color: 'bg-green-100' },
+                            { code: 'FAS', name: 'Free Alongside Ship (Port)', color: 'bg-blue-100' },
+                            { code: 'FOB', name: 'Free On Board (Port)', color: 'bg-blue-100' },
+                            { code: 'CFR', name: 'Cost and Freight (Port)', color: 'bg-yellow-100' },
+                            { code: 'CIF', name: 'Cost Insurance & Freight (Port)', color: 'bg-yellow-100' },
+                            { code: 'CPT', name: 'Carriage Paid To (Place)', color: 'bg-orange-100' },
+                            { code: 'CIP', name: 'Carriage & Insurance Paid to (Place)', color: 'bg-orange-100' },
+                            { code: 'DAP', name: 'Delivered at Place (Place)', color: 'bg-purple-100' },
+                            { code: 'DPU', name: 'Delivered at Place Unloaded (Place)', color: 'bg-purple-100' },
+                            { code: 'DDP', name: 'Delivered Duty Paid (Place)', color: 'bg-purple-100' }
+                          ].map((incoterm) => (
+                            <TableHead key={incoterm.code} className={`text-center min-w-[90px] px-1 ${incoterm.color} border-r border-gray-300`}>
+                              <div className="font-mono font-bold text-xs">{incoterm.code}</div>
+                              <div className="text-xs font-normal text-gray-700 mt-1 leading-tight">
+                                {incoterm.name}
                               </div>
                             </TableHead>
                           ))}
