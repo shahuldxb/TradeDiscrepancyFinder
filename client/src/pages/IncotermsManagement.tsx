@@ -240,24 +240,24 @@ export default function IncotermsManagement() {
                 </TableHeader>
                 <TableBody>
                   {filteredIncoterms.map((incoterm: Incoterm) => (
-                    <TableRow key={incoterm.term_code} className="hover:bg-gray-50">
+                    <TableRow key={incoterm.incoterm_code} className="hover:bg-gray-50">
                       <TableCell className="font-mono font-bold text-blue-600">
-                        {incoterm.term_code}
+                        {incoterm.incoterm_code}
                       </TableCell>
                       <TableCell>
                         <div>
-                          <div className="font-medium">{incoterm.term_name}</div>
-                          <div className="text-sm text-gray-500">v{incoterm.version}</div>
+                          <div className="font-medium">{incoterm.incoterm_name}</div>
+                          <div className="text-sm text-gray-500">v2020</div>
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-2">
-                          {getTransportIcon(incoterm.transport_mode_group)}
-                          <span>{incoterm.transport_mode_group}</span>
+                          {getTransportIcon(incoterm.mode_of_transport)}
+                          <span>{incoterm.mode_of_transport}</span>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">{incoterm.delivery_location_type}</Badge>
+                        <Badge variant="outline">{incoterm.transfer_of_risk}</Badge>
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-2">
@@ -292,26 +292,15 @@ export default function IncotermsManagement() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="text-sm text-gray-600 space-y-2">
-                    <div>Loaded: {incotermsList.length} terms, {obligationsList.length} obligations, {matrixList.length} matrix entries</div>
-                    {incotermsList.length > 0 && (
-                      <div>Sample terms: {incotermsList.slice(0, 3).map(t => t.term_code).join(', ')}</div>
-                    )}
-                    {obligationsList.length > 0 && (
-                      <div>Sample obligations: {obligationsList.slice(0, 2).map(o => o.obligation_name).join(', ')}</div>
-                    )}
-                    {matrixList.length > 0 && (
-                      <div>Sample matrix: {matrixList.slice(0, 2).map(m => `${m.incoterm_code}-${m.responsibility}`).join(', ')}</div>
-                    )}
-                  </div>
+
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>
                           <TableHead className="w-40">Obligation</TableHead>
                           {incotermsList.map((incoterm: Incoterm) => (
-                            <TableHead key={incoterm.term_code} className="text-center min-w-[80px]">
-                              <div className="font-mono font-bold">{incoterm.term_code}</div>
+                            <TableHead key={incoterm.incoterm_code} className="text-center min-w-[80px]">
+                              <div className="font-mono font-bold">{incoterm.incoterm_code}</div>
                             </TableHead>
                           ))}
                         </TableRow>
@@ -321,9 +310,9 @@ export default function IncotermsManagement() {
                           <TableRow key={obligation.obligation_id}>
                             <TableCell className="font-medium">{obligation.obligation_name}</TableCell>
                             {incotermsList.map((incoterm: Incoterm) => {
-                              const responsibility = getResponsibility(incoterm.term_code, obligation.obligation_id);
+                              const responsibility = getResponsibility(incoterm.incoterm_code, obligation.obligation_id);
                               return (
-                                <TableCell key={`${incoterm.term_code}-${obligation.obligation_id}`} className="text-center">
+                                <TableCell key={`${incoterm.incoterm_code}-${obligation.obligation_id}`} className="text-center">
                                   {getResponsibilityBadge(responsibility)}
                                 </TableCell>
                               );
@@ -348,8 +337,8 @@ export default function IncotermsManagement() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {[...new Set(incotermsList.map((i: Incoterm) => i.transport_mode_group))].map((transport: string) => {
-                    const count = incotermsList.filter((i: Incoterm) => i.transport_mode_group === transport).length;
+                  {[...new Set(incotermsList.map((i: Incoterm) => i.mode_of_transport))].map((transport: string) => {
+                    const count = incotermsList.filter((i: Incoterm) => i.mode_of_transport === transport).length;
                     const percentage = ((count / incotermsList.length) * 100).toFixed(1);
                     return (
                       <div key={transport} className="flex items-center justify-between">
