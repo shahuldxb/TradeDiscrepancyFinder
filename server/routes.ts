@@ -2639,6 +2639,132 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Lifecycle Management API - Azure SQL Integration
+  app.get('/api/lifecycle/business-workflows', async (req, res) => {
+    try {
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+      const result = await pool.request().query('SELECT * FROM ls_BusinessProcessWorkflows ORDER BY workflow_id');
+      res.json(result.recordset);
+    } catch (error) {
+      console.error('Error fetching business workflows:', error);
+      res.status(500).json({ error: 'Failed to fetch business workflows' });
+    }
+  });
+
+  app.get('/api/lifecycle/business-rules', async (req, res) => {
+    try {
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+      const result = await pool.request().query('SELECT * FROM ls_BusinessRules ORDER BY rule_id');
+      res.json(result.recordset);
+    } catch (error) {
+      console.error('Error fetching business rules:', error);
+      res.status(500).json({ error: 'Failed to fetch business rules' });
+    }
+  });
+
+  app.get('/api/lifecycle/examination-states', async (req, res) => {
+    try {
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+      const result = await pool.request().query('SELECT * FROM ls_DocumentExaminationStates ORDER BY state_id');
+      res.json(result.recordset);
+    } catch (error) {
+      console.error('Error fetching examination states:', error);
+      res.status(500).json({ error: 'Failed to fetch examination states' });
+    }
+  });
+
+  app.get('/api/lifecycle/states', async (req, res) => {
+    try {
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+      const result = await pool.request().query('SELECT * FROM ls_LifecycleStates ORDER BY state_id');
+      res.json(result.recordset);
+    } catch (error) {
+      console.error('Error fetching lifecycle states:', error);
+      res.status(500).json({ error: 'Failed to fetch lifecycle states' });
+    }
+  });
+
+  app.get('/api/lifecycle/transition-rules', async (req, res) => {
+    try {
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+      const result = await pool.request().query('SELECT * FROM ls_LifecycleTransitionRules ORDER BY rule_id');
+      res.json(result.recordset);
+    } catch (error) {
+      console.error('Error fetching transition rules:', error);
+      res.status(500).json({ error: 'Failed to fetch transition rules' });
+    }
+  });
+
+  app.get('/api/lifecycle/transition-history', async (req, res) => {
+    try {
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+      const result = await pool.request().query(`
+        SELECT TOP 100 * FROM ls_StateTransitionHistory 
+        ORDER BY transition_timestamp DESC
+      `);
+      res.json(result.recordset);
+    } catch (error) {
+      console.error('Error fetching transition history:', error);
+      res.status(500).json({ error: 'Failed to fetch transition history' });
+    }
+  });
+
+  app.get('/api/lifecycle/analytics', async (req, res) => {
+    try {
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+      
+      // Get workflow statistics
+      const workflowStats = await pool.request().query(`
+        SELECT 
+          COUNT(*) as total_workflows,
+          SUM(CASE WHEN workflow_status = 'active' THEN 1 ELSE 0 END) as active_workflows,
+          SUM(CASE WHEN workflow_status = 'completed' THEN 1 ELSE 0 END) as completed_workflows,
+          SUM(CASE WHEN workflow_status = 'pending' THEN 1 ELSE 0 END) as pending_workflows
+        FROM ls_BusinessProcessWorkflows
+      `);
+
+      // Get state distribution
+      const stateStats = await pool.request().query(`
+        SELECT 
+          state_name,
+          state_type,
+          COUNT(*) as usage_count
+        FROM ls_LifecycleStates ls
+        LEFT JOIN ls_StateTransitionHistory sth ON ls.state_id = sth.to_state_id
+        GROUP BY state_name, state_type
+        ORDER BY usage_count DESC
+      `);
+
+      // Get recent transitions
+      const recentTransitions = await pool.request().query(`
+        SELECT TOP 10
+          sth.*,
+          ls_from.state_name as from_state_name,
+          ls_to.state_name as to_state_name
+        FROM ls_StateTransitionHistory sth
+        LEFT JOIN ls_LifecycleStates ls_from ON sth.from_state_id = ls_from.state_id
+        LEFT JOIN ls_LifecycleStates ls_to ON sth.to_state_id = ls_to.state_id
+        ORDER BY transition_timestamp DESC
+      `);
+
+      res.json({
+        workflowStats: workflowStats.recordset[0],
+        stateDistribution: stateStats.recordset,
+        recentTransitions: recentTransitions.recordset
+      });
+    } catch (error) {
+      console.error('Error fetching lifecycle analytics:', error);
+      res.status(500).json({ error: 'Failed to fetch lifecycle analytics' });
+    }
+  });
+
   // Skills Management API - Azure SQL Integration
   app.get('/api/skills', isAuthenticated, async (req, res) => {
     try {
