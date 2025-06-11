@@ -41,13 +41,13 @@ interface ResponsibilityMatrix {
 }
 
 const responsibilityColors = {
-  'Seller': 'bg-red-100 text-red-800 border border-red-200',
-  '*Seller': 'bg-red-200 text-red-900 border border-red-300 font-semibold',
-  '**Seller': 'bg-red-300 text-red-900 border border-red-400 font-bold',
-  'Buyer': 'bg-blue-100 text-blue-800 border border-blue-200', 
-  'Negotiable': 'bg-yellow-100 text-yellow-800 border border-yellow-200',
-  'Shared': 'bg-purple-100 text-purple-800 border border-purple-200',
-  'Not Specified': 'bg-gray-50 text-gray-500 border border-gray-200'
+  'Seller': 'bg-green-500 text-white border border-green-600 font-medium',
+  '*Seller': 'bg-orange-500 text-white border border-orange-600 font-medium',
+  '**Seller': 'bg-red-500 text-white border border-red-600 font-medium',
+  'Buyer': 'bg-blue-500 text-white border border-blue-600 font-medium', 
+  'Negotiable': 'bg-gray-400 text-white border border-gray-500 font-medium',
+  'Shared': 'bg-purple-500 text-white border border-purple-600 font-medium',
+  'Not Specified': 'bg-gray-200 text-gray-600 border border-gray-300'
 };
 
 export default function IncotermsManagement() {
@@ -302,23 +302,23 @@ export default function IncotermsManagement() {
                     </div>
                     <div className="flex items-center space-x-3 text-xs">
                       <div className="flex items-center space-x-1">
-                        <div className="w-3 h-3 bg-red-100 border border-red-200 rounded"></div>
+                        <div className="w-3 h-3 bg-green-500 border border-green-600 rounded"></div>
                         <span>Seller</span>
                       </div>
                       <div className="flex items-center space-x-1">
-                        <div className="w-3 h-3 bg-red-200 border border-red-300 rounded"></div>
+                        <div className="w-3 h-3 bg-orange-500 border border-orange-600 rounded"></div>
                         <span>*Seller</span>
                       </div>
                       <div className="flex items-center space-x-1">
-                        <div className="w-3 h-3 bg-red-300 border border-red-400 rounded"></div>
+                        <div className="w-3 h-3 bg-red-500 border border-red-600 rounded"></div>
                         <span>**Seller</span>
                       </div>
                       <div className="flex items-center space-x-1">
-                        <div className="w-3 h-3 bg-blue-100 border border-blue-200 rounded"></div>
+                        <div className="w-3 h-3 bg-blue-500 border border-blue-600 rounded"></div>
                         <span>Buyer</span>
                       </div>
                       <div className="flex items-center space-x-1">
-                        <div className="w-3 h-3 bg-yellow-100 border border-yellow-200 rounded"></div>
+                        <div className="w-3 h-3 bg-gray-400 border border-gray-500 rounded"></div>
                         <span>Negotiable</span>
                       </div>
                     </div>
