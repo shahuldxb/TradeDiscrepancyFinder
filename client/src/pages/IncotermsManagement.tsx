@@ -323,14 +323,17 @@ export default function IncotermsManagement() {
                       </div>
                     </div>
                   </div>
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto overflow-y-auto max-h-[600px] border border-gray-200 rounded-lg">
                     <Table>
-                      <TableHeader>
+                      <TableHeader className="sticky top-0 bg-white z-10">
                         <TableRow>
-                          <TableHead className="w-40">Obligation</TableHead>
+                          <TableHead className="w-64 sticky left-0 bg-white z-20 border-r border-gray-200">Obligation</TableHead>
                           {incotermsList.map((incoterm: Incoterm) => (
-                            <TableHead key={incoterm.incoterm_code} className="text-center min-w-[80px]">
-                              <div className="font-mono font-bold">{incoterm.incoterm_code}</div>
+                            <TableHead key={incoterm.incoterm_code} className="text-center min-w-[120px] px-2">
+                              <div className="font-mono font-bold text-xs">{incoterm.incoterm_code}</div>
+                              <div className="text-xs font-normal text-gray-600 mt-1 leading-tight">
+                                {incoterm.incoterm_name}
+                              </div>
                             </TableHead>
                           ))}
                         </TableRow>
@@ -338,11 +341,13 @@ export default function IncotermsManagement() {
                       <TableBody>
                         {obligationsList.map((obligation: Obligation) => (
                           <TableRow key={obligation.obligation_id}>
-                            <TableCell className="font-medium">{obligation.obligation_name}</TableCell>
+                            <TableCell className="font-medium sticky left-0 bg-white z-10 border-r border-gray-200 w-64">
+                              {obligation.obligation_name}
+                            </TableCell>
                             {incotermsList.map((incoterm: Incoterm) => {
                               const responsibility = getResponsibility(incoterm.incoterm_code, obligation.obligation_id);
                               return (
-                                <TableCell key={`${incoterm.incoterm_code}-${obligation.obligation_id}`} className="text-center">
+                                <TableCell key={`${incoterm.incoterm_code}-${obligation.obligation_id}`} className="text-center min-w-[120px] px-2">
                                   {getResponsibilityBadge(responsibility)}
                                 </TableCell>
                               );
