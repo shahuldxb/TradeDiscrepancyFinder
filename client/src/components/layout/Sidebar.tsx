@@ -121,15 +121,8 @@ const navigationItems = [
         href: "/incoterms/management",
         description: "Manage Incoterms definitions",
       },
-    ],
-  },
-  {
-    name: "Responsibility Matrix",
-    icon: Globe,
-    description: "Incoterms Responsibility Analysis",
-    subItems: [
       {
-        name: "Responsibility Matrix 2",
+        name: "Responsibility Matrix",
         href: "/incoterms/matrix",
         description: "Buyer/Seller responsibility matrix",
       },
