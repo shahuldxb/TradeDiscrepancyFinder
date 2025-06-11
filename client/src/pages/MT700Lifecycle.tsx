@@ -790,67 +790,213 @@ export default function MT700Lifecycle() {
                   </CardContent>
                 </Card>
 
-                {/* Business Rules Detail */}
+                {/* Business Rules with Complete Analysis */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg text-green-900">2. Business Validation Rules & Logic</CardTitle>
-                    <CardDescription>Comprehensive validation rules with conditions and outcomes</CardDescription>
+                    <CardTitle className="text-lg text-green-900">2. Business Rules Matrix & Complete Permutations</CardTitle>
+                    <CardDescription>Comprehensive analysis of all rule combinations and their applications</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4">
-                      {businessRules?.map((rule) => (
-                        <div key={rule.ls_BusinessRuleID} className="border rounded-lg p-4 bg-gray-50">
-                          <div className="flex items-start justify-between mb-3">
-                            <div>
-                              <div className="flex items-center space-x-3 mb-2">
-                                <span className="font-semibold text-gray-900">{rule.ls_RuleName}</span>
-                                <Badge variant="outline">{rule.ls_RuleCode}</Badge>
-                                <Badge className={
-                                  rule.ls_Severity === 'CRITICAL' ? 'bg-red-100 text-red-800' :
-                                  rule.ls_Severity === 'WARNING' ? 'bg-amber-100 text-amber-800' :
-                                  'bg-blue-100 text-blue-800'
-                                }>
-                                  {rule.ls_Severity}
-                                </Badge>
-                              </div>
-                              <p className="text-sm text-gray-600">{rule.ls_RuleDescription}</p>
-                            </div>
-                          </div>
-                          
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                            <div>
-                              <span className="text-sm font-medium text-gray-700">Applicable to:</span>
-                              <div className="mt-1 flex flex-wrap gap-1">
-                                {rule.ls_ApplicableDCTypes?.split(',').map((type, idx) => (
-                                  <Badge key={idx} variant="outline" className="text-xs">{type.trim()}</Badge>
-                                )) || <Badge variant="outline" className="text-xs">All LC Types</Badge>}
-                              </div>
-                            </div>
-                            <div>
-                              <span className="text-sm font-medium text-gray-700">Applicable States:</span>
-                              <div className="mt-1 flex flex-wrap gap-1">
-                                {rule.ls_ApplicableStates?.split(',').map((state, idx) => (
-                                  <Badge key={idx} variant="outline" className="text-xs">{state.trim()}</Badge>
-                                )) || <Badge variant="outline" className="text-xs">All States</Badge>}
-                              </div>
-                            </div>
-                          </div>
-                          
-                          {rule.ls_RuleExpression && (
-                            <div className="mt-3 p-3 bg-white rounded border">
-                              <span className="text-sm font-medium text-gray-700">Rule Expression:</span>
-                              <code className="block mt-1 text-xs text-gray-800 font-mono">{rule.ls_RuleExpression}</code>
-                            </div>
-                          )}
-                          
-                          {rule.ls_ErrorMessage && (
-                            <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded">
-                              <span className="text-sm font-medium text-red-700">Error Message:</span>
-                              <p className="text-sm text-red-600 mt-1">{rule.ls_ErrorMessage}</p>
-                            </div>
-                          )}
+                    <div className="space-y-6">
+                      {/* Rules Overview Matrix */}
+                      <div className="mb-6">
+                        <h4 className="font-semibold text-gray-900 mb-4">Rule Categories & Application Matrix</h4>
+                        <div className="overflow-x-auto">
+                          <table className="w-full border border-gray-200 rounded-lg">
+                            <thead>
+                              <tr className="bg-gray-50">
+                                <th className="p-3 text-left border-b font-medium text-gray-700">Rule Category</th>
+                                <th className="p-3 text-left border-b font-medium text-gray-700">Documentary Credit Types</th>
+                                <th className="p-3 text-left border-b font-medium text-gray-700">Lifecycle States</th>
+                                <th className="p-3 text-left border-b font-medium text-gray-700">Severity Distribution</th>
+                                <th className="p-3 text-left border-b font-medium text-gray-700">Total Rules</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {['UCP_600', 'DOCUMENT_VALIDATION', 'TIMING_VALIDATION', 'COMPLIANCE_CHECK', 'WORKFLOW_CONTROL'].map(category => {
+                                const categoryRules = businessRules?.filter(rule => rule.ls_RuleCategory === category) || [];
+                                const dcTypes = new Set();
+                                const states = new Set();
+                                const severities = new Set();
+                                
+                                categoryRules.forEach(rule => {
+                                  rule.ls_ApplicableDCTypes?.split(',').forEach(type => dcTypes.add(type.trim()));
+                                  rule.ls_ApplicableStates?.split(',').forEach(state => states.add(state.trim()));
+                                  severities.add(rule.ls_Severity);
+                                });
+                                
+                                return (
+                                  <tr key={category} className="border-b hover:bg-gray-50">
+                                    <td className="p-3 font-medium text-green-900">{category.replace('_', ' ')}</td>
+                                    <td className="p-3">
+                                      <div className="flex flex-wrap gap-1">
+                                        {Array.from(dcTypes).slice(0, 3).map((type, idx) => (
+                                          <Badge key={idx} variant="outline" className="text-xs">{type}</Badge>
+                                        ))}
+                                        {dcTypes.size > 3 && <span className="text-xs text-gray-500">+{dcTypes.size - 3} more</span>}
+                                        {dcTypes.size === 0 && <Badge variant="outline" className="text-xs">Universal</Badge>}
+                                      </div>
+                                    </td>
+                                    <td className="p-3">
+                                      <div className="flex flex-wrap gap-1">
+                                        {Array.from(states).slice(0, 2).map((state, idx) => (
+                                          <Badge key={idx} variant="outline" className="text-xs">{state}</Badge>
+                                        ))}
+                                        {states.size > 2 && <span className="text-xs text-gray-500">+{states.size - 2} more</span>}
+                                        {states.size === 0 && <Badge variant="outline" className="text-xs">All States</Badge>}
+                                      </div>
+                                    </td>
+                                    <td className="p-3">
+                                      <div className="flex flex-wrap gap-1">
+                                        {Array.from(severities).map((severity, idx) => (
+                                          <Badge 
+                                            key={idx} 
+                                            className={
+                                              severity === 'CRITICAL' ? 'bg-red-100 text-red-800' :
+                                              severity === 'WARNING' ? 'bg-amber-100 text-amber-800' :
+                                              'bg-blue-100 text-blue-800'
+                                            }
+                                          >
+                                            {severity}
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    </td>
+                                    <td className="p-3 font-semibold text-gray-900">{categoryRules.length}</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
                         </div>
-                      ))}
+                      </div>
+
+                      {/* Detailed Rules with Comprehensive Analysis */}
+                      <div className="space-y-4">
+                        <h4 className="font-semibold text-gray-900">Complete Business Rules with All Scenarios & Combinations</h4>
+                        {businessRules?.map((rule) => (
+                          <div key={rule.ls_BusinessRuleID} className="border rounded-lg p-4 bg-gradient-to-r from-gray-50 to-green-50">
+                            <div className="flex items-start justify-between mb-4">
+                              <div className="flex-1">
+                                <div className="flex items-center space-x-3 mb-3">
+                                  <span className="font-semibold text-gray-900">{rule.ls_RuleName}</span>
+                                  <Badge variant="outline">{rule.ls_RuleCode}</Badge>
+                                  <Badge className={
+                                    rule.ls_Severity === 'CRITICAL' ? 'bg-red-100 text-red-800' :
+                                    rule.ls_Severity === 'WARNING' ? 'bg-amber-100 text-amber-800' :
+                                    'bg-blue-100 text-blue-800'
+                                  }>
+                                    {rule.ls_Severity}
+                                  </Badge>
+                                  <Badge className="bg-green-100 text-green-800">
+                                    {rule.ls_RuleCategory?.replace('_', ' ') || 'General'}
+                                  </Badge>
+                                  <Badge className={rule.ls_IsActive ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}>
+                                    {rule.ls_IsActive ? "Active" : "Inactive"}
+                                  </Badge>
+                                </div>
+                                
+                                <p className="text-sm text-gray-700 mb-4 leading-relaxed">{rule.ls_RuleDescription}</p>
+                                
+                                {/* Rule Application Analysis */}
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+                                  <div className="p-4 bg-white rounded-lg border border-blue-200">
+                                    <div className="flex items-center mb-3">
+                                      <Target className="h-4 w-4 text-blue-600 mr-2" />
+                                      <span className="font-medium text-blue-900">Documentary Credit Scope</span>
+                                    </div>
+                                    <div className="space-y-2">
+                                      {rule.ls_ApplicableDCTypes?.split(',').map((type, idx) => (
+                                        <div key={idx} className="flex items-center justify-between p-2 bg-blue-50 rounded">
+                                          <Badge variant="outline" className="text-xs">{type.trim()}</Badge>
+                                          <span className="text-xs text-blue-600 font-medium">Applicable</span>
+                                        </div>
+                                      )) || (
+                                        <div className="flex items-center justify-between p-2 bg-green-50 rounded">
+                                          <Badge variant="outline" className="text-xs">All Documentary Credit Types</Badge>
+                                          <span className="text-xs text-green-600 font-medium">Universal Application</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="p-4 bg-white rounded-lg border border-purple-200">
+                                    <div className="flex items-center mb-3">
+                                      <GitBranch className="h-4 w-4 text-purple-600 mr-2" />
+                                      <span className="font-medium text-purple-900">Lifecycle State Coverage</span>
+                                    </div>
+                                    <div className="space-y-2">
+                                      {rule.ls_ApplicableStates?.split(',').map((state, idx) => (
+                                        <div key={idx} className="flex items-center justify-between p-2 bg-purple-50 rounded">
+                                          <Badge variant="outline" className="text-xs">{state.trim()}</Badge>
+                                          <span className="text-xs text-purple-600 font-medium">Active</span>
+                                        </div>
+                                      )) || (
+                                        <div className="flex items-center justify-between p-2 bg-green-50 rounded">
+                                          <Badge variant="outline" className="text-xs">All Lifecycle States</Badge>
+                                          <span className="text-xs text-green-600 font-medium">Global Coverage</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                {/* Business Logic Expression */}
+                                {rule.ls_RuleExpression && (
+                                  <div className="mb-4 p-4 bg-white rounded-lg border border-gray-300">
+                                    <div className="flex items-center mb-3">
+                                      <Code className="h-4 w-4 text-gray-600 mr-2" />
+                                      <span className="font-medium text-gray-900">Business Logic Expression</span>
+                                    </div>
+                                    <div className="bg-gray-50 p-3 rounded border">
+                                      <code className="text-xs font-mono text-gray-800 whitespace-pre-wrap">
+                                        {rule.ls_RuleExpression}
+                                      </code>
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {/* Error Handling Configuration */}
+                                {rule.ls_ErrorMessage && (
+                                  <div className="mb-4 p-4 bg-red-50 rounded-lg border border-red-200">
+                                    <div className="flex items-center mb-3">
+                                      <AlertCircle className="h-4 w-4 text-red-600 mr-2" />
+                                      <span className="font-medium text-red-900">Error Response Configuration</span>
+                                    </div>
+                                    <div className="bg-white p-3 rounded border border-red-200">
+                                      <p className="text-sm text-red-700 italic">"{rule.ls_ErrorMessage}"</p>
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {/* Rule Metadata & Tracking */}
+                                <div className="pt-3 border-t border-gray-200 flex items-center justify-between">
+                                  <div className="flex items-center space-x-4 text-xs text-gray-500">
+                                    <span className="flex items-center">
+                                      <Calendar className="h-3 w-3 mr-1" />
+                                      Created: {new Date(rule.ls_CreatedDate).toLocaleDateString()}
+                                    </span>
+                                    <span className="flex items-center">
+                                      <User className="h-3 w-3 mr-1" />
+                                      Author: {rule.ls_CreatedBy}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    <Button variant="outline" size="sm" className="h-7 px-2 text-xs">
+                                      <Eye className="h-3 w-3 mr-1" />
+                                      View Details
+                                    </Button>
+                                    <Button variant="outline" size="sm" className="h-7 px-2 text-xs">
+                                      <Edit className="h-3 w-3 mr-1" />
+                                      Modify
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
