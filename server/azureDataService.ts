@@ -55,19 +55,35 @@ export class AzureDataService {
   async getSwiftMessageTypes() {
     try {
       const pool = await connectToAzureSQL();
-      // Query all columns to understand the actual structure
-      const result = await pool.request().query(`
-        SELECT TOP 50 * FROM swift.message_types
+      
+      // First check the column structure to understand what's available
+      const columnsResult = await pool.request().query(`
+        SELECT COLUMN_NAME 
+        FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = 'swift' AND TABLE_NAME = 'message_types'
+        ORDER BY ORDINAL_POSITION
       `);
       
-      // Map the results to the expected format for MT Intelligence
+      console.log('Available columns in swift.message_types:', columnsResult.recordset.map(c => c.COLUMN_NAME));
+      
+      // Query all message types with proper column mapping
+      const result = await pool.request().query(`
+        SELECT * FROM swift.message_types ORDER BY MessageType
+      `);
+      
+      // Log first row to understand the actual data structure
+      if (result.recordset.length > 0) {
+        console.log('Sample row from swift.message_types:', Object.keys(result.recordset[0]));
+      }
+      
+      // Map the results with proper fallbacks for descriptions and purposes
       return result.recordset.map((row: any) => ({
-        message_type: row.MessageType || row.message_type || `MT${row.MessageTypeCode || row.message_type_code}`,
-        message_type_code: row.MessageTypeCode || row.message_type_code || row.Code,
-        message_type_name: row.MessageTypeName || row.message_type_name || row.Name || row.Description,
-        description: row.Description || row.description || row.Purpose || row.MessageTypeName,
-        category: row.Category || row.category || (row.MessageTypeCode || row.message_type_code || '').charAt(0),
-        purpose: row.Purpose || row.purpose || row.Description || 'SWIFT message processing',
+        message_type: row.MessageType || row.message_type || `MT${row.MessageTypeCode || row.message_type_code || ''}`,
+        message_type_code: row.MessageTypeCode || row.message_type_code || row.Code || '',
+        message_type_name: row.MessageTypeName || row.message_type_name || row.Name || row.Description || 'SWIFT Message',
+        description: row.Description || row.MessageDescription || row.Purpose || row.MessageTypeName || `${row.MessageType || 'SWIFT'} message for trade finance operations`,
+        category: row.Category || row.category || String(row.MessageTypeCode || row.message_type_code || '').charAt(0) || '7',
+        purpose: row.Purpose || row.MessagePurpose || row.Description || `Processing and handling of ${row.MessageType || 'SWIFT'} messages for documentary credits and trade finance`,
         is_active: row.IsActive !== undefined ? row.IsActive : (row.is_active !== undefined ? row.is_active : true)
       }));
     } catch (error) {

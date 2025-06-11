@@ -222,26 +222,32 @@ export default function SwiftMessageTypes() {
                       </div>
 
                       {/* Message Name */}
-                      <div className="col-span-3">
+                      <div className="col-span-2">
                         <div className="text-xs font-medium text-gray-500 mb-1">Message Name</div>
                         <div className="font-semibold text-sm">{msgType.message_type_name}</div>
                       </div>
 
                       {/* Description */}
-                      <div className="col-span-4">
+                      <div className="col-span-3">
                         <div className="text-xs font-medium text-gray-500 mb-1">Description</div>
                         <div className="text-sm text-gray-700 leading-relaxed">
-                          {msgType.description || 'No description available'}
+                          {msgType.description || msgType.message_type_name || 'SWIFT message type'}
                         </div>
                       </div>
 
                       {/* Purpose */}
-                      <div className="col-span-2">
-                        <div className="text-xs font-medium text-gray-500 mb-1">Category & Code</div>
+                      <div className="col-span-3">
+                        <div className="text-xs font-medium text-gray-500 mb-1">Purpose</div>
+                        <div className="text-sm text-gray-700 leading-relaxed">
+                          {msgType.purpose || 'Documentary credit and trade finance processing'}
+                        </div>
+                      </div>
+
+                      {/* Category & Code */}
+                      <div className="col-span-1">
+                        <div className="text-xs font-medium text-gray-500 mb-1">Category</div>
                         <div className="space-y-1">
-                          <div className="text-sm">
-                            <Badge variant="outline" className="text-xs">{msgType.category}</Badge>
-                          </div>
+                          <Badge variant="outline" className="text-xs">{msgType.category}</Badge>
                           <div className="font-mono text-xs text-gray-600">
                             {msgType.message_type_code || 'N/A'}
                           </div>
