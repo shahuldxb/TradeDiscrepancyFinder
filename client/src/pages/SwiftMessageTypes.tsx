@@ -408,14 +408,14 @@ export default function SwiftMessageTypes() {
                       <table className="w-full border-collapse text-sm border">
                         <thead>
                           <tr className="border-b bg-red-50">
-                            <th className="text-left p-3 font-semibold">Field ID</th>
-                            <th className="text-left p-3 font-semibold">Message Type</th>
-                            <th className="text-left p-3 font-semibold">Tag</th>
+                            <th className="text-left p-3 font-semibold w-20">Field ID</th>
+                            <th className="text-left p-3 font-semibold w-32">Message Type</th>
+                            <th className="text-left p-3 font-semibold w-20">Tag</th>
                             <th className="text-left p-3 font-semibold">Field Name</th>
                             <th className="text-left p-3 font-semibold">Content Options</th>
-                            <th className="text-left p-3 font-semibold">Sequence</th>
-                            <th className="text-left p-3 font-semibold">Created</th>
-                            <th className="text-left p-3 font-semibold">Updated</th>
+                            <th className="text-left p-3 font-semibold w-20">Sequence</th>
+                            <th className="text-left p-3 font-semibold w-24">Created</th>
+                            <th className="text-left p-3 font-semibold w-24">Updated</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -423,9 +423,14 @@ export default function SwiftMessageTypes() {
                             <tr key={field.field_id || field.field_code} className="border-b hover:bg-red-25 transition-colors">
                               <td className="p-3 font-mono text-blue-600">{field.field_id || 'N/A'}</td>
                               <td className="p-3">
-                                <Badge variant="outline" className="text-xs">
-                                  MT{field.message_type_id || '700'}
-                                </Badge>
+                                <div className="flex flex-col">
+                                  <span className="font-semibold text-base text-blue-700">
+                                    MT{field.message_type_id || '700'}
+                                  </span>
+                                  <span className="text-xs text-gray-500">
+                                    {Array.isArray(messageTypes) && messageTypes.find((m: any) => m.message_type_id === field.message_type_id)?.message_type_name || 'Issue LC'}
+                                  </span>
+                                </div>
                               </td>
                               <td className="p-3 font-mono font-semibold">{field.tag || field.field_code}</td>
                               <td className="p-3 max-w-xs">
@@ -464,14 +469,14 @@ export default function SwiftMessageTypes() {
                       <table className="w-full border-collapse text-sm border">
                         <thead>
                           <tr className="border-b bg-gray-50">
-                            <th className="text-left p-3 font-semibold">Field ID</th>
-                            <th className="text-left p-3 font-semibold">Message Type</th>
-                            <th className="text-left p-3 font-semibold">Tag</th>
+                            <th className="text-left p-3 font-semibold w-20">Field ID</th>
+                            <th className="text-left p-3 font-semibold w-32">Message Type</th>
+                            <th className="text-left p-3 font-semibold w-20">Tag</th>
                             <th className="text-left p-3 font-semibold">Field Name</th>
                             <th className="text-left p-3 font-semibold">Content Options</th>
-                            <th className="text-left p-3 font-semibold">Sequence</th>
-                            <th className="text-left p-3 font-semibold">Created</th>
-                            <th className="text-left p-3 font-semibold">Updated</th>
+                            <th className="text-left p-3 font-semibold w-20">Sequence</th>
+                            <th className="text-left p-3 font-semibold w-24">Created</th>
+                            <th className="text-left p-3 font-semibold w-24">Updated</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -479,9 +484,14 @@ export default function SwiftMessageTypes() {
                             <tr key={field.field_id || field.field_code} className="border-b hover:bg-gray-50 transition-colors">
                               <td className="p-3 font-mono text-blue-600">{field.field_id || 'N/A'}</td>
                               <td className="p-3">
-                                <Badge variant="outline" className="text-xs">
-                                  MT{field.message_type_id || '700'}
-                                </Badge>
+                                <div className="flex flex-col">
+                                  <span className="font-semibold text-base text-blue-700">
+                                    MT{field.message_type_id || '700'}
+                                  </span>
+                                  <span className="text-xs text-gray-500">
+                                    {Array.isArray(messageTypes) && messageTypes.find((m: any) => m.message_type_id === field.message_type_id)?.message_type_name || 'Issue LC'}
+                                  </span>
+                                </div>
                               </td>
                               <td className="p-3 font-mono font-semibold">{field.tag || field.field_code}</td>
                               <td className="p-3 max-w-xs">
