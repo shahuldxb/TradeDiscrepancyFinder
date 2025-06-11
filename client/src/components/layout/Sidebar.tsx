@@ -180,11 +180,7 @@ const navigationItems = [
         href: "/swift/mt-intelligence",
         description: "Comprehensive MT message intelligence",
       },
-      {
-        name: "MT7xx Messages",
-        href: "/swift/mt7xx",
-        description: "Documentary Credit messages",
-      },
+
       {
         name: "Message Parser",
         href: "/swift/parser",
