@@ -23,12 +23,15 @@ interface MTMessage {
 }
 
 interface MTStatistics {
-  totalMessages: number;
-  activeMessages: number;
-  totalFields: number;
-  mt7xxMessages: number;
-  documentaryCredits: number;
-  messageCategories: number;
+  totalMessages?: number;
+  activeMessages?: number;
+  totalFields?: number;
+  mt7xxMessages?: number;
+  documentaryCredits?: number;
+  messageCategories?: number;
+  messageTypes?: number;
+  validatedMessages?: number;
+  [key: string]: any;
 }
 
 export default function MTIntelligence() {
@@ -37,7 +40,7 @@ export default function MTIntelligence() {
   const [selectedActiveStatus, setSelectedActiveStatus] = useState("all");
 
   const { data: messagesResponse, isLoading: messagesLoading } = useQuery({
-    queryKey: ["/api/swift/message-types"]
+    queryKey: ["/api/swift/message-types-azure"]
   });
 
   const { data: statisticsResponse, isLoading: statsLoading } = useQuery({
@@ -45,14 +48,7 @@ export default function MTIntelligence() {
   });
 
   const messages: MTMessage[] = Array.isArray(messagesResponse) ? messagesResponse : [];
-  const statistics: MTStatistics = statisticsResponse || {
-    totalMessages: 0,
-    activeMessages: 0,
-    totalFields: 0,
-    mt7xxMessages: 0,
-    documentaryCredits: 0,
-    messageCategories: 0
-  };
+  const statistics = statisticsResponse || {};
 
   // Filter messages based on search and filters
   const filteredMessages = messages.filter((message) => {
@@ -111,7 +107,7 @@ export default function MTIntelligence() {
                 <MessageSquare className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{statistics.totalMessages}</div>
+                <div className="text-2xl font-bold">{statistics.messageTypes || messages.length || 0}</div>
                 <p className="text-xs text-muted-foreground">SWIFT message types configured</p>
               </CardContent>
             </Card>
@@ -122,7 +118,7 @@ export default function MTIntelligence() {
                 <TrendingUp className="h-4 w-4 text-green-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600">{statistics.activeMessages}</div>
+                <div className="text-2xl font-bold text-green-600">{statistics.validatedMessages || messages.filter(m => m.IsActive).length || 0}</div>
                 <p className="text-xs text-muted-foreground">Currently processing</p>
               </CardContent>
             </Card>
@@ -133,7 +129,7 @@ export default function MTIntelligence() {
                 <Database className="h-4 w-4 text-blue-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-blue-600">{statistics.mt7xxMessages}</div>
+                <div className="text-2xl font-bold text-blue-600">{messages.filter(m => m.MessageTypeCode?.startsWith('MT7')).length || 0}</div>
                 <p className="text-xs text-muted-foreground">Documentary Credit messages</p>
               </CardContent>
             </Card>
@@ -144,7 +140,7 @@ export default function MTIntelligence() {
                 <Database className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{statistics.totalFields}</div>
+                <div className="text-2xl font-bold">{messages.reduce((acc, m) => acc + (m.FieldCount || 0), 0)}</div>
                 <p className="text-xs text-muted-foreground">Message field definitions</p>
               </CardContent>
             </Card>
@@ -155,7 +151,7 @@ export default function MTIntelligence() {
                 <Filter className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{statistics.messageCategories}</div>
+                <div className="text-2xl font-bold">{categories.length}</div>
                 <p className="text-xs text-muted-foreground">Message categories</p>
               </CardContent>
             </Card>
@@ -167,7 +163,7 @@ export default function MTIntelligence() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-purple-600">
-                  {statistics.totalMessages > 0 ? Math.round((statistics.activeMessages / statistics.totalMessages) * 100) : 0}%
+                  {messages.length > 0 ? Math.round((messages.filter(m => m.IsActive).length / messages.length) * 100) : 0}%
                 </div>
                 <p className="text-xs text-muted-foreground">Active message coverage</p>
               </CardContent>
@@ -365,14 +361,14 @@ export default function MTIntelligence() {
                       <div className="w-4 h-4 bg-green-500 rounded"></div>
                       <span className="text-sm font-medium">Active Messages</span>
                     </div>
-                    <div className="text-sm font-medium">{statistics.activeMessages}</div>
+                    <div className="text-sm font-medium">{messages.filter(m => m.IsActive).length}</div>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       <div className="w-4 h-4 bg-gray-400 rounded"></div>
                       <span className="text-sm font-medium">Inactive Messages</span>
                     </div>
-                    <div className="text-sm font-medium">{statistics.totalMessages - statistics.activeMessages}</div>
+                    <div className="text-sm font-medium">{messages.length - messages.filter(m => m.IsActive).length}</div>
                   </div>
                 </div>
               </CardContent>
@@ -387,7 +383,7 @@ export default function MTIntelligence() {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="text-center p-4 border rounded-lg">
-                  <div className="text-2xl font-bold text-blue-600">{statistics.mt7xxMessages}</div>
+                  <div className="text-2xl font-bold text-blue-600">{messages.filter(m => m.MessageTypeCode?.startsWith('MT7')).length}</div>
                   <div className="text-sm text-gray-500">MT7xx Messages</div>
                 </div>
                 <div className="text-center p-4 border rounded-lg">
