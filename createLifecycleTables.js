@@ -8,6 +8,11 @@ const config = {
   options: {
     encrypt: true,
     trustServerCertificate: false
+  },
+  pool: {
+    max: 10,
+    min: 0,
+    idleTimeoutMillis: 30000
   }
 };
 
