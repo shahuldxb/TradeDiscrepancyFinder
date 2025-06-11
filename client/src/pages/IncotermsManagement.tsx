@@ -37,13 +37,43 @@ interface Incoterm {
   updated_at: string;
 }
 
+interface Obligation {
+  obligation_id: number;
+  obligation_name: string;
+}
+
+interface ResponsibilityMatrix {
+  incoterm_code: string;
+  obligation_id: number;
+  obligation_name: string;
+  responsibility: string;
+}
+
+const responsibilityColors = {
+  'Seller': 'bg-red-500 text-white',
+  'Buyer': 'bg-blue-500 text-white', 
+  'Negotiable': 'bg-yellow-500 text-black',
+  '*Seller': 'bg-red-600 text-white',
+  '**Seller': 'bg-red-700 text-white'
+};
+
 export default function IncotermsManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTransport, setSelectedTransport] = useState("all");
 
-  const { data: incoterms = [], isLoading } = useQuery({
+  const { data: incoterms = [], isLoading: incotermLoading } = useQuery({
     queryKey: ['/api/incoterms/swift/terms']
   });
+
+  const { data: obligations = [], isLoading: obligationLoading } = useQuery({
+    queryKey: ['/api/incoterms/matrix/obligations']
+  });
+
+  const { data: matrix = [], isLoading: matrixLoading } = useQuery({
+    queryKey: ['/api/incoterms/matrix/responsibilities']
+  });
+
+  const isLoading = incotermLoading || obligationLoading || matrixLoading;
 
   // Filter incoterms based on search and transport mode
   const filteredIncoterms = (incoterms as Incoterm[]).filter((incoterm: Incoterm) => {
@@ -67,12 +97,33 @@ export default function IncotermsManagement() {
     return <Globe className="h-4 w-4" />;
   };
 
+  // Get responsibility for specific incoterm and obligation
+  const getResponsibility = (incotermCode: string, obligationId: number) => {
+    const responsibility = (matrix as ResponsibilityMatrix[]).find((m: ResponsibilityMatrix) => 
+      m.incoterm_code === incotermCode && m.obligation_id === obligationId
+    );
+    return responsibility?.responsibility || 'N/A';
+  };
+
+  // Get responsibility badge style
+  const getResponsibilityBadge = (responsibility: string) => {
+    const colorClass = responsibilityColors[responsibility as keyof typeof responsibilityColors] || 'bg-gray-500 text-white';
+    return (
+      <Badge className={`${colorClass} text-xs font-medium px-2 py-1 min-w-[70px] text-center`}>
+        {responsibility}
+      </Badge>
+    );
+  };
+
   // Calculate statistics
   const incotermsList = incoterms as Incoterm[];
+  const obligationsList = obligations as Obligation[];
+  const matrixList = matrix as ResponsibilityMatrix[];
   const stats = {
     totalIncoterms: incotermsList.length,
+    totalObligations: obligationsList.length,
     transportModes: [...new Set(incotermsList.map((i: Incoterm) => i.transport_mode_group))].length,
-    searchResults: filteredIncoterms.length
+    matrixEntries: matrixList.length
   };
 
   if (isLoading) {
@@ -132,19 +183,20 @@ export default function IncotermsManagement() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Search Results</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Obligations</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-600">{stats.searchResults}</div>
-            <p className="text-xs text-muted-foreground">Filtered terms</p>
+            <div className="text-2xl font-bold text-purple-600">{stats.totalObligations}</div>
+            <p className="text-xs text-muted-foreground">Matrix obligations</p>
           </CardContent>
         </Card>
       </div>
 
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="matrix">Responsibility Matrix</TabsTrigger>
           <TabsTrigger value="analysis">Analysis</TabsTrigger>
         </TabsList>
 
@@ -229,6 +281,48 @@ export default function IncotermsManagement() {
                   ))}
                 </TableBody>
               </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="matrix">
+          <Card>
+            <CardHeader>
+              <CardTitle>Incoterms Responsibility Matrix</CardTitle>
+              <CardDescription>
+                Complete responsibility matrix showing obligations for each Incoterm
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-40">Obligation</TableHead>
+                      {incotermsList.map((incoterm: Incoterm) => (
+                        <TableHead key={incoterm.term_code} className="text-center min-w-[80px]">
+                          <div className="font-mono font-bold">{incoterm.term_code}</div>
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {obligationsList.map((obligation: Obligation) => (
+                      <TableRow key={obligation.obligation_id}>
+                        <TableCell className="font-medium">{obligation.obligation_name}</TableCell>
+                        {incotermsList.map((incoterm: Incoterm) => {
+                          const responsibility = getResponsibility(incoterm.term_code, obligation.obligation_id);
+                          return (
+                            <TableCell key={`${incoterm.term_code}-${obligation.obligation_id}`} className="text-center">
+                              {getResponsibilityBadge(responsibility)}
+                            </TableCell>
+                          );
+                        })}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
