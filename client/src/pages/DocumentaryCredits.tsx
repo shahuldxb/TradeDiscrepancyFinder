@@ -62,7 +62,7 @@ export default function DocumentaryCredits() {
     setExpandedRows(newExpanded);
   };
 
-  const renderDataTable = (data: any[], title: string, icon: any) => {
+  const renderDataTable = (data: any[] | undefined, title: string, icon: any) => {
     if (!data || data.length === 0) {
       return (
         <Card>
@@ -233,12 +233,12 @@ export default function DocumentaryCredits() {
           <TabsContent value="lifecycle" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {renderDataTable(
-                lifecycleStates,
+                lifecycleStates as any[],
                 "Lifecycle States",
                 <Settings className="w-4 h-4" />
               )}
               {renderDataTable(
-                transitionRules,
+                transitionRules as any[],
                 "Transition Rules",
                 <Workflow className="w-4 h-4" />
               )}
@@ -247,7 +247,7 @@ export default function DocumentaryCredits() {
 
           <TabsContent value="examination" className="space-y-6">
             {renderDataTable(
-              examinationStates,
+              examinationStates as any[],
               "Document Examination States",
               <FileText className="w-4 h-4" />
             )}
@@ -255,7 +255,7 @@ export default function DocumentaryCredits() {
 
           <TabsContent value="workflows" className="space-y-6">
             {renderDataTable(
-              workflows,
+              workflows as any[],
               "Business Process Workflows",
               <Workflow className="w-4 h-4" />
             )}
@@ -263,7 +263,7 @@ export default function DocumentaryCredits() {
 
           <TabsContent value="rules" className="space-y-6">
             {renderDataTable(
-              businessRules,
+              businessRules as any[],
               "Business Rules",
               <Users className="w-4 h-4" />
             )}
@@ -271,7 +271,7 @@ export default function DocumentaryCredits() {
 
           <TabsContent value="history" className="space-y-6">
             {renderDataTable(
-              history,
+              history as any[],
               "State Transition History",
               <History className="w-4 h-4" />
             )}
@@ -287,37 +287,37 @@ export default function DocumentaryCredits() {
                   <div className="flex items-center justify-between">
                     <span className="text-sm">Lifecycle States</span>
                     <Badge variant="outline">
-                      {lifecycleStates?.length || 0}
+                      {(lifecycleStates as any[])?.length || 0}
                     </Badge>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm">Transition Rules</span>
                     <Badge variant="outline">
-                      {transitionRules?.length || 0}
+                      {(transitionRules as any[])?.length || 0}
                     </Badge>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm">Examination States</span>
                     <Badge variant="outline">
-                      {examinationStates?.length || 0}
+                      {(examinationStates as any[])?.length || 0}
                     </Badge>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm">Workflows</span>
                     <Badge variant="outline">
-                      {workflows?.length || 0}
+                      {(workflows as any[])?.length || 0}
                     </Badge>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm">Business Rules</span>
                     <Badge variant="outline">
-                      {businessRules?.length || 0}
+                      {(businessRules as any[])?.length || 0}
                     </Badge>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm">History Records</span>
                     <Badge variant="outline">
-                      {history?.length || 0}
+                      {(history as any[])?.length || 0}
                     </Badge>
                   </div>
                 </CardContent>
