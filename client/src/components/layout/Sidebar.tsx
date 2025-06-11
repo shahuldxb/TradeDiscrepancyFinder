@@ -33,62 +33,6 @@ const navigationItems = [
     description: "Overview and metrics",
   },
   {
-    name: "Document Processing",
-    icon: Upload,
-    description: "Document management",
-    subItems: [
-      {
-        name: "Document Upload",
-        href: "/documents",
-        description: "Upload LC documents",
-      },
-      {
-        name: "Trade Finance Docs",
-        href: "/trade-finance-documents",
-        description: "Document management system",
-      },
-    ],
-  },
-  {
-    name: "AI & Automation",
-    icon: Bot,
-    description: "AI-powered tools",
-    subItems: [
-      {
-        name: "CrewAI Agents",
-        href: "/agents",
-        description: "Agent monitoring",
-      },
-      {
-        name: "Agent Designer",
-        href: "/agent-designer",
-        description: "Create custom agents",
-      },
-      {
-        name: "Skills Management",
-        href: "/skills-management",
-        description: "Manage agent skills",
-      },
-    ],
-  },
-  {
-    name: "SWIFT & Messaging",
-    icon: MessageCircle,
-    description: "SWIFT message tools",
-    subItems: [
-      {
-        name: "Message Builder",
-        href: "/message-builder",
-        description: "Create MT 700 messages",
-      },
-      {
-        name: "MT Intelligence",
-        href: "/mt-intelligence",
-        description: "SWIFT MT7xx intelligence system",
-      },
-    ],
-  },
-  {
     name: "Trade Finance",
     icon: FileText,
     description: "Trade Finance Management",
@@ -99,6 +43,33 @@ const navigationItems = [
         description: "LC management and workflows",
       },
       {
+        name: "MT700 Lifecycle",
+        href: "/mt700-lifecycle",
+        description: "LC issuance and processing lifecycle",
+      },
+      {
+        name: "Incoterms Management",
+        href: "/incoterms",
+        description: "View and manage Incoterms 2020",
+      },
+      {
+        name: "Incoterms Matrix",
+        href: "/incoterms/matrix",
+        description: "Seller and buyer responsibilities",
+      },
+      {
+        name: "Incoterms Validation",
+        href: "/incoterms/validation",
+        description: "Validate LC against Incoterms",
+      },
+    ],
+  },
+  {
+    name: "UCP 600 Rules",
+    icon: Scale,
+    description: "UCP 600 compliance and rules",
+    subItems: [
+      {
         name: "UCP Dashboard",
         href: "/ucp600/dashboard",
         description: "UCP 600 analytics and overview",
@@ -106,7 +77,7 @@ const navigationItems = [
       {
         name: "UCP Articles",
         href: "/ucp600/articles",
-        description: "Manage UCP 600 articles (base table)",
+        description: "Manage UCP 600 articles",
       },
       {
         name: "UCP Rules",
@@ -128,11 +99,89 @@ const navigationItems = [
         href: "/ucp600/document-compliance",
         description: "Document compliance rules",
       },
+    ],
+  },
+  {
+    name: "Document Management",
+    icon: Upload,
+    description: "Document processing and analysis",
+    subItems: [
       {
-        name: "Business Process Owners",
-        href: "/ucp600/business-owners",
-        description: "Manage business process owners",
+        name: "Document Upload",
+        href: "/documents",
+        description: "Upload LC documents",
       },
+      {
+        name: "Trade Finance Docs",
+        href: "/trade-finance-documents",
+        description: "Document management system",
+      },
+      {
+        name: "OCR Processing",
+        href: "/test-drive/ocr",
+        description: "Upload and extract text from documents",
+      },
+      {
+        name: "Discrepancy Analysis",
+        href: "/analysis",
+        description: "Review discrepancies",
+      },
+    ],
+  },
+  {
+    name: "SWIFT & Messaging",
+    icon: MessageCircle,
+    description: "SWIFT message tools",
+    subItems: [
+      {
+        name: "Message Builder",
+        href: "/message-builder",
+        description: "Create MT 700 messages",
+      },
+      {
+        name: "MT Intelligence",
+        href: "/mt-intelligence",
+        description: "SWIFT MT7xx intelligence system",
+      },
+    ],
+  },
+  {
+    name: "AI & Automation",
+    icon: Bot,
+    description: "AI-powered tools and agents",
+    subItems: [
+      {
+        name: "CrewAI Agents",
+        href: "/agents",
+        description: "Agent monitoring and management",
+      },
+      {
+        name: "Agent Designer",
+        href: "/agent-designer",
+        description: "Create custom agents",
+      },
+      {
+        name: "Skills Management",
+        href: "/skills-management",
+        description: "Manage agent skills",
+      },
+      {
+        name: "Incoterms AI Agents",
+        href: "/incoterms/agents",
+        description: "Autonomous Incoterms validation",
+      },
+      {
+        name: "Agent Code",
+        href: "/test-drive/agent-code",
+        description: "View CrewAI agent implementations",
+      },
+    ],
+  },
+  {
+    name: "System & Analytics",
+    icon: Database,
+    description: "System management and reporting",
+    subItems: [
       {
         name: "Validation Results",
         href: "/ucp600/validation-results",
@@ -143,91 +192,11 @@ const navigationItems = [
         href: "/ucp600/execution-history",
         description: "Rule execution audit trail",
       },
-    ],
-  },
-  {
-    name: "Test Drive",
-    icon: Beaker,
-    description: "Test OCR and document processing",
-    subItems: [
       {
-        name: "OCR Agent",
-        href: "/test-drive/ocr",
-        description: "Upload and extract text from documents",
+        name: "Business Process Owners",
+        href: "/ucp600/business-owners",
+        description: "Manage business process owners",
       },
-      {
-        name: "Agent Code",
-        href: "/test-drive/agent-code",
-        description: "View CrewAI agent implementations",
-      },
-    ],
-  },
-  {
-    name: "Incoterms Management",
-    icon: Globe,
-    description: "Incoterms 2020 rules and validation",
-    subItems: [
-      {
-        name: "Incoterms Grid",
-        href: "/incoterms",
-        description: "View and manage Incoterms 2020",
-      },
-      {
-        name: "Responsibility Matrix",
-        href: "/incoterms/matrix",
-        description: "Seller and buyer responsibilities",
-      },
-      {
-        name: "LC Validation",
-        href: "/incoterms/validation",
-        description: "Validate LC against Incoterms",
-      },
-      {
-        name: "AI Agents",
-        href: "/incoterms/agents",
-        description: "Autonomous Incoterms validation",
-      },
-    ],
-  },
-  {
-    name: "Compliance & Rules",
-    icon: Scale,
-    description: "Analysis and validation tools",
-    subItems: [
-      {
-        name: "Discrepancy Analysis",
-        href: "/analysis",
-        description: "Review discrepancies",
-      },
-    ],
-  },
-  {
-    name: "Lifecycles",
-    icon: Brain,
-    description: "Process lifecycle management",
-    subItems: [
-      {
-        name: "MT700 Documentary Credit",
-        href: "/mt700-lifecycle",
-        description: "LC issuance and processing lifecycle",
-      },
-      {
-        name: "Document Processing",
-        href: "/document-workflow",
-        description: "Document validation workflow",
-      },
-      {
-        name: "Compliance Management",
-        href: "/compliance-lifecycle",
-        description: "Regulatory compliance processes",
-      },
-    ],
-  },
-  {
-    name: "Reports & Analytics",
-    icon: FileText,
-    description: "Reporting tools",
-    subItems: [
       {
         name: "Reports",
         href: "/reports",
