@@ -136,6 +136,11 @@ export default function IncotermsManagement() {
       {/* Header */}
       <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
         <div>
+          <div className="flex items-center space-x-2 text-sm text-gray-500 mb-2">
+            <span>Incoterms Management</span>
+            <span>/</span>
+            <span className="text-blue-600 font-medium">Terms Management</span>
+          </div>
           <h1 className="text-3xl font-bold text-gray-900">Incoterms Management</h1>
           <p className="text-gray-600">Manage and view International Commercial Terms</p>
         </div>

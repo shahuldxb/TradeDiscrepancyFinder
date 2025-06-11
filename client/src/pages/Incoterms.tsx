@@ -96,6 +96,11 @@ export default function Incoterms() {
                 <Globe className="w-10 h-10 text-white" />
               </div>
               <div>
+                <div className="flex items-center space-x-2 text-sm text-white/70 mb-2">
+                  <span>Incoterms Management</span>
+                  <span>/</span>
+                  <span className="text-emerald-200 font-medium">Incoterms Overview</span>
+                </div>
                 <h1 className="text-4xl font-bold text-white mb-2">
                   Incoterms 2020 Management
                 </h1>

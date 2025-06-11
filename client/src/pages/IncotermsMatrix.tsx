@@ -106,6 +106,11 @@ export default function IncotermsMatrix() {
       {/* Header */}
       <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
         <div>
+          <div className="flex items-center space-x-2 text-sm text-gray-500 mb-2">
+            <span>Incoterms Management</span>
+            <span>/</span>
+            <span className="text-blue-600 font-medium">Responsibility Matrix</span>
+          </div>
           <h1 className="text-3xl font-bold text-gray-900">Incoterms 2020 Matrix</h1>
           <p className="text-gray-600">Comprehensive responsibility matrix for international trade terms</p>
         </div>
