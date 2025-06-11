@@ -201,6 +201,21 @@ const navigationItems = [
     description: "SWIFT Message Processing",
     subItems: [
       {
+        name: "MT Intelligence Dashboard",
+        href: "/swift/mt-intelligence",
+        description: "Comprehensive MT message intelligence",
+      },
+      {
+        name: "MT7xx Messages",
+        href: "/swift/mt7xx",
+        description: "Documentary Credit messages",
+      },
+      {
+        name: "Message Parser",
+        href: "/swift/parser",
+        description: "Parse and analyze SWIFT messages",
+      },
+      {
         name: "Message Types",
         href: "/swift/message-types",
         description: "SWIFT message type management",
@@ -229,6 +244,11 @@ const navigationItems = [
         name: "Lifecycle Management",
         href: "/swift/lifecycle",
         description: "Message lifecycle tracking",
+      },
+      {
+        name: "MT Analytics",
+        href: "/swift/analytics",
+        description: "Message analytics and reporting",
       },
     ],
   },

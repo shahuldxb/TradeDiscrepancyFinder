@@ -21,7 +21,7 @@ import AgentDesigner from "@/pages/AgentDesigner";
 import TradeFinanceDocuments from "@/pages/TradeFinanceDocuments";
 import MT700Lifecycle from "@/pages/MT700Lifecycle";
 import MessageBuilder from "@/pages/MessageBuilder";
-import MTIntelligence from "@/pages/MTIntelligenceComplete";
+import MTIntelligenceComplete from "@/pages/MTIntelligenceComplete";
 import SwiftMessageTypes from "@/pages/SwiftMessageTypes";
 import SwiftMessageDetails from "@/pages/SwiftMessageDetails";
 import SwiftValidation from "@/pages/SwiftValidation";
@@ -39,6 +39,8 @@ import UCP600ArticlesManagement from "@/pages/UCP600ArticlesManagement";
 import UCP600RulesEngine from "@/pages/UCP600RulesEngine";
 import UCPDashboard from "@/pages/UCPDashboard";
 import DocumentaryCredits from "@/pages/DocumentaryCredits";
+import MTIntelligence from "@/pages/MTIntelligence";
+import MT7xxMessages from "@/pages/MT7xxMessages";
 
 import NotFound from "@/pages/not-found";
 
@@ -111,7 +113,17 @@ function Router() {
             <Route path="/mt700-lifecycle" component={MT700Lifecycle} />
             <Route path="/swift/mt700-lifecycle" component={MT700Lifecycle} />
             <Route path="/message-builder" component={MessageBuilder} />
-            <Route path="/mt-intelligence" component={MTIntelligence} />
+            <Route path="/mt-intelligence" component={MTIntelligenceComplete} />
+            <Route path="/swift/mt-intelligence" component={MTIntelligence} />
+            <Route path="/swift/mt7xx" component={MT7xxMessages} />
+            <Route path="/swift/parser" component={SwiftMessageTypes} />
+            <Route path="/swift/message-types" component={SwiftMessageTypes} />
+            <Route path="/swift/field-specifications" component={SwiftMessageDetails} />
+            <Route path="/swift/message-validation" component={SwiftValidation} />
+            <Route path="/swift/code-generator" component={MessageBuilder} />
+            <Route path="/swift/dependencies" component={SwiftCategory7} />
+            <Route path="/swift/lifecycle" component={MT700Lifecycle} />
+            <Route path="/swift/analytics" component={MTIntelligence} />
             <Route path="/swift-message-types" component={SwiftMessageTypes} />
             <Route path="/swift-message/:messageType" component={SwiftMessageDetails} />
             <Route path="/swift/validation" component={SwiftValidation} />
