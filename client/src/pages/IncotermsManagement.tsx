@@ -366,22 +366,25 @@ export default function IncotermsManagement() {
                             Transfer of Risk
                           </TableHead>
                           {[
-                            { code: 'EXW', name: 'Ex Works (Place)', color: 'bg-red-100' },
-                            { code: 'FCA', name: 'Free Carrier (Place)', color: 'bg-green-100' },
-                            { code: 'FAS', name: 'Free Alongside Ship (Port)', color: 'bg-blue-100' },
-                            { code: 'FOB', name: 'Free On Board (Port)', color: 'bg-blue-100' },
-                            { code: 'CFR', name: 'Cost and Freight (Port)', color: 'bg-yellow-100' },
-                            { code: 'CIF', name: 'Cost Insurance & Freight (Port)', color: 'bg-yellow-100' },
-                            { code: 'CPT', name: 'Carriage Paid To (Place)', color: 'bg-orange-100' },
-                            { code: 'CIP', name: 'Carriage & Insurance Paid to (Place)', color: 'bg-orange-100' },
-                            { code: 'DAP', name: 'Delivered at Place (Place)', color: 'bg-purple-100' },
-                            { code: 'DPU', name: 'Delivered at Place Unloaded (Place)', color: 'bg-purple-100' },
-                            { code: 'DDP', name: 'Delivered Duty Paid (Place)', color: 'bg-purple-100' }
+                            { code: 'EXW', name: 'Ex Works (Place)', risk: 'At Buyer\'s Disposal', color: 'bg-red-100' },
+                            { code: 'FCA', name: 'Free Carrier (Place)', risk: 'On Buyer\'s Transport', color: 'bg-green-100' },
+                            { code: 'FAS', name: 'Free Alongside Ship (Port)', risk: 'Alongside Ship', color: 'bg-blue-100' },
+                            { code: 'FOB', name: 'Free On Board (Port)', risk: 'On Board Vessel', color: 'bg-blue-100' },
+                            { code: 'CFR', name: 'Cost and Freight (Port)', risk: 'On Board Vessel', color: 'bg-yellow-100' },
+                            { code: 'CIF', name: 'Cost Insurance & Freight (Port)', risk: 'On Board Vessel', color: 'bg-yellow-100' },
+                            { code: 'CPT', name: 'Carriage Paid To (Place)', risk: 'At Carrier', color: 'bg-orange-100' },
+                            { code: 'CIP', name: 'Carriage & Insurance Paid to (Place)', risk: 'At Carrier', color: 'bg-orange-100' },
+                            { code: 'DAP', name: 'Delivered at Place (Place)', risk: 'At Named Place', color: 'bg-purple-100' },
+                            { code: 'DPU', name: 'Delivered at Place Unloaded (Place)', risk: 'At Named Place Unloaded', color: 'bg-purple-100' },
+                            { code: 'DDP', name: 'Delivered Duty Paid (Place)', risk: 'At Named Place', color: 'bg-purple-100' }
                           ].map((incoterm) => (
                             <TableHead key={incoterm.code} className={`text-center min-w-[90px] px-1 ${incoterm.color} border-r border-gray-300`}>
                               <div className="font-mono font-bold text-xs">{incoterm.code}</div>
                               <div className="text-xs font-normal text-gray-700 mt-1 leading-tight">
                                 {incoterm.name}
+                              </div>
+                              <div className="text-xs font-medium text-red-600 mt-1 leading-tight">
+                                {incoterm.risk}
                               </div>
                             </TableHead>
                           ))}
@@ -393,10 +396,11 @@ export default function IncotermsManagement() {
                             <TableCell className="font-medium sticky left-0 bg-white z-10 border-r border-gray-200 w-64">
                               {obligation.obligation_name}
                             </TableCell>
-                            {incotermsList.map((incoterm: Incoterm) => {
-                              const responsibility = getResponsibility(incoterm.incoterm_code, obligation.obligation_id);
+                            {/* Fixed order matching header: EXW, FCA, FAS, FOB, CFR, CIF, CPT, CIP, DAP, DPU, DDP */}
+                            {['EXW', 'FCA', 'FAS', 'FOB', 'CFR', 'CIF', 'CPT', 'CIP', 'DAP', 'DPU', 'DDP'].map((incotermCode) => {
+                              const responsibility = getResponsibility(incotermCode, obligation.obligation_id);
                               return (
-                                <TableCell key={`${incoterm.incoterm_code}-${obligation.obligation_id}`} className="text-center min-w-[120px] px-2">
+                                <TableCell key={`${incotermCode}-${obligation.obligation_id}`} className="text-center min-w-[90px] px-1 border-r border-gray-300">
                                   {getResponsibilityBadge(responsibility)}
                                 </TableCell>
                               );
