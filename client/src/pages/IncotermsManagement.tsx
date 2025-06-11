@@ -323,7 +323,7 @@ export default function IncotermsManagement() {
                       </div>
                     </div>
                   </div>
-                  <div className="overflow-x-auto overflow-y-auto max-h-[600px] border border-gray-200 rounded-lg">
+                  <div className="matrix-container overflow-auto max-h-[600px] max-w-full border border-gray-200 rounded-lg">
                     <Table>
                       <TableHeader className="sticky top-0 bg-white z-10">
                         {/* Category Header Row */}
