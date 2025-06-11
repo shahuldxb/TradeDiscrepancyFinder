@@ -111,7 +111,7 @@ export async function getTransitionRules() {
 export async function getTransitionHistory() {
   try {
     const pool = await connectToAzureSQL();
-    const result = await pool.request().query('SELECT * FROM swift.ls_StateTransitionHistory ORDER BY transition_timestamp DESC');
+    const result = await pool.request().query('SELECT * FROM swift.ls_StateTransitionHistory ORDER BY ls_TransitionDate DESC');
     await pool.close();
     return result.recordset;
   } catch (error) {
