@@ -122,11 +122,6 @@ const navigationItems = [
         description: "Manage Incoterms definitions",
       },
       {
-        name: "Data Grid",
-        href: "/incoterms/grid",
-        description: "Detailed Incoterms data view",
-      },
-      {
         name: "Responsibility Matrix",
         href: "/incoterms/matrix",
         description: "Buyer/Seller responsibility matrix",
