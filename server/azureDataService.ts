@@ -66,9 +66,9 @@ export class AzureDataService {
       
       console.log('Available columns in swift.message_types:', columnsResult.recordset.map(c => c.COLUMN_NAME));
       
-      // Query all message types with proper column mapping
+      // Query all message types using SELECT * to see actual column structure
       const result = await pool.request().query(`
-        SELECT * FROM swift.message_types ORDER BY MessageType
+        SELECT * FROM swift.message_types ORDER BY 1
       `);
       
       // Log first row to understand the actual data structure
