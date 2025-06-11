@@ -26,6 +26,8 @@ export default function SwiftMessageTypes() {
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedMessage, setSelectedMessage] = useState<any>(null);
   const [showMessageDetail, setShowMessageDetail] = useState(false);
+  const [selectedFieldType, setSelectedFieldType] = useState("all");
+  const [selectedMessageType, setSelectedMessageType] = useState("all");
 
   // Fetch SWIFT message types from Azure
   const { data: messageTypes, isLoading: loadingMessageTypes } = useQuery({
@@ -51,7 +53,9 @@ export default function SwiftMessageTypes() {
   const handleMessageClick = (msgType: any) => {
     setSelectedMessage(msgType);
     setShowMessageDetail(true);
-    setActiveTab("details");
+    setActiveTab("fields");
+    // Set the message type filter to show only fields for this message
+    setSelectedMessageType(msgType.message_type_id?.toString() || "1");
   };
 
   const categories = ["all", "7"];
@@ -64,6 +68,27 @@ export default function SwiftMessageTypes() {
   // Get field statistics
   const totalFields = Array.isArray(swiftFields) ? swiftFields.length : 0;
   const activeFields = Array.isArray(swiftFields) ? swiftFields.filter((field: any) => field.is_active).length : 0;
+
+  // Filter fields based on search and selected filters
+  const filteredFields = Array.isArray(swiftFields) ? swiftFields.filter((field: any) => {
+    const matchesSearch = searchTerm === "" || 
+      field.tag?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      field.field_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      field.content_options?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesFieldType = selectedFieldType === "all" ||
+      (selectedFieldType === "mandatory" && field.is_mandatory) ||
+      (selectedFieldType === "optional" && !field.is_mandatory);
+    
+    const matchesMessageType = selectedMessageType === "all" ||
+      field.message_type_id?.toString() === selectedMessageType;
+    
+    return matchesSearch && matchesFieldType && matchesMessageType;
+  }) : [];
+
+  // Group fields by mandatory/optional
+  const mandatoryFields = filteredFields.filter((f: any) => f.is_mandatory);
+  const optionalFields = filteredFields.filter((f: any) => !f.is_mandatory);
 
   if (loadingMessageTypes || loadingFields) {
     return (
@@ -286,83 +311,187 @@ export default function SwiftMessageTypes() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {/* Field Statistics */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                   <div className="text-center">
                     <p className="text-2xl font-bold">{totalFields}</p>
                     <p className="text-sm text-gray-600">Total Fields</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-2xl font-bold">{activeFields}</p>
-                    <p className="text-sm text-gray-600">Active Fields</p>
+                    <p className="text-2xl font-bold">{Array.isArray(swiftFields) ? swiftFields.filter((f: any) => f.is_mandatory).length : 0}</p>
+                    <p className="text-sm text-gray-600">Mandatory Fields</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-2xl font-bold">{Array.isArray(swiftFields) ? swiftFields.filter((f: any) => f.field_code?.startsWith('2')).length : 0}</p>
-                    <p className="text-sm text-gray-600">Reference Fields</p>
+                    <p className="text-2xl font-bold">{Array.isArray(swiftFields) ? swiftFields.filter((f: any) => !f.is_mandatory).length : 0}</p>
+                    <p className="text-sm text-gray-600">Optional Fields</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold">{Array.isArray(swiftFields) ? new Set(swiftFields.map((f: any) => f.message_type_id)).size : 0}</p>
+                    <p className="text-sm text-gray-600">Message Types</p>
                   </div>
                 </div>
 
-                {/* Comprehensive Fields Table with All Columns */}
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse text-sm">
-                    <thead>
-                      <tr className="border-b bg-gray-50">
-                        <th className="text-left p-3 font-semibold">Field ID</th>
-                        <th className="text-left p-3 font-semibold">Message Type</th>
-                        <th className="text-left p-3 font-semibold">Tag</th>
-                        <th className="text-left p-3 font-semibold">Field Name</th>
-                        <th className="text-left p-3 font-semibold">Mandatory</th>
-                        <th className="text-left p-3 font-semibold">Content Options</th>
-                        <th className="text-left p-3 font-semibold">Sequence</th>
-                        <th className="text-left p-3 font-semibold">Created</th>
-                        <th className="text-left p-3 font-semibold">Updated</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {Array.isArray(swiftFields) ? swiftFields.slice(0, 50).map((field: any) => (
-                        <tr key={field.field_id || field.field_code} className="border-b hover:bg-gray-50 transition-colors">
-                          <td className="p-3 font-mono text-blue-600">{field.field_id || 'N/A'}</td>
-                          <td className="p-3">
-                            <Badge variant="outline" className="text-xs">
-                              MT{field.message_type_id || '700'}
-                            </Badge>
-                          </td>
-                          <td className="p-3 font-mono font-semibold">{field.tag || field.field_code}</td>
-                          <td className="p-3 max-w-xs">
-                            <div className="truncate" title={field.field_name}>
-                              {field.field_name}
-                            </div>
-                          </td>
-                          <td className="p-3">
-                            <Badge className={field.is_mandatory ? "bg-red-100 text-red-800" : "bg-gray-100 text-gray-600"}>
-                              {field.is_mandatory ? "Required" : "Optional"}
-                            </Badge>
-                          </td>
-                          <td className="p-3 font-mono text-xs max-w-xs">
-                            <div className="truncate" title={field.content_options}>
-                              {field.content_options || 'N/A'}
-                            </div>
-                          </td>
-                          <td className="p-3 text-center">{field.sequence}</td>
-                          <td className="p-3 text-xs text-gray-500">
-                            {field.created_at ? new Date(field.created_at).toLocaleDateString() : 'N/A'}
-                          </td>
-                          <td className="p-3 text-xs text-gray-500">
-                            {field.updated_at ? new Date(field.updated_at).toLocaleDateString() : 'N/A'}
-                          </td>
-                        </tr>
-                      )) : null}
-                    </tbody>
-                  </table>
+                {/* Filters */}
+                <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      placeholder="Search fields by tag, name, or content options..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                  <Select value={selectedFieldType} onValueChange={setSelectedFieldType}>
+                    <SelectTrigger className="w-48">
+                      <SelectValue placeholder="Filter by type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Fields</SelectItem>
+                      <SelectItem value="mandatory">Mandatory Only</SelectItem>
+                      <SelectItem value="optional">Optional Only</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={selectedMessageType} onValueChange={setSelectedMessageType}>
+                    <SelectTrigger className="w-48">
+                      <SelectValue placeholder="Filter by message type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Message Types</SelectItem>
+                      <SelectItem value="1">MT700 (Issue)</SelectItem>
+                      <SelectItem value="2">MT701 (Transfer)</SelectItem>
+                      <SelectItem value="3">MT720 (Transfer)</SelectItem>
+                      <SelectItem value="4">MT707 (Amendment)</SelectItem>
+                      <SelectItem value="5">MT708 (Amendment)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
-                {/* Show more fields button */}
-                {Array.isArray(swiftFields) && swiftFields.length > 50 && (
-                  <div className="text-center mt-4">
-                    <Button variant="outline" size="sm">
-                      Load More Fields ({swiftFields.length - 50} remaining)
-                    </Button>
+                {/* Results Summary */}
+                <div className="mb-4 text-sm text-gray-600">
+                  Showing {filteredFields.length} of {totalFields} fields
+                  {mandatoryFields.length > 0 && ` (${mandatoryFields.length} mandatory, ${optionalFields.length} optional)`}
+                </div>
+
+                {/* Mandatory Fields Section */}
+                {mandatoryFields.length > 0 && (
+                  <div className="mb-8">
+                    <div className="flex items-center gap-2 mb-4">
+                      <h3 className="text-lg font-semibold text-red-800">Mandatory Fields</h3>
+                      <Badge className="bg-red-100 text-red-800">{mandatoryFields.length}</Badge>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-collapse text-sm border">
+                        <thead>
+                          <tr className="border-b bg-red-50">
+                            <th className="text-left p-3 font-semibold">Field ID</th>
+                            <th className="text-left p-3 font-semibold">Message Type</th>
+                            <th className="text-left p-3 font-semibold">Tag</th>
+                            <th className="text-left p-3 font-semibold">Field Name</th>
+                            <th className="text-left p-3 font-semibold">Content Options</th>
+                            <th className="text-left p-3 font-semibold">Sequence</th>
+                            <th className="text-left p-3 font-semibold">Created</th>
+                            <th className="text-left p-3 font-semibold">Updated</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {mandatoryFields.map((field: any) => (
+                            <tr key={field.field_id || field.field_code} className="border-b hover:bg-red-25 transition-colors">
+                              <td className="p-3 font-mono text-blue-600">{field.field_id || 'N/A'}</td>
+                              <td className="p-3">
+                                <Badge variant="outline" className="text-xs">
+                                  MT{field.message_type_id || '700'}
+                                </Badge>
+                              </td>
+                              <td className="p-3 font-mono font-semibold">{field.tag || field.field_code}</td>
+                              <td className="p-3 max-w-xs">
+                                <div className="truncate" title={field.field_name}>
+                                  {field.field_name}
+                                </div>
+                              </td>
+                              <td className="p-3 font-mono text-xs max-w-xs">
+                                <div className="truncate" title={field.content_options}>
+                                  {field.content_options || 'N/A'}
+                                </div>
+                              </td>
+                              <td className="p-3 text-center">{field.sequence}</td>
+                              <td className="p-3 text-xs text-gray-500">
+                                {field.created_at ? new Date(field.created_at).toLocaleDateString() : 'N/A'}
+                              </td>
+                              <td className="p-3 text-xs text-gray-500">
+                                {field.updated_at ? new Date(field.updated_at).toLocaleDateString() : 'N/A'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* Optional Fields Section */}
+                {optionalFields.length > 0 && (
+                  <div className="mb-8">
+                    <div className="flex items-center gap-2 mb-4">
+                      <h3 className="text-lg font-semibold text-gray-700">Optional Fields</h3>
+                      <Badge className="bg-gray-100 text-gray-600">{optionalFields.length}</Badge>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-collapse text-sm border">
+                        <thead>
+                          <tr className="border-b bg-gray-50">
+                            <th className="text-left p-3 font-semibold">Field ID</th>
+                            <th className="text-left p-3 font-semibold">Message Type</th>
+                            <th className="text-left p-3 font-semibold">Tag</th>
+                            <th className="text-left p-3 font-semibold">Field Name</th>
+                            <th className="text-left p-3 font-semibold">Content Options</th>
+                            <th className="text-left p-3 font-semibold">Sequence</th>
+                            <th className="text-left p-3 font-semibold">Created</th>
+                            <th className="text-left p-3 font-semibold">Updated</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {optionalFields.map((field: any) => (
+                            <tr key={field.field_id || field.field_code} className="border-b hover:bg-gray-50 transition-colors">
+                              <td className="p-3 font-mono text-blue-600">{field.field_id || 'N/A'}</td>
+                              <td className="p-3">
+                                <Badge variant="outline" className="text-xs">
+                                  MT{field.message_type_id || '700'}
+                                </Badge>
+                              </td>
+                              <td className="p-3 font-mono font-semibold">{field.tag || field.field_code}</td>
+                              <td className="p-3 max-w-xs">
+                                <div className="truncate" title={field.field_name}>
+                                  {field.field_name}
+                                </div>
+                              </td>
+                              <td className="p-3 font-mono text-xs max-w-xs">
+                                <div className="truncate" title={field.content_options}>
+                                  {field.content_options || 'N/A'}
+                                </div>
+                              </td>
+                              <td className="p-3 text-center">{field.sequence}</td>
+                              <td className="p-3 text-xs text-gray-500">
+                                {field.created_at ? new Date(field.created_at).toLocaleDateString() : 'N/A'}
+                              </td>
+                              <td className="p-3 text-xs text-gray-500">
+                                {field.updated_at ? new Date(field.updated_at).toLocaleDateString() : 'N/A'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* No Results Message */}
+                {filteredFields.length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    <Database className="mx-auto h-12 w-12 mb-4 opacity-50" />
+                    <p className="text-lg font-medium">No fields found</p>
+                    <p className="text-sm">Try adjusting your filters or search terms</p>
                   </div>
                 )}
               </div>
