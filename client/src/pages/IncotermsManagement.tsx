@@ -12,7 +12,12 @@ import {
   Search, 
   Download,
   Package,
-  Users,
+  Ship,
+  Truck,
+  Plane,
+  Edit,
+  Eye,
+  Plus,
   TrendingUp
 } from "lucide-react";
 
@@ -23,76 +28,41 @@ interface Incoterm {
   mode_of_transport: string;
 }
 
-interface Obligation {
-  obligation_id: number;
-  obligation_name: string;
-}
-
-interface ResponsibilityMatrix {
-  incoterm_code: string;
-  obligation_id: number;
-  obligation_name: string;
-  responsibility: string;
-}
-
-const responsibilityColors = {
-  'Seller': 'bg-red-500 text-white',
-  'Buyer': 'bg-blue-500 text-white', 
-  'Negotiable': 'bg-yellow-500 text-black',
-  '*Seller': 'bg-red-600 text-white',
-  '**Seller': 'bg-red-700 text-white'
-};
-
 export default function IncotermsManagement() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedIncoterm, setSelectedIncoterm] = useState("all");
+  const [selectedTransport, setSelectedTransport] = useState("all");
 
-  const { data: incoterms = [], isLoading: incotermLoading } = useQuery({
+  const { data: incoterms = [], isLoading } = useQuery({
     queryKey: ['/api/incoterms/matrix/terms']
   });
 
-  const { data: obligations = [], isLoading: obligationLoading } = useQuery({
-    queryKey: ['/api/incoterms/matrix/obligations']
-  });
-
-  const { data: matrix = [], isLoading: matrixLoading } = useQuery({
-    queryKey: ['/api/incoterms/matrix/responsibilities']
-  });
-
-  const isLoading = incotermLoading || obligationLoading || matrixLoading;
-
-  // Filter incoterms based on search and selection
+  // Filter incoterms based on search and transport mode
   const filteredIncoterms = incoterms.filter((incoterm: Incoterm) => {
     const matchesSearch = incoterm.incoterm_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          incoterm.incoterm_name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesSelection = selectedIncoterm === "all" || incoterm.incoterm_code === selectedIncoterm;
-    return matchesSearch && matchesSelection;
+    const matchesTransport = selectedTransport === "all" || 
+                           incoterm.mode_of_transport.toLowerCase().includes(selectedTransport.toLowerCase());
+    return matchesSearch && matchesTransport;
   });
 
-  // Get responsibility for specific incoterm and obligation
-  const getResponsibility = (incotermCode: string, obligationId: number) => {
-    const responsibility = matrix.find((m: ResponsibilityMatrix) => 
-      m.incoterm_code === incotermCode && m.obligation_id === obligationId
-    );
-    return responsibility?.responsibility || 'N/A';
-  };
-
-  // Get responsibility badge style
-  const getResponsibilityBadge = (responsibility: string) => {
-    const colorClass = responsibilityColors[responsibility as keyof typeof responsibilityColors] || 'bg-gray-500 text-white';
-    return (
-      <Badge className={`${colorClass} text-xs font-medium px-2 py-1 min-w-[70px] text-center`}>
-        {responsibility}
-      </Badge>
-    );
+  // Get transport mode icon
+  const getTransportIcon = (mode: string) => {
+    const lowerMode = mode.toLowerCase();
+    if (lowerMode.includes('sea') || lowerMode.includes('water')) {
+      return <Ship className="h-4 w-4" />;
+    } else if (lowerMode.includes('land') || lowerMode.includes('road')) {
+      return <Truck className="h-4 w-4" />;
+    } else if (lowerMode.includes('air')) {
+      return <Plane className="h-4 w-4" />;
+    }
+    return <Globe className="h-4 w-4" />;
   };
 
   // Calculate statistics
   const stats = {
     totalIncoterms: incoterms.length,
-    totalObligations: obligations.length,
     transportModes: [...new Set(incoterms.map((i: Incoterm) => i.mode_of_transport))].length,
-    matrixEntries: matrix.length
+    searchResults: filteredIncoterms.length
   };
 
   if (isLoading) {
@@ -112,18 +82,22 @@ export default function IncotermsManagement() {
       <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Incoterms Management</h1>
-          <p className="text-gray-600">Comprehensive responsibility matrix for international trade terms</p>
+          <p className="text-gray-600">Manage and view International Commercial Terms</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm">
+            <Plus className="h-4 w-4 mr-2" />
+            Add Term
+          </Button>
+          <Button variant="outline" size="sm">
             <Download className="h-4 w-4 mr-2" />
-            Export Matrix
+            Export
           </Button>
         </div>
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Incoterms</CardTitle>
@@ -131,18 +105,7 @@ export default function IncotermsManagement() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">{stats.totalIncoterms}</div>
-            <p className="text-xs text-muted-foreground">Active trade terms</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Obligations</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.totalObligations}</div>
-            <p className="text-xs text-muted-foreground">Responsibility areas</p>
+            <p className="text-xs text-muted-foreground">Trade terms available</p>
           </CardContent>
         </Card>
 
@@ -152,37 +115,37 @@ export default function IncotermsManagement() {
             <Globe className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-600">{stats.transportModes}</div>
+            <div className="text-2xl font-bold text-green-600">{stats.transportModes}</div>
             <p className="text-xs text-muted-foreground">Shipping methods</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Matrix Entries</CardTitle>
+            <CardTitle className="text-sm font-medium">Search Results</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{stats.matrixEntries}</div>
-            <p className="text-xs text-muted-foreground">Defined responsibilities</p>
+            <div className="text-2xl font-bold text-purple-600">{stats.searchResults}</div>
+            <p className="text-xs text-muted-foreground">Filtered terms</p>
           </CardContent>
         </Card>
       </div>
 
-      <Tabs defaultValue="matrix" className="space-y-4">
+      <Tabs defaultValue="overview" className="space-y-4">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="matrix">Responsibility Matrix</TabsTrigger>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="analysis">Analysis</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="matrix">
+        <TabsContent value="overview">
           <Card>
             <CardHeader>
               <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
                 <div>
-                  <CardTitle>Incoterms Responsibility Matrix</CardTitle>
+                  <CardTitle>Incoterms Overview</CardTitle>
                   <CardDescription>
-                    Detailed breakdown of seller and buyer responsibilities for each Incoterm
+                    Complete list of International Commercial Terms with details
                   </CardDescription>
                 </div>
                 <div className="flex gap-2">
@@ -195,93 +158,66 @@ export default function IncotermsManagement() {
                       className="w-64"
                     />
                   </div>
-                  <Select value={selectedIncoterm} onValueChange={setSelectedIncoterm}>
-                    <SelectTrigger className="w-32">
-                      <SelectValue placeholder="Filter" />
+                  <Select value={selectedTransport} onValueChange={setSelectedTransport}>
+                    <SelectTrigger className="w-40">
+                      <SelectValue placeholder="Transport" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Terms</SelectItem>
-                      {incoterms.map((incoterm: Incoterm) => (
-                        <SelectItem key={incoterm.incoterm_code} value={incoterm.incoterm_code}>
-                          {incoterm.incoterm_code}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="all">All Transport</SelectItem>
+                      <SelectItem value="sea">Sea</SelectItem>
+                      <SelectItem value="land">Land</SelectItem>
+                      <SelectItem value="air">Air</SelectItem>
+                      <SelectItem value="multimodal">Multimodal</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-20 font-semibold">Incoterm</TableHead>
-                      <TableHead className="w-48 font-semibold">Full Name</TableHead>
-                      {obligations.map((obligation: Obligation) => (
-                        <TableHead 
-                          key={obligation.obligation_id} 
-                          className="text-center min-w-[90px] font-semibold text-xs p-1"
-                          style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
-                        >
-                          {obligation.obligation_name}
-                        </TableHead>
-                      ))}
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Code</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Transport Mode</TableHead>
+                    <TableHead>Risk Transfer</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredIncoterms.map((incoterm: Incoterm) => (
+                    <TableRow key={incoterm.incoterm_code} className="hover:bg-gray-50">
+                      <TableCell className="font-mono font-bold text-blue-600">
+                        {incoterm.incoterm_code}
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{incoterm.incoterm_name}</div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          {getTransportIcon(incoterm.mode_of_transport)}
+                          <span>{incoterm.mode_of_transport}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{incoterm.transfer_of_risk}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button variant="outline" size="sm">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredIncoterms.map((incoterm: Incoterm) => (
-                      <TableRow key={incoterm.incoterm_code} className="hover:bg-gray-50">
-                        <TableCell className="font-mono font-bold text-blue-600">
-                          {incoterm.incoterm_code}
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium text-sm">{incoterm.incoterm_name}</div>
-                            <div className="text-xs text-gray-500">{incoterm.transfer_of_risk}</div>
-                          </div>
-                        </TableCell>
-                        {obligations.map((obligation: Obligation) => (
-                          <TableCell key={obligation.obligation_id} className="text-center p-1">
-                            {getResponsibilityBadge(getResponsibility(incoterm.incoterm_code, obligation.obligation_id))}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Legend */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Responsibility Legend</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-4">
-                <div className="flex items-center space-x-2">
-                  <Badge className="bg-red-500 text-white">Seller</Badge>
-                  <span className="text-sm">Seller responsibility</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Badge className="bg-blue-500 text-white">Buyer</Badge>
-                  <span className="text-sm">Buyer responsibility</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Badge className="bg-yellow-500 text-black">Negotiable</Badge>
-                  <span className="text-sm">Negotiable between parties</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Badge className="bg-red-600 text-white">*Seller</Badge>
-                  <span className="text-sm">Seller with minimum coverage</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Badge className="bg-red-700 text-white">**Seller</Badge>
-                  <span className="text-sm">Seller with comprehensive coverage</span>
-                </div>
-              </div>
+                  ))}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
         </TabsContent>
@@ -300,16 +236,19 @@ export default function IncotermsManagement() {
                     const percentage = ((count / incoterms.length) * 100).toFixed(1);
                     return (
                       <div key={transport} className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="font-medium text-sm">{transport}</div>
-                          <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                        <div className="flex items-center space-x-2">
+                          {getTransportIcon(transport)}
+                          <span className="font-medium">{transport}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-20 bg-gray-200 rounded-full h-2">
                             <div 
                               className="bg-blue-600 h-2 rounded-full" 
                               style={{ width: `${percentage}%` }}
                             ></div>
                           </div>
+                          <span className="text-sm font-medium">{count} ({percentage}%)</span>
                         </div>
-                        <div className="ml-4 text-sm font-medium">{count} ({percentage}%)</div>
                       </div>
                     );
                   })}
@@ -319,22 +258,26 @@ export default function IncotermsManagement() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Responsibility Summary</CardTitle>
-                <CardDescription>Overall responsibility distribution</CardDescription>
+                <CardTitle>Risk Transfer Points</CardTitle>
+                <CardDescription>Where risk transfers from seller to buyer</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {Object.keys(responsibilityColors).map((responsibility) => {
-                    const count = matrix.filter((m: ResponsibilityMatrix) => m.responsibility === responsibility).length;
-                    const percentage = matrix.length > 0 ? ((count / matrix.length) * 100).toFixed(1) : '0';
+                  {[...new Set(incoterms.map((i: Incoterm) => i.transfer_of_risk))].map((risk: string) => {
+                    const count = incoterms.filter((i: Incoterm) => i.transfer_of_risk === risk).length;
+                    const percentage = ((count / incoterms.length) * 100).toFixed(1);
                     return (
-                      <div key={responsibility} className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <Badge className={responsibilityColors[responsibility as keyof typeof responsibilityColors]}>
-                            {responsibility}
-                          </Badge>
+                      <div key={risk} className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="font-medium text-sm">{risk}</div>
+                          <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                            <div 
+                              className="bg-green-600 h-2 rounded-full" 
+                              style={{ width: `${percentage}%` }}
+                            ></div>
+                          </div>
                         </div>
-                        <div className="text-sm font-medium">{count} ({percentage}%)</div>
+                        <div className="ml-4 text-sm font-medium">{count} ({percentage}%)</div>
                       </div>
                     );
                   })}

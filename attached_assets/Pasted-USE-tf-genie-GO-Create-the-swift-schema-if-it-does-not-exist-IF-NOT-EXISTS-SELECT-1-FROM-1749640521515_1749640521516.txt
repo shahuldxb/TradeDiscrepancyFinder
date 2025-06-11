@@ -1,0 +1,69 @@
+USE [tf_genie];
+GO
+
+-- Create the swift schema if it does not exist
+IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'swift')
+BEGIN
+    EXEC('CREATE SCHEMA swift');
+END
+GO
+
+-- DDL for Incoterms Table
+IF OBJECT_ID('swift.Incoterms', 'U') IS NOT NULL
+DROP TABLE swift.Incoterms;
+GO
+
+CREATE TABLE swift.Incoterms(
+    [incoterm_id] INT NOT NULL, -- Unique identifier for each Incoterm rule.
+    [term_code] VARCHAR(3) NOT NULL, -- The standard three-letter abbreviation for the Incoterm (e.g., 'EXW' for Ex Works, 'FOB' for Free On Board).
+    [term_name] VARCHAR(255) NOT NULL, -- The complete official name of the Incoterm rule (e.g., 'Ex Works', 'Free On Board').
+    [version] VARCHAR(10) NOT NULL, -- Indicates which set of Incoterms rules this term belongs to (e.g., '2020', '2024').
+    [full_description] NVARCHAR(MAX) NULL, -- A comprehensive explanation of what the Incoterm covers, including key responsibilities, transfer points, and general scope.
+    [transport_mode_group] VARCHAR(50) NULL, -- Specifies if the Incoterm can be used for any type of transport (e.g., 'Any Mode or Modes of Transport') or only for specific modes like sea and inland waterway transport (e.g., 'Sea and Inland Waterway Transport').
+    [risk_transfer_point_desc] NVARCHAR(MAX) NULL, -- Clearly states where and when the responsibility for loss or damage to the goods passes from the seller to the buyer.
+    [delivery_location_type] VARCHAR(100) NULL, -- Specifies the nature of the location that needs to be named in the contract (e.g., 'Place', 'Port', 'Named Place of Delivery', 'Named Port of Shipment').
+    [insurance_obligation_party] VARCHAR(20) NULL, -- Indicates which party (Seller, Buyer, or Negotiable) is responsible for obtaining insurance for the goods during transit.
+    [insurance_coverage_level] VARCHAR(100) NULL, -- If insurance is required, this details the minimum type of insurance cover that must be arranged.
+    [is_active] BIT NULL, -- A flag indicating if this Incoterm rule is currently valid and can be used in new contracts.
+    [created_at] DATETIME2(7) NULL, -- The date and time when this Incoterm record was first added to the system.
+    [updated_at] DATETIME2(7) NULL -- The date and time when this Incoterm record was last modified.
+);
+GO
+
+-- DDL for IncotermResponsibilities Table
+IF OBJECT_ID('swift.IncotermResponsibilities', 'U') IS NOT NULL
+DROP TABLE swift.IncotermResponsibilities;
+GO
+
+CREATE TABLE swift.IncotermResponsibilities(
+    [responsibility_id] INT NOT NULL, -- Unique identifier for each specific obligation or charge under an Incoterm.
+    [incoterm_id] INT NOT NULL, -- Foreign key linking this responsibility to a specific Incoterm rule (e.g., EXW, FOB).
+    [responsibility_category] VARCHAR(100) NOT NULL, -- Describes the type of activity or cost being allocated (e.g., 'Export Packaging', 'Loading Charges', 'Carriage Charges').
+    [seller_obligation] BIT NOT NULL, -- A boolean flag. If '1' (TRUE), the seller is required to perform or pay for this specific task or cost.
+    [buyer_obligation] BIT NOT NULL, -- A boolean flag. If '1' (TRUE), the buyer is required to perform or pay for this specific task or cost.
+    [negotiable] BIT NOT NULL, -- A boolean flag. If '1' (TRUE), the buyer and seller can agree on who is responsible for this cost or task.
+    [notes] NVARCHAR(MAX) NULL, -- Any additional notes, specific conditions, or important details regarding this obligation.
+    [created_at] DATETIME2(7) NULL, -- The date and time when this responsibility record was first added to the system.
+    [updated_at] DATETIME2(7) NULL -- The date and time when this responsibility record was last modified.
+);
+GO
+
+-- DDL for IncotermDocumentRequirements Table
+IF OBJECT_ID('swift.IncotermDocumentRequirements', 'U') IS NOT NULL
+DROP TABLE swift.IncotermDocumentRequirements;
+GO
+
+CREATE TABLE swift.IncotermDocumentRequirements(
+    [requirement_id] INT NOT NULL, -- Unique identifier for each document requirement entry.
+    [incoterm_id] INT NOT NULL, -- Foreign key linking this document requirement to a specific Incoterm rule (e.g., EXW, FOB).
+    [document_id] INT NOT NULL, -- Foreign key identifying the master document type (e.g., Bill of Lading, Commercial Invoice).
+    [sub_document_id] INT NULL, -- Foreign key identifying a particular sub-type of the master document.
+    [is_mandatory] BIT NOT NULL, -- A boolean flag. If '1' (TRUE), this document *must* be provided for transactions under this Incoterm.
+    [issuing_party] VARCHAR(50) NULL, -- The party typically responsible for issuing this document ('Seller', 'Buyer', 'Carrier', etc.).
+    [notes] NVARCHAR(MAX) NULL, -- Any additional notes, specific conditions, or common practices related to this document requirement.
+    [created_at] DATETIME2(7) NULL, -- The date and time when this document requirement record was first added to the system.
+    [updated_at] DATETIME2(7) NULL -- The date and time when this document requirement record was last modified.
+);
+GO
+
+
