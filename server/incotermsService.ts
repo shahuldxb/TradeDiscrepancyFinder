@@ -366,6 +366,98 @@ export class IncotermsService {
       throw new Error('Failed to validate LC Incoterms');
     }
   }
+
+  async getIncotermByCode(code: string): Promise<Incoterm | undefined> {
+    try {
+      const pool = await connectToAzureSQL();
+      const result = await pool.request()
+        .input('code', code)
+        .query(`
+          SELECT 
+            id,
+            code,
+            name,
+            description,
+            transport_mode,
+            seller_risk_level,
+            buyer_risk_level,
+            cost_responsibility,
+            risk_transfer_point,
+            seller_obligations,
+            buyer_obligations,
+            is_active,
+            created_at,
+            updated_at
+          FROM incoterms_2020 
+          WHERE code = @code
+        `);
+      
+      return result.recordset[0];
+    } catch (error) {
+      console.error('Error fetching Incoterm by code:', error);
+      throw new Error('Failed to fetch Incoterm');
+    }
+  }
+
+  async validateLCAgainstIncoterm(lcNumber: string, incotermCode: string): Promise<any> {
+    try {
+      // Get the Incoterm details
+      const incoterm = await this.getIncotermByCode(incotermCode);
+      if (!incoterm) {
+        throw new Error('Invalid Incoterm code');
+      }
+
+      // Simulate LC validation logic
+      const validationResult = {
+        lcNumber,
+        incotermCode,
+        isValid: true,
+        warnings: [] as string[],
+        errors: [] as string[],
+        suggestions: [] as string[],
+        timestamp: new Date().toISOString()
+      };
+
+      // Add some sample validation logic
+      if (incotermCode === 'EXW') {
+        validationResult.warnings.push('EXW places maximum responsibility on buyer');
+      }
+      
+      if (incotermCode === 'DDP') {
+        validationResult.warnings.push('DDP places maximum responsibility on seller');
+      }
+
+      return validationResult;
+    } catch (error) {
+      console.error('Error validating LC against Incoterm:', error);
+      throw new Error('Failed to validate LC');
+    }
+  }
+
+  async validateDocumentsAgainstIncoterm(documents: any[], incotermCode: string): Promise<any> {
+    try {
+      const incoterm = await this.getIncotermByCode(incotermCode);
+      if (!incoterm) {
+        throw new Error('Invalid Incoterm code');
+      }
+
+      // Simulate document validation
+      const validationResult = {
+        incotermCode,
+        documentsChecked: documents.length,
+        validDocuments: documents.length,
+        invalidDocuments: 0,
+        warnings: [] as string[],
+        errors: [] as string[],
+        timestamp: new Date().toISOString()
+      };
+
+      return validationResult;
+    } catch (error) {
+      console.error('Error validating documents against Incoterm:', error);
+      throw new Error('Failed to validate documents');
+    }
+  }
 }
 
 export const incotermsService = new IncotermsService();

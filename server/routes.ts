@@ -2126,7 +2126,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/incoterms/responsibility-matrix', async (req, res) => {
     try {
       const { incotermsService } = await import('./incotermsService');
-      const matrix = await incotermsService.getResponsibilityMatrix();
+      const matrix = await incotermsService.getAllResponsibilityMatrix();
       res.json(matrix);
     } catch (error) {
       console.error('Error fetching responsibility matrix:', error);
