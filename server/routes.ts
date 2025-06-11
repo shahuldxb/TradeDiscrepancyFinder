@@ -2180,10 +2180,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         SELECT 
           r.incoterm_code,
           r.obligation_id,
-          o.obligation_name,
+          COALESCE(o.obligation_name, 'Other') as obligation_name,
           r.responsibility
         FROM MIncotermObligationResponsibility r
-        INNER JOIN MObligations o ON r.obligation_id = o.obligation_id
+        LEFT JOIN MObligations o ON r.obligation_id = o.obligation_id
+        WHERE r.obligation_id IS NOT NULL
         ORDER BY r.incoterm_code, r.obligation_id
       `);
       

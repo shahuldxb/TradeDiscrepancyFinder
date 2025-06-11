@@ -32,7 +32,7 @@ import AgentCode from "@/pages/AgentCode";
 import Incoterms from "@/pages/Incoterms";
 import IncotermsManagement from "@/pages/IncotermsManagement";
 import IncotermsDataGrid from "@/pages/IncotermsDataGrid";
-import IncotermsMatrix from "@/pages/IncotermsMatrix";
+
 import IncotermsValidation from "@/pages/IncotermsValidation";
 import IncotermsAgents from "@/pages/IncotermsAgents";
 import UCP600ArticlesManagement from "@/pages/UCP600ArticlesManagement";
@@ -73,7 +73,6 @@ function Router() {
             <Route path="/incoterms" component={Incoterms} />
             <Route path="/incoterms/management" component={IncotermsManagement} />
             <Route path="/incoterms/grid" component={IncotermsDataGrid} />
-            <Route path="/incoterms/matrix" component={IncotermsMatrix} />
             <Route path="/incoterms/validation" component={IncotermsValidation} />
             <Route path="/incoterms/agents" component={IncotermsAgents} />
             <Route path="/incoterms/comparison" component={IncotermsDataGrid} />
@@ -140,7 +139,7 @@ function Router() {
             
             {/* Incoterms Management Routes */}
             <Route path="/incoterms" component={IncotermsDataGrid} />
-            <Route path="/incoterms/matrix" component={IncotermsMatrix} />
+            <Route path="/incoterms/matrix" component={IncotermsManagement} />
             <Route path="/incoterms/validation" component={IncotermsValidation} />
             <Route path="/incoterms/agents" component={IncotermsAgents} />
             
