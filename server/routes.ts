@@ -2499,6 +2499,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Documentary Credit System API - Azure SQL Integration
+  app.get('/api/documentary-credits/discover', isAuthenticated, async (req, res) => {
+    try {
+      const tables = await documentaryCreditService.discoverDemoTables();
+      res.json(tables);
+    } catch (error) {
+      console.error('Error discovering demo tables:', error);
+      res.status(500).json({ error: 'Failed to discover demo tables' });
+    }
+  });
+
+  app.get('/api/documentary-credits', isAuthenticated, async (req, res) => {
+    try {
+      const credits = await documentaryCreditService.getDocumentaryCredits();
+      res.json(credits);
+    } catch (error) {
+      console.error('Error fetching documentary credits:', error);
+      res.status(500).json({ error: 'Failed to fetch documentary credits' });
+    }
+  });
+
+  app.get('/api/documentary-credits/lifecycle-states', isAuthenticated, async (req, res) => {
+    try {
+      const states = await documentaryCreditService.getLifecycleStates();
+      res.json(states);
+    } catch (error) {
+      console.error('Error fetching lifecycle states:', error);
+      res.status(500).json({ error: 'Failed to fetch lifecycle states' });
+    }
+  });
+
+  app.get('/api/documentary-credits/transition-rules', isAuthenticated, async (req, res) => {
+    try {
+      const rules = await documentaryCreditService.getLifecycleTransitionRules();
+      res.json(rules);
+    } catch (error) {
+      console.error('Error fetching transition rules:', error);
+      res.status(500).json({ error: 'Failed to fetch transition rules' });
+    }
+  });
+
+  app.get('/api/documentary-credits/examination-states', isAuthenticated, async (req, res) => {
+    try {
+      const states = await documentaryCreditService.getDocumentExaminationStates();
+      res.json(states);
+    } catch (error) {
+      console.error('Error fetching examination states:', error);
+      res.status(500).json({ error: 'Failed to fetch examination states' });
+    }
+  });
+
+  app.get('/api/documentary-credits/workflows', isAuthenticated, async (req, res) => {
+    try {
+      const workflows = await documentaryCreditService.getBusinessProcessWorkflows();
+      res.json(workflows);
+    } catch (error) {
+      console.error('Error fetching business workflows:', error);
+      res.status(500).json({ error: 'Failed to fetch business workflows' });
+    }
+  });
+
+  app.get('/api/documentary-credits/business-rules', isAuthenticated, async (req, res) => {
+    try {
+      const rules = await documentaryCreditService.getBusinessRules();
+      res.json(rules);
+    } catch (error) {
+      console.error('Error fetching business rules:', error);
+      res.status(500).json({ error: 'Failed to fetch business rules' });
+    }
+  });
+
+  app.get('/api/documentary-credits/history', isAuthenticated, async (req, res) => {
+    try {
+      const history = await documentaryCreditService.getStateTransitionHistory();
+      res.json(history);
+    } catch (error) {
+      console.error('Error fetching state transition history:', error);
+      res.status(500).json({ error: 'Failed to fetch state transition history' });
+    }
+  });
+
+  app.get('/api/documentary-credits/table-structure/:tableName', isAuthenticated, async (req, res) => {
+    try {
+      const structure = await documentaryCreditService.getTableStructure(req.params.tableName);
+      res.json(structure);
+    } catch (error) {
+      console.error('Error fetching table structure:', error);
+      res.status(500).json({ error: 'Failed to fetch table structure' });
+    }
+  });
+
   // Workflow Management API - Test Drive Feature (Authentication temporarily removed for testing)
   app.get('/api/workflows', async (req, res) => {
     try {

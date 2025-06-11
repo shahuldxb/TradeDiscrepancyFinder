@@ -89,10 +89,15 @@ const navigationItems = [
     ],
   },
   {
-    name: "UCP 600",
+    name: "Trade Finance",
     icon: FileText,
-    description: "UCP 600 Articles and Rules Management",
+    description: "Trade Finance Management",
     subItems: [
+      {
+        name: "Documentary Credits",
+        href: "/documentary-credits",
+        description: "LC management and workflows",
+      },
       {
         name: "UCP Dashboard",
         href: "/ucp600/dashboard",

@@ -33,6 +33,7 @@ import IncotermsDataGrid from "@/pages/IncotermsDataGrid";
 import IncotermsMatrix from "@/pages/IncotermsMatrix";
 import UCP600ArticlesManagement from "@/pages/UCP600ArticlesManagement";
 import UCPDashboard from "@/pages/UCPDashboard";
+import DocumentaryCredits from "@/pages/DocumentaryCredits";
 
 import NotFound from "@/pages/not-found";
 
@@ -45,6 +46,9 @@ function Router() {
         <div className="p-6">
           <Switch>
             <Route path="/" component={Dashboard} />
+            
+            {/* Trade Finance Routes */}
+            <Route path="/documentary-credits" component={DocumentaryCredits} />
             
             {/* UCP 600 Management Routes */}
             <Route path="/ucp600/dashboard" component={UCPDashboard} />
