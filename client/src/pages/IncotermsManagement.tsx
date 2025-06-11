@@ -42,6 +42,8 @@ interface ResponsibilityMatrix {
 
 const responsibilityColors = {
   'Seller': 'bg-red-100 text-red-800 border border-red-200',
+  '*Seller': 'bg-red-200 text-red-900 border border-red-300 font-semibold',
+  '**Seller': 'bg-red-300 text-red-900 border border-red-400 font-bold',
   'Buyer': 'bg-blue-100 text-blue-800 border border-blue-200', 
   'Negotiable': 'bg-yellow-100 text-yellow-800 border border-yellow-200',
   'Shared': 'bg-purple-100 text-purple-800 border border-purple-200',
@@ -99,10 +101,10 @@ export default function IncotermsManagement() {
 
   // Get responsibility badge style
   const getResponsibilityBadge = (responsibility: string) => {
-    const colorClass = responsibilityColors[responsibility as keyof typeof responsibilityColors] || 'bg-gray-500 text-white';
+    const colorClass = responsibilityColors[responsibility as keyof typeof responsibilityColors] || 'bg-gray-50 text-gray-500 border border-gray-200';
     return (
-      <Badge className={`${colorClass} text-xs font-medium px-2 py-1 min-w-[70px] text-center`}>
-        {responsibility}
+      <Badge className={`${colorClass} text-xs font-medium px-2 py-1 min-w-[60px] text-center`}>
+        {responsibility === 'Not Specified' ? 'N/A' : responsibility}
       </Badge>
     );
   };
@@ -298,18 +300,26 @@ export default function IncotermsManagement() {
                         Matrix: {incotermsList.length} Incoterms × {obligationsList.length} Obligations = {matrixList.length} assignments
                       </div>
                     </div>
-                    <div className="flex items-center space-x-4 text-xs">
+                    <div className="flex items-center space-x-3 text-xs">
                       <div className="flex items-center space-x-1">
                         <div className="w-3 h-3 bg-red-100 border border-red-200 rounded"></div>
                         <span>Seller</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <div className="w-3 h-3 bg-red-200 border border-red-300 rounded"></div>
+                        <span>*Seller</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <div className="w-3 h-3 bg-red-300 border border-red-400 rounded"></div>
+                        <span>**Seller</span>
                       </div>
                       <div className="flex items-center space-x-1">
                         <div className="w-3 h-3 bg-blue-100 border border-blue-200 rounded"></div>
                         <span>Buyer</span>
                       </div>
                       <div className="flex items-center space-x-1">
-                        <div className="w-3 h-3 bg-purple-100 border border-purple-200 rounded"></div>
-                        <span>Shared</span>
+                        <div className="w-3 h-3 bg-yellow-100 border border-yellow-200 rounded"></div>
+                        <span>Negotiable</span>
                       </div>
                     </div>
                   </div>
