@@ -2664,25 +2664,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { connectToAzureSQL } = await import('./azureSqlConnection');
       const pool = await connectToAzureSQL();
       
-      // Use existing message_types table to create workflow data
+      // Use existing ls_BusinessProcessWorkflows table from swift schema
       const result = await pool.request().query(`
-        SELECT 
-          message_type as workflow_id,
-          message_type + ' Processing' as workflow_name,
-          'Trade Finance ' + message_type + ' message processing workflow' as workflow_description,
-          CASE 
-            WHEN message_type = 'MT700' THEN 'active'
-            WHEN message_type = 'MT701' THEN 'active'
-            WHEN message_type = 'MT734' THEN 'active'
-            ELSE 'pending'
-          END as workflow_status,
-          'document_processing' as workflow_type,
-          GETDATE() as created_date,
-          GETDATE() as updated_date,
-          1 as is_active
-        FROM message_types 
-        WHERE message_type LIKE 'MT7%'
-        ORDER BY message_type
+        SELECT * FROM swift.ls_BusinessProcessWorkflows
+        ORDER BY workflow_id
       `);
       res.json(result.recordset);
     } catch (error) {
@@ -2696,20 +2681,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { connectToAzureSQL } = await import('./azureSqlConnection');
       const pool = await connectToAzureSQL();
       
-      // Use existing UCPRules table for business rules data
+      // Use existing ls_BusinessRules table from swift schema
       const result = await pool.request().query(`
-        SELECT 
-          rule_id,
-          rule_name,
-          rule_description,
-          'UCP_600' as rule_type,
-          rule_description as rule_condition,
-          'Validate_Document' as rule_action,
-          CASE WHEN rule_id % 2 = 0 THEN 1 ELSE 0 END as is_active,
-          (rule_id % 10) + 1 as priority_level,
-          GETDATE() as created_date
-        FROM UCPRules
-        WHERE rule_id IS NOT NULL
+        SELECT * FROM swift.ls_BusinessRules
         ORDER BY rule_id
       `);
       res.json(result.recordset);
@@ -2724,28 +2698,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { connectToAzureSQL } = await import('./azureSqlConnection');
       const pool = await connectToAzureSQL();
       
-      // Use existing SubDocumentTypes table for examination states
+      // Use existing ls_DocumentExaminationStates table from swift schema
       const result = await pool.request().query(`
-        SELECT 
-          document_type as state_id,
-          document_type + ' Review' as state_name,
-          'Examination of ' + document_type + ' documentation' as state_description,
-          'document_review' as examination_type,
-          document_type + ', Supporting Documents' as required_documents,
-          CASE 
-            WHEN document_type LIKE '%Invoice%' THEN 'Trade_Officer'
-            WHEN document_type LIKE '%Bill%' THEN 'Senior_Officer'
-            ELSE 'Junior_Officer'
-          END as approval_level,
-          CASE 
-            WHEN document_type LIKE '%Insurance%' THEN 24
-            WHEN document_type LIKE '%Invoice%' THEN 48
-            ELSE 72
-          END as max_processing_time_hours,
-          GETDATE() as created_date
-        FROM SubDocumentTypes
-        WHERE document_type IS NOT NULL
-        ORDER BY document_type
+        SELECT * FROM swift.ls_DocumentExaminationStates
+        ORDER BY state_id
       `);
       res.json(result.recordset);
     } catch (error) {
@@ -2759,23 +2715,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { connectToAzureSQL } = await import('./azureSqlConnection');
       const pool = await connectToAzureSQL();
       
-      // Create lifecycle states based on SWIFT message processing workflow
+      // Use existing ls_LifecycleStates table from swift schema
       const result = await pool.request().query(`
-        SELECT 
-          'state_' + message_type as state_id,
-          message_type + ' Processing' as state_name,
-          'SWIFT ' + message_type + ' message processing state' as state_description,
-          CASE 
-            WHEN message_type = 'MT700' THEN 'initial'
-            WHEN message_type IN ('MT799', 'MT999') THEN 'final'
-            ELSE 'processing'
-          END as state_type,
-          CASE WHEN message_type = 'MT700' THEN 1 ELSE 0 END as is_initial_state,
-          CASE WHEN message_type IN ('MT799', 'MT999') THEN 1 ELSE 0 END as is_final_state,
-          GETDATE() as created_date
-        FROM message_types 
-        WHERE message_type LIKE 'MT7%'
-        ORDER BY message_type
+        SELECT * FROM swift.ls_LifecycleStates
+        ORDER BY state_id
       `);
       res.json(result.recordset);
     } catch (error) {
@@ -2789,20 +2732,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { connectToAzureSQL } = await import('./azureSqlConnection');
       const pool = await connectToAzureSQL();
       
-      // Generate transition rules based on SWIFT message dependencies
+      // Use existing ls_LifecycleTransitionRules table from swift schema
       const result = await pool.request().query(`
-        SELECT 
-          ROW_NUMBER() OVER (ORDER BY source_message_type, target_message_type) as rule_id,
-          source_message_type + '_to_' + target_message_type + '_rule' as rule_name,
-          'state_' + source_message_type as from_state_id,
-          'state_' + target_message_type as to_state_id,
-          'Message validation passed AND ' + dependency_type + ' satisfied' as condition_expression,
-          'Process ' + target_message_type + ' message' as action_on_transition,
-          1 as is_active,
-          GETDATE() as created_date
-        FROM swift_message_dependencies
-        WHERE source_message_type LIKE 'MT7%' AND target_message_type LIKE 'MT7%'
-        ORDER BY source_message_type, target_message_type
+        SELECT * FROM swift.ls_LifecycleTransitionRules
+        ORDER BY rule_id
       `);
       res.json(result.recordset);
     } catch (error) {
@@ -2816,8 +2749,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { connectToAzureSQL } = await import('./azureSqlConnection');
       const pool = await connectToAzureSQL();
       
-      // Access ls_StateTransitionHistory table directly
-      const result = await pool.request().query(`SELECT * FROM ls_StateTransitionHistory ORDER BY transition_timestamp DESC`);
+      // Use existing ls_StateTransitionHistory table from swift schema
+      const result = await pool.request().query(`
+        SELECT * FROM swift.ls_StateTransitionHistory 
+        ORDER BY transition_timestamp DESC
+      `);
       res.json(result.recordset);
     } catch (error) {
       console.error('Error fetching transition history:', error);
