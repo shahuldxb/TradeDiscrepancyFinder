@@ -68,10 +68,10 @@ export default function IncotermsManagement() {
 
   // Filter incoterms based on search and transport mode
   const filteredIncoterms = (incoterms as Incoterm[]).filter((incoterm: Incoterm) => {
-    const matchesSearch = incoterm.term_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         incoterm.term_name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (incoterm.term_code || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (incoterm.term_name || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesTransport = selectedTransport === "all" || 
-                           incoterm.transport_mode_group.toLowerCase().includes(selectedTransport.toLowerCase());
+                           (incoterm.transport_mode_group || '').toLowerCase().includes(selectedTransport.toLowerCase());
     return matchesSearch && matchesTransport;
   });
 
@@ -355,18 +355,18 @@ export default function IncotermsManagement() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Delivery Location Types</CardTitle>
-                <CardDescription>Types of delivery locations required</CardDescription>
+                <CardTitle>Risk Transfer Points</CardTitle>
+                <CardDescription>Where risk transfers from seller to buyer</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {[...new Set(incotermsList.map((i: Incoterm) => i.delivery_location_type))].map((location: string) => {
-                    const count = incotermsList.filter((i: Incoterm) => i.delivery_location_type === location).length;
+                  {[...new Set(incotermsList.map((i: Incoterm) => i.transfer_of_risk))].map((risk: string) => {
+                    const count = incotermsList.filter((i: Incoterm) => i.transfer_of_risk === risk).length;
                     const percentage = ((count / incotermsList.length) * 100).toFixed(1);
                     return (
-                      <div key={location} className="flex items-center justify-between">
+                      <div key={risk} className="flex items-center justify-between">
                         <div className="flex-1">
-                          <div className="font-medium text-sm">{location}</div>
+                          <div className="font-medium text-sm">{risk}</div>
                           <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
                             <div 
                               className="bg-green-600 h-2 rounded-full" 
