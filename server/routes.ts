@@ -2726,6 +2726,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get validation rules from Azure database
+  app.get('/api/swift/validation-rules-azure', async (req, res) => {
+    try {
+      const fieldId = req.query.fieldId as string;
+      const messageType = req.query.messageType as string;
+      
+      console.log(`Fetching validation rules for field ID: ${fieldId || 'All'}, message type: ${messageType || 'All'}`);
+      
+      const { getValidationRulesFromAzure } = await import('./azureDataService');
+      const validationRules = await getValidationRulesFromAzure(fieldId, messageType);
+      res.json(validationRules);
+    } catch (error: any) {
+      console.error('Error fetching validation rules from Azure:', error);
+      res.status(500).json({ 
+        error: 'Failed to fetch validation rules from Azure database',
+        details: error.message 
+      });
+    }
+  });
+
   // Debug endpoint to check table structures
   app.get('/api/lifecycle/table-structure', async (req, res) => {
     try {
