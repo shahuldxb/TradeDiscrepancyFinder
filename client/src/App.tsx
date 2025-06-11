@@ -31,6 +31,8 @@ import AgentCode from "@/pages/AgentCode";
 import IncotermsManagement from "@/pages/IncotermsManagement";
 import IncotermsDataGrid from "@/pages/IncotermsDataGrid";
 import IncotermsMatrix from "@/pages/IncotermsMatrix";
+import IncotermsValidation from "@/pages/IncotermsValidation";
+import IncotermsAgents from "@/pages/IncotermsAgents";
 import UCP600ArticlesManagement from "@/pages/UCP600ArticlesManagement";
 import UCPDashboard from "@/pages/UCPDashboard";
 import DocumentaryCredits from "@/pages/DocumentaryCredits";
@@ -117,6 +119,12 @@ function Router() {
             <Route path="/analysis/business" component={DiscrepancyAnalysis} />
             <Route path="/analysis/risk" component={DiscrepancyAnalysis} />
             <Route path="/analysis/audit" component={DiscrepancyAnalysis} />
+            
+            {/* Incoterms Management Routes */}
+            <Route path="/incoterms" component={IncotermsDataGrid} />
+            <Route path="/incoterms/matrix" component={IncotermsMatrix} />
+            <Route path="/incoterms/validation" component={IncotermsValidation} />
+            <Route path="/incoterms/agents" component={IncotermsAgents} />
             
             {/* System Admin Routes */}
             <Route path="/admin/users" component={AgentMonitor} />
