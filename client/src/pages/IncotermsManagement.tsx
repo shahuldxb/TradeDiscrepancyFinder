@@ -286,35 +286,55 @@ export default function IncotermsManagement() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-40">Obligation</TableHead>
-                      {incotermsList.map((incoterm: Incoterm) => (
-                        <TableHead key={incoterm.term_code} className="text-center min-w-[80px]">
-                          <div className="font-mono font-bold">{incoterm.term_code}</div>
-                        </TableHead>
-                      ))}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {obligationsList.map((obligation: Obligation) => (
-                      <TableRow key={obligation.obligation_id}>
-                        <TableCell className="font-medium">{obligation.obligation_name}</TableCell>
-                        {incotermsList.map((incoterm: Incoterm) => {
-                          const responsibility = getResponsibility(incoterm.term_code, obligation.obligation_id);
-                          return (
-                            <TableCell key={`${incoterm.term_code}-${obligation.obligation_id}`} className="text-center">
-                              {getResponsibilityBadge(responsibility)}
-                            </TableCell>
-                          );
-                        })}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+              {isLoading ? (
+                <div className="flex items-center justify-center h-32">
+                  <div className="text-center">Loading matrix data...</div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="text-sm text-gray-600 space-y-2">
+                    <div>Loaded: {incotermsList.length} terms, {obligationsList.length} obligations, {matrixList.length} matrix entries</div>
+                    {incotermsList.length > 0 && (
+                      <div>Sample terms: {incotermsList.slice(0, 3).map(t => t.term_code).join(', ')}</div>
+                    )}
+                    {obligationsList.length > 0 && (
+                      <div>Sample obligations: {obligationsList.slice(0, 2).map(o => o.obligation_name).join(', ')}</div>
+                    )}
+                    {matrixList.length > 0 && (
+                      <div>Sample matrix: {matrixList.slice(0, 2).map(m => `${m.incoterm_code}-${m.responsibility}`).join(', ')}</div>
+                    )}
+                  </div>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-40">Obligation</TableHead>
+                          {incotermsList.map((incoterm: Incoterm) => (
+                            <TableHead key={incoterm.term_code} className="text-center min-w-[80px]">
+                              <div className="font-mono font-bold">{incoterm.term_code}</div>
+                            </TableHead>
+                          ))}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {obligationsList.map((obligation: Obligation) => (
+                          <TableRow key={obligation.obligation_id}>
+                            <TableCell className="font-medium">{obligation.obligation_name}</TableCell>
+                            {incotermsList.map((incoterm: Incoterm) => {
+                              const responsibility = getResponsibility(incoterm.term_code, obligation.obligation_id);
+                              return (
+                                <TableCell key={`${incoterm.term_code}-${obligation.obligation_id}`} className="text-center">
+                                  {getResponsibilityBadge(responsibility)}
+                                </TableCell>
+                              );
+                            })}
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
