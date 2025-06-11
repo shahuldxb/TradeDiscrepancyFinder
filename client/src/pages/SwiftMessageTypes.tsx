@@ -303,37 +303,68 @@ export default function SwiftMessageTypes() {
                   </div>
                 </div>
 
-                {/* Fields Table */}
+                {/* Comprehensive Fields Table with All Columns */}
                 <div className="overflow-x-auto">
-                  <table className="w-full border-collapse">
+                  <table className="w-full border-collapse text-sm">
                     <thead>
-                      <tr className="border-b">
-                        <th className="text-left p-2">Field Code</th>
-                        <th className="text-left p-2">Field Name</th>
-                        <th className="text-left p-2">Format</th>
-                        <th className="text-left p-2">Max Length</th>
-                        <th className="text-left p-2">Status</th>
+                      <tr className="border-b bg-gray-50">
+                        <th className="text-left p-3 font-semibold">Field ID</th>
+                        <th className="text-left p-3 font-semibold">Message Type</th>
+                        <th className="text-left p-3 font-semibold">Tag</th>
+                        <th className="text-left p-3 font-semibold">Field Name</th>
+                        <th className="text-left p-3 font-semibold">Mandatory</th>
+                        <th className="text-left p-3 font-semibold">Content Options</th>
+                        <th className="text-left p-3 font-semibold">Sequence</th>
+                        <th className="text-left p-3 font-semibold">Created</th>
+                        <th className="text-left p-3 font-semibold">Updated</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {Array.isArray(swiftFields) ? swiftFields.slice(0, 20).map((field: any) => (
-                        <tr key={field.field_code} className="border-b hover:bg-gray-50">
-                          <td className="p-2">
-                            <Badge variant="outline">{field.field_code}</Badge>
-                          </td>
-                          <td className="p-2 font-medium">{field.field_name}</td>
-                          <td className="p-2 font-mono text-sm">{field.format}</td>
-                          <td className="p-2">{field.max_length}</td>
-                          <td className="p-2">
-                            <Badge className={field.is_active ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}>
-                              {field.is_active ? "Active" : "Inactive"}
+                      {Array.isArray(swiftFields) ? swiftFields.slice(0, 50).map((field: any) => (
+                        <tr key={field.field_id || field.field_code} className="border-b hover:bg-gray-50 transition-colors">
+                          <td className="p-3 font-mono text-blue-600">{field.field_id || 'N/A'}</td>
+                          <td className="p-3">
+                            <Badge variant="outline" className="text-xs">
+                              MT{field.message_type_id || '700'}
                             </Badge>
+                          </td>
+                          <td className="p-3 font-mono font-semibold">{field.tag || field.field_code}</td>
+                          <td className="p-3 max-w-xs">
+                            <div className="truncate" title={field.field_name}>
+                              {field.field_name}
+                            </div>
+                          </td>
+                          <td className="p-3">
+                            <Badge className={field.is_mandatory ? "bg-red-100 text-red-800" : "bg-gray-100 text-gray-600"}>
+                              {field.is_mandatory ? "Required" : "Optional"}
+                            </Badge>
+                          </td>
+                          <td className="p-3 font-mono text-xs max-w-xs">
+                            <div className="truncate" title={field.content_options}>
+                              {field.content_options || 'N/A'}
+                            </div>
+                          </td>
+                          <td className="p-3 text-center">{field.sequence}</td>
+                          <td className="p-3 text-xs text-gray-500">
+                            {field.created_at ? new Date(field.created_at).toLocaleDateString() : 'N/A'}
+                          </td>
+                          <td className="p-3 text-xs text-gray-500">
+                            {field.updated_at ? new Date(field.updated_at).toLocaleDateString() : 'N/A'}
                           </td>
                         </tr>
                       )) : null}
                     </tbody>
                   </table>
                 </div>
+
+                {/* Show more fields button */}
+                {Array.isArray(swiftFields) && swiftFields.length > 50 && (
+                  <div className="text-center mt-4">
+                    <Button variant="outline" size="sm">
+                      Load More Fields ({swiftFields.length - 50} remaining)
+                    </Button>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

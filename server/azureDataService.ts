@@ -106,53 +106,32 @@ export class AzureDataService {
       
       console.log('Available swift tables:', tablesResult.recordset.map(t => t.TABLE_NAME));
       
-      // Try to find the correct fields table
-      let result;
-      const possibleTableNames = ['field_specifications', 'fields', 'message_fields', 'swift_fields'];
+      // Query the message_fields table directly with all authentic data
+      const result = await pool.request().query(`
+        SELECT field_id, message_type_id, tag, field_name, is_mandatory, 
+               content_options, sequence, created_at, updated_at 
+        FROM swift.message_fields 
+        ORDER BY sequence
+      `);
       
-      for (const tableName of possibleTableNames) {
-        try {
-          result = await pool.request().query(`SELECT TOP 10 * FROM swift.${tableName}`);
-          console.log(`Successfully queried swift.${tableName}`);
-          break;
-        } catch (err) {
-          console.log(`Table swift.${tableName} not found`);
-        }
-      }
-      
-      if (!result || !result.recordset.length) {
-        // Generate authentic SWIFT field data based on MT700 standard when no table exists
-        const fieldCodes = ['20', '23', '27', '31C', '31D', '32A', '32B', '40A', '41A', '42C', '43P', '44A', '44B', '44C', '44D', '45A', '46A', '47A', '48', '49', '50', '51A', '52A', '53A', '54A', '55A', '56A', '57A', '58A', '59', '70', '71A', '71B', '72', '73', '77A', '77B', '78'];
-        
-        return fieldCodes.map((fieldCode, index) => ({
-          field_code: fieldCode,
-          field_name: this.generateFieldName(fieldCode),
-          format: 'alphanumeric',
-          max_length: 65,
-          is_active: true,
-          is_mandatory: ['20', '31C', '31D', '32A', '40A', '45A', '46A', '50', '59'].includes(fieldCode),
-          description: this.generateFieldName(fieldCode),
-          sequence_number: index + 1
-        }));
-      }
-      
-      // Map the actual Azure results to expected format
-      return result.recordset.map((row: any, index: number) => {
-        // Generate field codes based on common SWIFT patterns
-        const fieldCodes = ['20', '23', '27', '31C', '31D', '32A', '32B', '40A', '41A', '42C', '43P', '44A', '44B', '44C', '44D', '45A', '46A', '47A', '48', '49', '50', '51A', '52A', '53A', '54A', '55A', '56A', '57A', '58A', '59', '70', '71A', '71B', '72', '73', '77A', '77B', '78'];
-        
-        const fieldCode = fieldCodes[index] || `F${index + 1}`;
-        return {
-          field_code: fieldCode,
-          field_name: this.generateFieldName(fieldCode),
-          format: row.format || 'N/A',
-          max_length: row.max_length || 0,
-          is_active: row.is_active !== undefined ? row.is_active : true,
-          is_mandatory: row.is_mandatory !== undefined ? row.is_mandatory : false,
-          description: row.description || 'SWIFT field description',
-          sequence_number: index + 1
-        };
-      });
+      // Map the authentic Azure results with all actual columns
+      return result.recordset.map((row: any) => ({
+        field_id: row.field_id,
+        message_type_id: row.message_type_id,
+        tag: row.tag,
+        field_name: row.field_name,
+        is_mandatory: row.is_mandatory,
+        content_options: row.content_options,
+        sequence: row.sequence,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+        // Legacy mappings for compatibility
+        field_code: row.tag,
+        format: row.content_options,
+        max_length: row.content_options ? row.content_options.length : 0,
+        is_active: true,
+        description: row.field_name
+      }));
     } catch (error) {
       console.error('Error fetching SWIFT fields:', error);
       throw error;
