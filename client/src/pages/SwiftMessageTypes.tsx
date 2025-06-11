@@ -533,36 +533,197 @@ export default function SwiftMessageTypes() {
         </TabsContent>
 
         <TabsContent value="validation">
-          <Card>
-            <CardHeader>
-              <CardTitle>Validation Rules</CardTitle>
-              <CardDescription>
-                Message validation rules and compliance requirements
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="p-4 bg-blue-50 rounded-lg">
-                  <h3 className="font-semibold text-blue-800 mb-2">UCP 600 Compliance</h3>
-                  <p className="text-sm text-blue-600">
-                    All MT7xx messages must comply with UCP 600 documentary credit rules.
-                  </p>
+          <div className="space-y-6">
+            {/* Filter for Validation Rules */}
+            <Card>
+              <CardHeader>
+                <CardTitle>SWIFT Field Validation Rules</CardTitle>
+                <CardDescription>
+                  {selectedMessageType !== "all" 
+                    ? `Validation rules for ${selectedMessageType} fields based on content options` 
+                    : "Select a message type to view specific validation rules"}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex gap-4 mb-6">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-red-100 border border-red-300 rounded"></div>
+                    <span className="text-sm">Mandatory Fields</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-blue-100 border border-blue-300 rounded"></div>
+                    <span className="text-sm">Optional Fields</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-green-100 border border-green-300 rounded"></div>
+                    <span className="text-sm">Valid Format</span>
+                  </div>
                 </div>
-                <div className="p-4 bg-green-50 rounded-lg">
-                  <h3 className="font-semibold text-green-800 mb-2">Field Format Validation</h3>
-                  <p className="text-sm text-green-600">
-                    Each field is validated against its defined format and length constraints.
-                  </p>
-                </div>
-                <div className="p-4 bg-yellow-50 rounded-lg">
-                  <h3 className="font-semibold text-yellow-800 mb-2">Business Rule Validation</h3>
-                  <p className="text-sm text-yellow-600">
-                    Additional business logic validation ensures message consistency and completeness.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+
+                {filteredFields && filteredFields.length > 0 ? (
+                  <div className="space-y-4">
+                    {/* Validation Rules Table */}
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-collapse text-sm border">
+                        <thead>
+                          <tr className="border-b bg-slate-50">
+                            <th className="text-left p-3 font-semibold w-20">Field Tag</th>
+                            <th className="text-left p-3 font-semibold w-32">Field Name</th>
+                            <th className="text-left p-3 font-semibold w-24">Required</th>
+                            <th className="text-left p-3 font-semibold">Content Options & Validation Rules</th>
+                            <th className="text-left p-3 font-semibold w-20">Sequence</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredFields.map((field: any) => {
+                            const isRequired = field.is_mandatory === 1 || field.is_mandatory === true;
+                            const contentOptions = field.content_options || '';
+                            const validationRules = [];
+
+                            // Parse content options to generate validation rules
+                            if (contentOptions.includes('n')) {
+                              validationRules.push('Numeric characters only');
+                            }
+                            if (contentOptions.includes('a')) {
+                              validationRules.push('Alphabetic characters allowed');
+                            }
+                            if (contentOptions.includes('x')) {
+                              validationRules.push('Alphanumeric and special characters');
+                            }
+                            if (contentOptions.includes('/')) {
+                              validationRules.push('Forward slash separator allowed');
+                            }
+                            if (contentOptions.includes('d')) {
+                              validationRules.push('Decimal numbers allowed');
+                            }
+                            if (contentOptions.includes('h')) {
+                              validationRules.push('Hexadecimal characters');
+                            }
+                            if (contentOptions.match(/\d+/)) {
+                              const maxLength = contentOptions.match(/\d+/)?.[0];
+                              validationRules.push(`Maximum length: ${maxLength} characters`);
+                            }
+                            if (contentOptions.includes('CRLF')) {
+                              validationRules.push('Carriage return line feed allowed');
+                            }
+                            if (contentOptions.includes('...')) {
+                              validationRules.push('Repetition allowed');
+                            }
+
+                            return (
+                              <tr key={field.field_id} className={`border-b hover:${isRequired ? 'bg-red-25' : 'bg-blue-25'} transition-colors`}>
+                                <td className="p-3">
+                                  <Badge variant="outline" className="font-mono font-semibold">
+                                    {field.tag || field.field_code}
+                                  </Badge>
+                                </td>
+                                <td className="p-3 max-w-xs">
+                                  <div className="truncate" title={field.field_name}>
+                                    {field.field_name}
+                                  </div>
+                                </td>
+                                <td className="p-3">
+                                  <Badge 
+                                    className={isRequired 
+                                      ? "bg-red-100 text-red-800" 
+                                      : "bg-blue-100 text-blue-800"
+                                    }
+                                  >
+                                    {isRequired ? 'Mandatory' : 'Optional'}
+                                  </Badge>
+                                </td>
+                                <td className="p-3">
+                                  <div className="space-y-2">
+                                    <div className="text-xs text-gray-600 font-mono bg-gray-50 p-2 rounded">
+                                      Format: {contentOptions || 'Not specified'}
+                                    </div>
+                                    {validationRules.length > 0 && (
+                                      <div className="space-y-1">
+                                        {validationRules.map((rule, index) => (
+                                          <div key={index} className="flex items-center gap-2">
+                                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                            <span className="text-xs text-green-700">{rule}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                    {validationRules.length === 0 && (
+                                      <div className="text-xs text-gray-500 italic">
+                                        No specific validation rules parsed
+                                      </div>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="p-3 text-center">
+                                  <Badge variant="outline" className="text-xs">
+                                    {field.sequence || 'N/A'}
+                                  </Badge>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Validation Summary */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                      <Card>
+                        <CardContent className="p-4">
+                          <div className="flex items-center gap-2">
+                            <AlertTriangle className="h-5 w-5 text-red-500" />
+                            <div>
+                              <p className="font-semibold">Mandatory Fields</p>
+                              <p className="text-2xl font-bold text-red-600">
+                                {filteredFields.filter((f: any) => f.is_mandatory === 1 || f.is_mandatory === true).length}
+                              </p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                      
+                      <Card>
+                        <CardContent className="p-4">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="h-5 w-5 text-blue-500" />
+                            <div>
+                              <p className="font-semibold">Optional Fields</p>
+                              <p className="text-2xl font-bold text-blue-600">
+                                {filteredFields.filter((f: any) => f.is_mandatory !== 1 && f.is_mandatory !== true).length}
+                              </p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                      
+                      <Card>
+                        <CardContent className="p-4">
+                          <div className="flex items-center gap-2">
+                            <Settings className="h-5 w-5 text-green-500" />
+                            <div>
+                              <p className="font-semibold">Total Rules</p>
+                              <p className="text-2xl font-bold text-green-600">
+                                {filteredFields.length}
+                              </p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <AlertTriangle className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                    <p className="text-gray-600">
+                      {selectedMessageType !== "all" 
+                        ? `No validation rules available for ${selectedMessageType}` 
+                        : "Select a message type to view validation rules"}
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="details">
