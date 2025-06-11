@@ -412,7 +412,10 @@
   
   /* Sidebar specific styles */
   .sidebar-container {
-    @apply fixed top-0 left-0 h-full w-56 bg-sidebar border-r border-sidebar-border z-50;
+    @apply fixed top-0 left-0 h-full w-56 z-50;
+    background-color: hsl(var(--sidebar-background));
+    border-right: 1px solid hsl(var(--sidebar-border));
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   }
   
   .sidebar-nav {

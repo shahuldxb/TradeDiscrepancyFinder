@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 import { useAuth } from "@/hooks/useAuth";
+import Sidebar from "@/components/layout/Sidebar";
 import Landing from "@/pages/Landing";
 import Dashboard from "@/pages/Dashboard";
 import DocumentUpload from "@/pages/DocumentUpload";
@@ -45,6 +46,7 @@ function Router() {
 
   return (
     <div className="flex h-screen bg-gray-50">
+      <Sidebar />
       <main className="flex-1 ml-56 overflow-auto">
         <div className="p-6">
           <Switch>
