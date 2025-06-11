@@ -359,19 +359,36 @@ export default function SwiftMessageTypes() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Message Types</SelectItem>
-                      <SelectItem value="1">MT700 (Issue)</SelectItem>
-                      <SelectItem value="2">MT701 (Transfer)</SelectItem>
-                      <SelectItem value="3">MT720 (Transfer)</SelectItem>
-                      <SelectItem value="4">MT707 (Amendment)</SelectItem>
-                      <SelectItem value="5">MT708 (Amendment)</SelectItem>
+                      {Array.isArray(messageTypes) && messageTypes.map((msgType: any) => (
+                        <SelectItem key={msgType.message_type_id} value={msgType.message_type_id?.toString()}>
+                          {msgType.message_type} ({msgType.message_type_name})
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
 
                 {/* Results Summary */}
-                <div className="mb-4 text-sm text-gray-600">
-                  Showing {filteredFields.length} of {totalFields} fields
-                  {mandatoryFields.length > 0 && ` (${mandatoryFields.length} mandatory, ${optionalFields.length} optional)`}
+                <div className="mb-4 flex items-center justify-between">
+                  <div className="text-sm text-gray-600">
+                    Showing {filteredFields.length} of {totalFields} fields
+                    {mandatoryFields.length > 0 && ` (${mandatoryFields.length} mandatory, ${optionalFields.length} optional)`}
+                  </div>
+                  {selectedMessageType !== "all" && (
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs">
+                        Filtered by: {messageTypes?.find((m: any) => m.message_type_id?.toString() === selectedMessageType)?.message_type}
+                      </Badge>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => setSelectedMessageType("all")}
+                        className="text-xs"
+                      >
+                        Clear Filter
+                      </Button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Mandatory Fields Section */}
@@ -489,7 +506,7 @@ export default function SwiftMessageTypes() {
                 {/* No Results Message */}
                 {filteredFields.length === 0 && (
                   <div className="text-center py-8 text-gray-500">
-                    <Database className="mx-auto h-12 w-12 mb-4 opacity-50" />
+                    <Search className="mx-auto h-12 w-12 mb-4 opacity-50" />
                     <p className="text-lg font-medium">No fields found</p>
                     <p className="text-sm">Try adjusting your filters or search terms</p>
                   </div>
