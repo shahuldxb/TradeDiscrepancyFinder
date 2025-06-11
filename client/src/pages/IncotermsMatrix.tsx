@@ -169,9 +169,8 @@ export default function IncotermsMatrix() {
       </div>
 
       <Tabs defaultValue="matrix" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="matrix">Responsibility Matrix</TabsTrigger>
-          <TabsTrigger value="incoterms">Incoterms Details</TabsTrigger>
           <TabsTrigger value="analysis">Analysis</TabsTrigger>
         </TabsList>
 
@@ -286,46 +285,7 @@ export default function IncotermsMatrix() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="incoterms">
-          <Card>
-            <CardHeader>
-              <CardTitle>Incoterms 2020 Details</CardTitle>
-              <CardDescription>Complete overview of all international trade terms</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4">
-                {incoterms.map((incoterm: Incoterm) => (
-                  <div key={incoterm.incoterm_code} className="border rounded-lg p-4 hover:bg-gray-50">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-3 mb-2">
-                          <Badge variant="outline" className="font-mono font-bold text-lg px-3 py-1">
-                            {incoterm.incoterm_code}
-                          </Badge>
-                          <h3 className="text-lg font-semibold">{incoterm.incoterm_name}</h3>
-                        </div>
-                        <div className="grid md:grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <span className="font-medium text-gray-600">Transfer of Risk:</span>
-                            <div className="text-gray-900">{incoterm.transfer_of_risk}</div>
-                          </div>
-                          <div>
-                            <span className="font-medium text-gray-600">Mode of Transport:</span>
-                            <div className="text-gray-900">{incoterm.mode_of_transport}</div>
-                          </div>
-                        </div>
-                      </div>
-                      <Button variant="outline" size="sm">
-                        <Eye className="h-4 w-4 mr-2" />
-                        View Details
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+
 
         <TabsContent value="analysis">
           <div className="grid md:grid-cols-2 gap-6">
