@@ -36,7 +36,8 @@ export default function LCLifecycle() {
       duration: 'Typically 1-7 days before formal issuance',
       keyActions: ['Beneficiary preparation', 'Initial compliance check', 'Documentation planning'],
       nextStates: ['Issued', 'Cancelled'],
-      regulations: 'UCP 600 Article 10 - Amendments'
+      regulations: 'UCP 600 Article 10 - Amendments',
+      requiredDocuments: ['Pre-advice notification', 'Draft LC terms', 'Preliminary shipment details']
     },
     'issued': {
       title: 'LC Issued',
@@ -45,7 +46,8 @@ export default function LCLifecycle() {
       duration: 'Permanent until expiry or utilization',
       keyActions: ['Bank commitment', 'Fund reservation', 'Legal obligation creation'],
       nextStates: ['Advised', 'Transferred', 'Amended'],
-      regulations: 'UCP 600 Article 6 - Availability, Expiry Date and Place for Presentation'
+      regulations: 'UCP 600 Article 6 - Availability, Expiry Date and Place for Presentation',
+      requiredDocuments: ['Original LC document', 'LC application form', 'Credit agreement', 'Security documents', 'Margin deposit confirmation']
     },
     'advised': {
       title: 'LC Advised',
@@ -54,7 +56,8 @@ export default function LCLifecycle() {
       duration: '1-3 business days for processing',
       keyActions: ['Authentication verification', 'Beneficiary notification', 'Terms communication'],
       nextStates: ['Acknowledged', 'Confirmed', 'Amendment Requested'],
-      regulations: 'UCP 600 Article 9 - Advising of Credits and Amendments'
+      regulations: 'UCP 600 Article 9 - Advising of Credits and Amendments',
+      requiredDocuments: ['Original LC from issuing bank', 'Advice cover letter', 'Authentication certificate', 'SWIFT MT700']
     },
     'acknowledged': {
       title: 'LC Acknowledged',
@@ -63,7 +66,8 @@ export default function LCLifecycle() {
       duration: 'Acknowledgment typically within 2-5 business days',
       keyActions: ['Terms acceptance', 'Compliance confirmation', 'Shipment planning'],
       nextStates: ['Documents Presented', 'Amendment Requested'],
-      regulations: 'UCP 600 Article 16 - Complying Presentation'
+      regulations: 'UCP 600 Article 16 - Complying Presentation',
+      requiredDocuments: ['LC acknowledgment letter', 'Terms acceptance document', 'Shipping schedule confirmation', 'Compliance checklist']
     },
     'confirmed': {
       title: 'LC Confirmed',
@@ -72,7 +76,8 @@ export default function LCLifecycle() {
       duration: 'Confirmation process: 2-7 business days',
       keyActions: ['Risk assessment', 'Additional guarantee', 'Enhanced security'],
       nextStates: ['Documents Presented', 'Transferred'],
-      regulations: 'UCP 600 Article 8 - Confirmation'
+      regulations: 'UCP 600 Article 8 - Confirmation',
+      requiredDocuments: ['Confirmation request', 'Risk assessment report', 'Confirming bank undertaking', 'Additional security documentation']
     },
     'transferred': {
       title: 'LC Transferred',
@@ -81,7 +86,8 @@ export default function LCLifecycle() {
       duration: 'Transfer processing: 3-10 business days',
       keyActions: ['Beneficiary substitution', 'Terms modification', 'New obligations'],
       nextStates: ['Documents Presented', 'Amendment Requested'],
-      regulations: 'UCP 600 Article 38 - Transferable Credits'
+      regulations: 'UCP 600 Article 38 - Transferable Credits',
+      requiredDocuments: ['Transfer request', 'Second beneficiary details', 'Modified LC terms', 'Transfer fees documentation', 'Original transferable LC']
     },
     'amendment-requested': {
       title: 'Amendment Requested',
@@ -90,7 +96,8 @@ export default function LCLifecycle() {
       duration: 'Amendment processing: 2-10 business days',
       keyActions: ['Change proposal', 'Party consultation', 'Agreement negotiation'],
       nextStates: ['Amended', 'Amendment Rejected'],
-      regulations: 'UCP 600 Article 10 - Amendments'
+      regulations: 'UCP 600 Article 10 - Amendments',
+      requiredDocuments: ['Amendment request form', 'Justification for changes', 'Revised commercial terms', 'Party consent letters', 'Amendment fees']
     },
     'amended': {
       title: 'LC Amended',
@@ -99,7 +106,8 @@ export default function LCLifecycle() {
       duration: 'Amendment becomes effective immediately upon acceptance',
       keyActions: ['Terms modification', 'Party agreement', 'Updated obligations'],
       nextStates: ['Documents Presented', 'Further Amendment Requested'],
-      regulations: 'UCP 600 Article 10 - Amendments'
+      regulations: 'UCP 600 Article 10 - Amendments',
+      requiredDocuments: ['Amended LC document', 'Party acceptance confirmations', 'Updated terms documentation', 'Amendment notification letter', 'SWIFT MT707']
     },
     'amendment-rejected': {
       title: 'Amendment Rejected',
@@ -108,7 +116,8 @@ export default function LCLifecycle() {
       duration: 'Rejection is immediate, original terms continue',
       keyActions: ['Rejection notification', 'Original terms retention', 'Alternative solutions'],
       nextStates: ['Documents Presented', 'New Amendment Request', 'Cancelled'],
-      regulations: 'UCP 600 Article 10 - Amendments'
+      regulations: 'UCP 600 Article 10 - Amendments',
+      requiredDocuments: ['Rejection notice', 'Original LC terms confirmation', 'Reason for rejection', 'Alternative proposal suggestions']
     },
     'documents-presented': {
       title: 'Documents Presented',
@@ -117,7 +126,8 @@ export default function LCLifecycle() {
       duration: 'Presentation window as specified in LC terms',
       keyActions: ['Document submission', 'Compliance check initiation', 'Payment request'],
       nextStates: ['Under Examination'],
-      regulations: 'UCP 600 Article 14 - Standard for Examination of Documents'
+      regulations: 'UCP 600 Article 14 - Standard for Examination of Documents',
+      requiredDocuments: ['Commercial Invoice', 'Bill of Lading/Transport Document', 'Insurance Certificate', 'Certificate of Origin', 'Packing List', 'Inspection Certificate', 'Draft/Bill of Exchange', 'Beneficiary Certificate']
     },
     'under-examination': {
       title: 'Under Examination',
