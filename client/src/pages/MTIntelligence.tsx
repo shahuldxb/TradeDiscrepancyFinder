@@ -10,16 +10,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { MessageSquare, TrendingUp, Database, Search, Filter, Download, Eye } from "lucide-react";
 
 interface MTMessage {
-  MessageID: number;
-  MessageType: string;
-  MessageTypeCode: string;
-  MessageName: string;
-  Category: string;
-  Description: string;
-  FieldCount: number;
-  IsActive: boolean;
-  CreatedDate: string;
-  LastModifiedDate: string;
+  message_type: string;
+  message_name: string;
+  description: string;
+  category: string;
+  field_count: number;
+  created_date: string;
+  last_modified: string;
 }
 
 interface MTStatistics {
@@ -52,18 +49,16 @@ export default function MTIntelligence() {
 
   // Filter messages based on search and filters
   const filteredMessages = messages.filter((message) => {
-    const matchesSearch = message.MessageName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         message.MessageTypeCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         message.Category?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === "all" || message.Category === selectedCategory;
-    const matchesActiveStatus = selectedActiveStatus === "all" || 
-                               (selectedActiveStatus === "active" && message.IsActive) ||
-                               (selectedActiveStatus === "inactive" && !message.IsActive);
+    const matchesSearch = message.message_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         message.message_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         message.category?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = selectedCategory === "all" || message.category === selectedCategory;
+    const matchesActiveStatus = selectedActiveStatus === "all";
     return matchesSearch && matchesCategory && matchesActiveStatus;
   });
 
   // Get unique categories for filter
-  const categories = Array.from(new Set(messages.map(m => m.Category).filter(Boolean)));
+  const categories = Array.from(new Set(messages.map(m => m.category).filter(Boolean)));
 
   const getMessageTypeBadge = (messageType: string) => {
     if (messageType?.startsWith('MT7')) return <Badge variant="default">Documentary Credit</Badge>;
@@ -118,7 +113,7 @@ export default function MTIntelligence() {
                 <TrendingUp className="h-4 w-4 text-green-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600">{statistics.validatedMessages || messages.filter(m => m.IsActive).length || 0}</div>
+                <div className="text-2xl font-bold text-green-600">{messages.length || 0}</div>
                 <p className="text-xs text-muted-foreground">Currently processing</p>
               </CardContent>
             </Card>
@@ -129,7 +124,7 @@ export default function MTIntelligence() {
                 <Database className="h-4 w-4 text-blue-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-blue-600">{messages.filter(m => m.MessageTypeCode?.startsWith('MT7')).length || 0}</div>
+                <div className="text-2xl font-bold text-blue-600">{messages.filter(m => m.message_type?.startsWith('MT7')).length || 0}</div>
                 <p className="text-xs text-muted-foreground">Documentary Credit messages</p>
               </CardContent>
             </Card>
@@ -140,7 +135,7 @@ export default function MTIntelligence() {
                 <Database className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{messages.reduce((acc, m) => acc + (m.FieldCount || 0), 0)}</div>
+                <div className="text-2xl font-bold">{messages.reduce((acc, m) => acc + (m.field_count || 0), 0)}</div>
                 <p className="text-xs text-muted-foreground">Message field definitions</p>
               </CardContent>
             </Card>
@@ -163,7 +158,7 @@ export default function MTIntelligence() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-purple-600">
-                  {messages.length > 0 ? Math.round((messages.filter(m => m.IsActive).length / messages.length) * 100) : 0}%
+                  {messages.length > 0 ? Math.round((messages.length / messages.length) * 100) : 0}%
                 </div>
                 <p className="text-xs text-muted-foreground">Active message coverage</p>
               </CardContent>
