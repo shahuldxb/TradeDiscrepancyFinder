@@ -2110,6 +2110,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Incoterms table structure analysis
+  app.get('/api/incoterms/tables/analysis', async (req, res) => {
+    try {
+      const { connectToAzure } = await import('./azureSqlConnection');
+      const pool = await connectToAzure();
+      
+      // Search for all Incoterms-related tables
+      const query = `
+        SELECT 
+          s.name AS schema_name,
+          t.name AS table_name,
+          t.type_desc,
+          ISNULL(p.rows, 0) AS row_count
+        FROM sys.tables t
+        INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
+        LEFT JOIN sys.dm_db_partition_stats p ON t.object_id = p.object_id AND p.index_id IN (0,1)
+        WHERE LOWER(t.name) LIKE '%incoterm%' 
+        OR LOWER(t.name) LIKE '%responsibility%'
+        OR LOWER(t.name) LIKE '%matrix%'
+        OR LOWER(t.name) LIKE '%trade%'
+        OR LOWER(t.name) LIKE '%transport%'
+        OR LOWER(t.name) LIKE '%delivery%'
+        ORDER BY s.name, t.name
+      `;
+      
+      const result = await pool.request().query(query);
+      
+      const analysis = {
+        totalTables: result.recordset.length,
+        tables: result.recordset,
+        incotermsSpecific: result.recordset.filter(t => 
+          t.table_name.toLowerCase().includes('incoterm')
+        ),
+        relatedTables: result.recordset.filter(t => 
+          !t.table_name.toLowerCase().includes('incoterm') &&
+          (t.table_name.toLowerCase().includes('responsibility') ||
+           t.table_name.toLowerCase().includes('matrix') ||
+           t.table_name.toLowerCase().includes('trade') ||
+           t.table_name.toLowerCase().includes('transport') ||
+           t.table_name.toLowerCase().includes('delivery'))
+        )
+      };
+      
+      await pool.close();
+      res.json(analysis);
+    } catch (error) {
+      console.error('Error analyzing Incoterms tables:', error);
+      res.status(500).json({ error: 'Failed to analyze table structure' });
+    }
+  });
+
   app.get('/api/incoterms/:code', async (req, res) => {
     try {
       const { incotermsService } = await import('./incotermsService');
