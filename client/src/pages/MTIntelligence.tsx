@@ -102,7 +102,7 @@ export default function MTIntelligence() {
                 <MessageSquare className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{statistics.messageTypes || messages.length || 0}</div>
+                <div className="text-2xl font-bold">{messages.length || 0}</div>
                 <p className="text-xs text-muted-foreground">SWIFT message types configured</p>
               </CardContent>
             </Card>
@@ -442,7 +442,7 @@ export default function MTIntelligence() {
                 <div className="flex items-center justify-between p-3 border rounded-lg">
                   <div>
                     <div className="font-medium">Review Inactive Message Types</div>
-                    <div className="text-sm text-gray-500">Evaluate {statistics.totalMessages - statistics.activeMessages} inactive message types for potential activation</div>
+                    <div className="text-sm text-gray-500">Evaluate message types for optimization and configuration updates</div>
                   </div>
                   <Button variant="outline" size="sm">Review</Button>
                 </div>
