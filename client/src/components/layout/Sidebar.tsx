@@ -191,21 +191,7 @@ const navigationItems = [
         href: "/swift/message-types",
         description: "SWIFT message type management",
       },
-      {
-        name: "Field Specifications",
-        href: "/swift/field-specifications",
-        description: "SWIFT field definitions",
-      },
-      {
-        name: "Message Validation",
-        href: "/swift/message-validation",
-        description: "Validate SWIFT messages",
-      },
-      {
-        name: "Code Generator",
-        href: "/swift/code-generator",
-        description: "Generate SWIFT message code",
-      },
+
       {
         name: "Dependencies",
         href: "/swift/dependencies",
