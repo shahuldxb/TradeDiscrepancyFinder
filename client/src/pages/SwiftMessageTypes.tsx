@@ -578,37 +578,85 @@ export default function SwiftMessageTypes() {
                           {filteredFields.map((field: any) => {
                             const isRequired = field.is_mandatory === 1 || field.is_mandatory === true;
                             const contentOptions = field.content_options || '';
-                            const validationRules = [];
-
-                            // Parse content options to generate validation rules
-                            if (contentOptions.includes('n')) {
-                              validationRules.push('Numeric characters only');
-                            }
-                            if (contentOptions.includes('a')) {
-                              validationRules.push('Alphabetic characters allowed');
-                            }
-                            if (contentOptions.includes('x')) {
-                              validationRules.push('Alphanumeric and special characters');
-                            }
-                            if (contentOptions.includes('/')) {
-                              validationRules.push('Forward slash separator allowed');
-                            }
-                            if (contentOptions.includes('d')) {
-                              validationRules.push('Decimal numbers allowed');
-                            }
-                            if (contentOptions.includes('h')) {
-                              validationRules.push('Hexadecimal characters');
-                            }
-                            if (contentOptions.match(/\d+/)) {
-                              const maxLength = contentOptions.match(/\d+/)?.[0];
-                              validationRules.push(`Maximum length: ${maxLength} characters`);
-                            }
-                            if (contentOptions.includes('CRLF')) {
-                              validationRules.push('Carriage return line feed allowed');
-                            }
-                            if (contentOptions.includes('...')) {
-                              validationRules.push('Repetition allowed');
-                            }
+                            
+                            // Parse SWIFT format specifications properly
+                            const parseSwiftFormat = (format: string) => {
+                              const parsedRules: string[] = [];
+                              
+                              // Pattern: 6!n (exactly 6 numeric)
+                              const exactNumeric = format.match(/(\d+)!n/g);
+                              if (exactNumeric) {
+                                exactNumeric.forEach(match => {
+                                  const length = match.replace('!n', '');
+                                  parsedRules.push(`Exactly ${length} numeric characters (mandatory)`);
+                                });
+                              }
+                              
+                              // Pattern: 29x (up to 29 alphanumeric)
+                              const alphanumeric = format.match(/(\d+)x/g);
+                              if (alphanumeric) {
+                                alphanumeric.forEach(match => {
+                                  const length = match.replace('x', '');
+                                  parsedRules.push(`Up to ${length} alphanumeric/special characters`);
+                                });
+                              }
+                              
+                              // Pattern: 6!a (exactly 6 alphabetic)
+                              const exactAlpha = format.match(/(\d+)!a/g);
+                              if (exactAlpha) {
+                                exactAlpha.forEach(match => {
+                                  const length = match.replace('!a', '');
+                                  parsedRules.push(`Exactly ${length} alphabetic characters (mandatory)`);
+                                });
+                              }
+                              
+                              // Pattern: 35a (up to 35 alphabetic)
+                              const alpha = format.match(/(\d+)a(?![dx!])/g);
+                              if (alpha) {
+                                alpha.forEach(match => {
+                                  const length = match.replace('a', '');
+                                  parsedRules.push(`Up to ${length} alphabetic characters`);
+                                });
+                              }
+                              
+                              // Pattern: 15d (decimal with up to 15 digits)
+                              const decimal = format.match(/(\d+)d/g);
+                              if (decimal) {
+                                decimal.forEach(match => {
+                                  const length = match.replace('d', '');
+                                  parsedRules.push(`Decimal number with up to ${length} digits`);
+                                });
+                              }
+                              
+                              // Check for CRLF
+                              if (format.includes('CRLF')) {
+                                parsedRules.push('Carriage return line feed allowed');
+                              }
+                              
+                              // Check for repetition
+                              if (format.includes('...')) {
+                                parsedRules.push('Field repetition allowed');
+                              }
+                              
+                              // Check for slashes
+                              if (format.includes('/')) {
+                                parsedRules.push('Forward slash separator used');
+                              }
+                              
+                              // Check for brackets (optional sections)
+                              if (format.includes('[') || format.includes(']')) {
+                                parsedRules.push('Contains optional sections');
+                              }
+                              
+                              // Check for braces (conditional sections)
+                              if (format.includes('{') || format.includes('}')) {
+                                parsedRules.push('Contains conditional sections');
+                              }
+                              
+                              return parsedRules;
+                            };
+                            
+                            const fieldValidationRules = parseSwiftFormat(contentOptions);
 
                             return (
                               <tr key={field.field_id} className={`border-b hover:${isRequired ? 'bg-red-25' : 'bg-blue-25'} transition-colors`}>
@@ -637,9 +685,9 @@ export default function SwiftMessageTypes() {
                                     <div className="text-xs text-gray-600 font-mono bg-gray-50 p-2 rounded">
                                       Format: {contentOptions || 'Not specified'}
                                     </div>
-                                    {validationRules.length > 0 && (
+                                    {fieldValidationRules.length > 0 && (
                                       <div className="space-y-1">
-                                        {validationRules.map((rule, index) => (
+                                        {fieldValidationRules.map((rule, index) => (
                                           <div key={index} className="flex items-center gap-2">
                                             <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                                             <span className="text-xs text-green-700">{rule}</span>
@@ -647,7 +695,7 @@ export default function SwiftMessageTypes() {
                                         ))}
                                       </div>
                                     )}
-                                    {validationRules.length === 0 && (
+                                    {fieldValidationRules.length === 0 && (
                                       <div className="text-xs text-gray-500 italic">
                                         No specific validation rules parsed
                                       </div>
