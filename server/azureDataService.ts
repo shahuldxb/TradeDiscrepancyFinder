@@ -92,27 +92,25 @@ export class AzureDataService {
     }
   }
 
-  async getSwiftFields() {
+  async getSwiftFields(messageTypeId?: string | number) {
     try {
       const pool = await connectToAzureSQL();
       
-      // First, check what tables exist in the swift schema
-      const tablesResult = await pool.request().query(`
-        SELECT TABLE_NAME 
-        FROM INFORMATION_SCHEMA.TABLES 
-        WHERE TABLE_SCHEMA = 'swift'
-        ORDER BY TABLE_NAME
-      `);
-      
-      console.log('Available swift tables:', tablesResult.recordset.map(t => t.TABLE_NAME));
-      
-      // Query the message_fields table directly with all authentic data
-      const result = await pool.request().query(`
+      // Query the message_fields table with optional message type filtering
+      let query = `
         SELECT field_id, message_type_id, tag, field_name, is_mandatory, 
                content_options, sequence, created_at, updated_at 
         FROM swift.message_fields 
-        ORDER BY sequence
-      `);
+      `;
+      
+      // Add message type filter if provided
+      if (messageTypeId && messageTypeId !== 'all') {
+        query += `WHERE message_type_id = ${messageTypeId} `;
+      }
+      
+      query += `ORDER BY sequence`;
+      
+      const result = await pool.request().query(query);
       
       // Map the authentic Azure results with all actual columns
       return result.recordset.map((row: any) => ({

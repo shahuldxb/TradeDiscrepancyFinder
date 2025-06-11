@@ -863,8 +863,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/swift/fields-azure", async (req, res) => {
     try {
+      const messageTypeId = req.query.messageType as string;
       const { azureDataService } = await import('./azureDataService');
-      const fields = await azureDataService.getSwiftFields();
+      const fields = await azureDataService.getSwiftFields(messageTypeId);
       res.json(fields);
     } catch (error) {
       console.error("Error fetching SWIFT fields:", error);

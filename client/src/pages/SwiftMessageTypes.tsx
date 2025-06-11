@@ -35,9 +35,15 @@ export default function SwiftMessageTypes() {
     retry: false,
   });
 
-  // Fetch SWIFT fields from Azure
+  // Fetch SWIFT fields from Azure with message type filtering
   const { data: swiftFields, isLoading: loadingFields } = useQuery({
-    queryKey: ["/api/swift/fields-azure"],
+    queryKey: ["/api/swift/fields-azure", selectedMessageType],
+    queryFn: async () => {
+      const params = selectedMessageType !== "all" ? `?messageType=${selectedMessageType}` : "";
+      const response = await fetch(`/api/swift/fields-azure${params}`);
+      if (!response.ok) throw new Error('Failed to fetch fields');
+      return response.json();
+    },
     retry: false,
   });
 
