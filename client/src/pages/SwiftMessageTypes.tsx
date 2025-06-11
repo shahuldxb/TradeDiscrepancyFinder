@@ -195,78 +195,70 @@ export default function SwiftMessageTypes() {
               </CardContent>
             </Card>
 
-            {/* Enhanced Message Types Grid with Detailed Information */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-              {filteredMessageTypes.map((msgType: any) => (
-                <Card 
-                  key={msgType.message_type} 
-                  className="cursor-pointer hover:shadow-lg transition-all duration-200 border-l-4 border-l-blue-500"
-                  onClick={() => handleMessageClick(msgType)}
-                >
-                  <CardHeader className="pb-4">
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="default" className="bg-blue-600 text-white font-mono text-sm">
-                            {msgType.message_type}
-                          </Badge>
-                          <Badge className={msgType.is_active ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}>
-                            {msgType.is_active ? "Active" : "Inactive"}
-                          </Badge>
-                        </div>
-                        <CardTitle className="text-lg leading-tight">{msgType.message_type_name}</CardTitle>
+            {/* Enhanced Message Types Vertical Grid */}
+            <Card>
+              <CardHeader>
+                <CardTitle>SWIFT Message Types - Detailed View</CardTitle>
+                <CardDescription>
+                  Complete information for all SWIFT message types from Azure database
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {filteredMessageTypes.map((msgType: any) => (
+                    <div 
+                      key={msgType.message_type}
+                      className="grid grid-cols-12 gap-4 p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                      onClick={() => handleMessageClick(msgType)}
+                    >
+                      {/* Message Type & Status */}
+                      <div className="col-span-2 flex flex-col space-y-2">
+                        <Badge variant="default" className="bg-blue-600 text-white font-mono text-sm w-fit">
+                          {msgType.message_type}
+                        </Badge>
+                        <Badge className={msgType.is_active ? "bg-green-100 text-green-800 w-fit" : "bg-gray-100 text-gray-600 w-fit"}>
+                          {msgType.is_active ? "Active" : "Inactive"}
+                        </Badge>
                       </div>
-                      <div className="text-right">
-                        <div className="text-xs text-gray-500 mb-1">Category</div>
-                        <Badge variant="outline" className="font-bold">{msgType.category}</Badge>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {/* Description */}
-                    <div>
-                      <div className="text-xs font-medium text-gray-700 mb-1">Description</div>
-                      <p className="text-sm text-gray-600 leading-relaxed line-clamp-2">
-                        {msgType.description || 'No description available'}
-                      </p>
-                    </div>
 
-                    {/* Purpose */}
-                    <div>
-                      <div className="text-xs font-medium text-gray-700 mb-1">Purpose</div>
-                      <p className="text-sm text-gray-600 leading-relaxed line-clamp-2">
-                        {msgType.purpose || 'General SWIFT message processing'}
-                      </p>
-                    </div>
-
-                    {/* Additional Details Grid */}
-                    <div className="grid grid-cols-2 gap-3 pt-2 border-t border-gray-100">
-                      <div className="text-center">
-                        <div className="text-xs text-gray-500">Message Code</div>
-                        <div className="font-mono text-sm font-medium">{msgType.message_type_code || 'N/A'}</div>
+                      {/* Message Name */}
+                      <div className="col-span-3">
+                        <div className="text-xs font-medium text-gray-500 mb-1">Message Name</div>
+                        <div className="font-semibold text-sm">{msgType.message_type_name}</div>
                       </div>
-                      <div className="text-center">
-                        <div className="text-xs text-gray-500">Status</div>
-                        <div className="text-sm font-medium">
-                          {msgType.is_active ? (
-                            <span className="text-green-600">Operational</span>
-                          ) : (
-                            <span className="text-gray-500">Deprecated</span>
-                          )}
+
+                      {/* Description */}
+                      <div className="col-span-4">
+                        <div className="text-xs font-medium text-gray-500 mb-1">Description</div>
+                        <div className="text-sm text-gray-700 leading-relaxed">
+                          {msgType.description || 'No description available'}
                         </div>
                       </div>
-                    </div>
 
-                    {/* Action Button */}
-                    <Button variant="outline" size="sm" className="w-full mt-4 group">
-                      <Eye className="h-4 w-4 mr-2 group-hover:scale-110 transition-transform" />
-                      View Full Details
-                      <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                      {/* Purpose */}
+                      <div className="col-span-2">
+                        <div className="text-xs font-medium text-gray-500 mb-1">Category & Code</div>
+                        <div className="space-y-1">
+                          <div className="text-sm">
+                            <Badge variant="outline" className="text-xs">{msgType.category}</Badge>
+                          </div>
+                          <div className="font-mono text-xs text-gray-600">
+                            {msgType.message_type_code || 'N/A'}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="col-span-1 flex items-center justify-end">
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
 
             {filteredMessageTypes.length === 0 && (
               <Card>
