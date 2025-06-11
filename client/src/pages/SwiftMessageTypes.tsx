@@ -195,40 +195,73 @@ export default function SwiftMessageTypes() {
               </CardContent>
             </Card>
 
-            {/* Message Types Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredMessageTypes.slice(0, 12).map((msgType: any) => (
+            {/* Enhanced Message Types Grid with Detailed Information */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+              {filteredMessageTypes.map((msgType: any) => (
                 <Card 
                   key={msgType.message_type} 
-                  className="cursor-pointer hover:shadow-md transition-shadow"
+                  className="cursor-pointer hover:shadow-lg transition-all duration-200 border-l-4 border-l-blue-500"
                   onClick={() => handleMessageClick(msgType)}
                 >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <Badge variant="outline">{msgType.message_type}</Badge>
-                      <Badge className={msgType.is_active ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}>
-                        {msgType.is_active ? "Active" : "Inactive"}
-                      </Badge>
+                  <CardHeader className="pb-4">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="default" className="bg-blue-600 text-white font-mono text-sm">
+                            {msgType.message_type}
+                          </Badge>
+                          <Badge className={msgType.is_active ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}>
+                            {msgType.is_active ? "Active" : "Inactive"}
+                          </Badge>
+                        </div>
+                        <CardTitle className="text-lg leading-tight">{msgType.message_type_name}</CardTitle>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs text-gray-500 mb-1">Category</div>
+                        <Badge variant="outline" className="font-bold">{msgType.category}</Badge>
+                      </div>
                     </div>
-                    <CardTitle className="text-lg">{msgType.message_type_name}</CardTitle>
-                    <CardDescription className="text-sm">
-                      {msgType.description}
-                    </CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Category:</span>
-                        <span>{msgType.category}</span>
+                  <CardContent className="space-y-4">
+                    {/* Description */}
+                    <div>
+                      <div className="text-xs font-medium text-gray-700 mb-1">Description</div>
+                      <p className="text-sm text-gray-600 leading-relaxed line-clamp-2">
+                        {msgType.description || 'No description available'}
+                      </p>
+                    </div>
+
+                    {/* Purpose */}
+                    <div>
+                      <div className="text-xs font-medium text-gray-700 mb-1">Purpose</div>
+                      <p className="text-sm text-gray-600 leading-relaxed line-clamp-2">
+                        {msgType.purpose || 'General SWIFT message processing'}
+                      </p>
+                    </div>
+
+                    {/* Additional Details Grid */}
+                    <div className="grid grid-cols-2 gap-3 pt-2 border-t border-gray-100">
+                      <div className="text-center">
+                        <div className="text-xs text-gray-500">Message Code</div>
+                        <div className="font-mono text-sm font-medium">{msgType.message_type_code || 'N/A'}</div>
                       </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Purpose:</span>
-                        <span className="text-right text-xs">{msgType.purpose?.substring(0, 50)}...</span>
+                      <div className="text-center">
+                        <div className="text-xs text-gray-500">Status</div>
+                        <div className="text-sm font-medium">
+                          {msgType.is_active ? (
+                            <span className="text-green-600">Operational</span>
+                          ) : (
+                            <span className="text-gray-500">Deprecated</span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    <Button variant="outline" size="sm" className="w-full mt-4">
-                      <Eye className="h-4 w-4 mr-2" />
-                      View Details
+
+                    {/* Action Button */}
+                    <Button variant="outline" size="sm" className="w-full mt-4 group">
+                      <Eye className="h-4 w-4 mr-2 group-hover:scale-110 transition-transform" />
+                      View Full Details
+                      <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
                     </Button>
                   </CardContent>
                 </Card>
