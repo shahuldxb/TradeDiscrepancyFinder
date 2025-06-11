@@ -596,10 +596,16 @@ export default function SwiftMessageTypes() {
                             
                             // Get pre-parsed validation rules from Azure database
                             const fieldValidationRules = Array.isArray(validationRules) 
-                              ? validationRules
-                                  .filter((rule: any) => rule.field_id === field.field_id)
-                                  .map((rule: any) => rule.validation_rule_description)
+                              ? validationRules.filter((rule: any) => rule.field_id === field.field_id)
                               : [];
+                            
+                            // Separate mandatory and optional rules
+                            const mandatoryRules = fieldValidationRules.filter((rule: any) => 
+                              rule.is_mandatory === 1 || rule.field_is_mandatory === true
+                            );
+                            const optionalRules = fieldValidationRules.filter((rule: any) => 
+                              rule.is_mandatory === 0 && rule.field_is_mandatory !== true
+                            );
 
                             return (
                               <tr key={field.field_id} className={`border-b hover:${isRequired ? 'bg-red-25' : 'bg-blue-25'} transition-colors`}>
@@ -625,22 +631,55 @@ export default function SwiftMessageTypes() {
                                 </td>
                                 <td className="p-3">
                                   <div className="space-y-2">
-                                    <div className="text-xs text-gray-600 font-mono bg-gray-50 p-2 rounded">
-                                      Format: {contentOptions || 'Not specified'}
+                                    {/* Content Options */}
+                                    <div className="text-xs text-gray-600 font-mono bg-gray-50 dark:bg-gray-800 p-2 rounded">
+                                      <span className="font-semibold">Format:</span> {contentOptions || 'Not specified'}
                                     </div>
-                                    {fieldValidationRules.length > 0 && (
+
+                                    {/* Mandatory Validation Rules */}
+                                    {mandatoryRules.length > 0 && (
                                       <div className="space-y-1">
-                                        {fieldValidationRules.map((rule, index) => (
-                                          <div key={index} className="flex items-center gap-2">
-                                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                            <span className="text-xs text-green-700">{rule}</span>
+                                        <div className="text-xs font-semibold text-red-600 dark:text-red-400 uppercase tracking-wide flex items-center">
+                                          <span className="w-2 h-2 bg-red-500 rounded-full mr-1"></span>
+                                          Mandatory Rules
+                                        </div>
+                                        {mandatoryRules.map((rule: any, idx: number) => (
+                                          <div key={`mandatory-${idx}`} className="text-xs bg-red-50 dark:bg-red-900/20 p-2 rounded border-l-2 border-red-400">
+                                            <div className="font-semibold text-red-700 dark:text-red-300">
+                                              {rule.validation_rule_type}
+                                            </div>
+                                            <div className="text-red-600 dark:text-red-400 mt-1">
+                                              {rule.validation_rule_description}
+                                            </div>
                                           </div>
                                         ))}
                                       </div>
                                     )}
-                                    {fieldValidationRules.length === 0 && (
-                                      <div className="text-xs text-gray-500 italic">
-                                        No specific validation rules parsed
+
+                                    {/* Optional Validation Rules */}
+                                    {optionalRules.length > 0 && (
+                                      <div className="space-y-1">
+                                        <div className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide flex items-center">
+                                          <span className="w-2 h-2 bg-blue-500 rounded-full mr-1"></span>
+                                          Optional Rules
+                                        </div>
+                                        {optionalRules.map((rule: any, idx: number) => (
+                                          <div key={`optional-${idx}`} className="text-xs bg-blue-50 dark:bg-blue-900/20 p-2 rounded border-l-2 border-blue-400">
+                                            <div className="font-semibold text-blue-700 dark:text-blue-300">
+                                              {rule.validation_rule_type}
+                                            </div>
+                                            <div className="text-blue-600 dark:text-blue-400 mt-1">
+                                              {rule.validation_rule_description}
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+
+                                    {/* Loading/No Rules Message */}
+                                    {mandatoryRules.length === 0 && optionalRules.length === 0 && (
+                                      <div className="text-xs text-gray-500 dark:text-gray-400 italic bg-gray-50 dark:bg-gray-800 p-2 rounded">
+                                        Validation rules are being populated from Azure database...
                                       </div>
                                     )}
                                   </div>

@@ -1343,9 +1343,12 @@ export async function getValidationRulesFromAzure(fieldId?: string, messageType?
         vr.allows_slash,
         vr.has_optional_sections,
         vr.has_conditional_sections,
-        mt.message_type_code
+        mt.message_type_code,
+        mf.is_mandatory as field_is_mandatory,
+        mf.sequence
       FROM swift.validation_rules vr
       LEFT JOIN swift.message_types mt ON vr.message_type_id = mt.message_type_id
+      LEFT JOIN swift.message_fields mf ON vr.field_id = mf.field_id
       WHERE 1=1
     `;
     
@@ -1357,11 +1360,13 @@ export async function getValidationRulesFromAzure(fieldId?: string, messageType?
     }
     
     if (messageType) {
+      // Handle both "MT700" and "700" formats
+      const cleanMessageType = messageType.replace(/^MT/i, '');
       query += ` AND mt.message_type_code = @messageType`;
-      request.input('messageType', messageType);
+      request.input('messageType', cleanMessageType);
     }
     
-    query += ` ORDER BY vr.field_id, vr.rule_priority`;
+    query += ` ORDER BY mf.sequence, vr.field_id, vr.rule_priority`;
     
     const result = await request.query(query);
     return result.recordset;
