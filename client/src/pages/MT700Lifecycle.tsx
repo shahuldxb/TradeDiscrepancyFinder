@@ -25,7 +25,14 @@ import {
   Eye,
   Edit,
   RefreshCw,
-  Download
+  Download,
+  Target,
+  Code,
+  AlertCircle,
+  Calendar,
+  User,
+  Shield,
+  ArrowDown
 } from "lucide-react";
 
 interface BusinessWorkflow {
