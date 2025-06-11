@@ -2661,14 +2661,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/lifecycle/business-workflows', async (req, res) => {
     try {
-      const { connectToAzureSQL } = await import('./azureSqlConnection');
-      const pool = await connectToAzureSQL();
-      
-      // Use existing ls_BusinessProcessWorkflows table from swift schema
-      const result = await pool.request().query(`
-        SELECT * FROM swift.ls_BusinessProcessWorkflows
-      `);
-      res.json(result.recordset);
+      const { getBusinessWorkflows } = await import('./lifecycleService');
+      const workflows = await getBusinessWorkflows();
+      res.json(workflows);
     } catch (error) {
       console.error('Error fetching business workflows:', error);
       res.json([]);
@@ -2677,15 +2672,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/lifecycle/business-rules', async (req, res) => {
     try {
-      const { connectToAzureSQL } = await import('./azureSqlConnection');
-      const pool = await connectToAzureSQL();
-      
-      // Use existing ls_BusinessRules table from swift schema
-      const result = await pool.request().query(`
-        SELECT * FROM swift.ls_BusinessRules
-        ORDER BY rule_id
-      `);
-      res.json(result.recordset);
+      const { getBusinessRules } = await import('./lifecycleService');
+      const rules = await getBusinessRules();
+      res.json(rules);
     } catch (error) {
       console.error('Error fetching business rules:', error);
       res.json([]);
@@ -2694,15 +2683,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/lifecycle/examination-states', async (req, res) => {
     try {
-      const { connectToAzureSQL } = await import('./azureSqlConnection');
-      const pool = await connectToAzureSQL();
-      
-      // Use existing ls_DocumentExaminationStates table from swift schema
-      const result = await pool.request().query(`
-        SELECT * FROM swift.ls_DocumentExaminationStates
-        ORDER BY state_id
-      `);
-      res.json(result.recordset);
+      const { getDocumentExaminationStates } = await import('./lifecycleService');
+      const states = await getDocumentExaminationStates();
+      res.json(states);
     } catch (error) {
       console.error('Error fetching examination states:', error);
       res.json([]);
@@ -2711,15 +2694,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/lifecycle/states', async (req, res) => {
     try {
-      const { connectToAzureSQL } = await import('./azureSqlConnection');
-      const pool = await connectToAzureSQL();
-      
-      // Use existing ls_LifecycleStates table from swift schema
-      const result = await pool.request().query(`
-        SELECT * FROM swift.ls_LifecycleStates
-        ORDER BY state_id
-      `);
-      res.json(result.recordset);
+      const { getLifecycleStates } = await import('./lifecycleService');
+      const states = await getLifecycleStates();
+      res.json(states);
     } catch (error) {
       console.error('Error fetching lifecycle states:', error);
       res.json([]);
@@ -2728,15 +2705,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/lifecycle/transition-rules', async (req, res) => {
     try {
-      const { connectToAzureSQL } = await import('./azureSqlConnection');
-      const pool = await connectToAzureSQL();
-      
-      // Use existing ls_LifecycleTransitionRules table from swift schema
-      const result = await pool.request().query(`
-        SELECT * FROM swift.ls_LifecycleTransitionRules
-        ORDER BY rule_id
-      `);
-      res.json(result.recordset);
+      const { getTransitionRules } = await import('./lifecycleService');
+      const rules = await getTransitionRules();
+      res.json(rules);
     } catch (error) {
       console.error('Error fetching transition rules:', error);
       res.json([]);
@@ -2745,18 +2716,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/lifecycle/transition-history', async (req, res) => {
     try {
-      const { connectToAzureSQL } = await import('./azureSqlConnection');
-      const pool = await connectToAzureSQL();
-      
-      // Use existing ls_StateTransitionHistory table from swift schema
-      const result = await pool.request().query(`
-        SELECT * FROM swift.ls_StateTransitionHistory 
-        ORDER BY transition_timestamp DESC
-      `);
-      res.json(result.recordset);
+      const { getTransitionHistory } = await import('./lifecycleService');
+      const history = await getTransitionHistory();
+      res.json(history);
     } catch (error) {
       console.error('Error fetching transition history:', error);
       res.json([]);
+    }
+  });
+
+  // Debug endpoint to check table structures
+  app.get('/api/lifecycle/table-structure', async (req, res) => {
+    try {
+      const { getLifecycleTableStructure } = await import('./lifecycleService');
+      const structure = await getLifecycleTableStructure();
+      res.json(structure);
+    } catch (error) {
+      console.error('Error getting table structure:', error);
+      res.status(500).json({ error: error.message });
     }
   });
 
