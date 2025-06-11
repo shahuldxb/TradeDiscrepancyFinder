@@ -43,9 +43,9 @@ const navigationItems = [
         description: "LC management and workflows",
       },
       {
-        name: "MT700 Lifecycle",
+        name: "LC Lifecycle",
         href: "/mt700-lifecycle",
-        description: "LC issuance and processing lifecycle",
+        description: "Complete LC processing pipeline visualization",
       },
       {
         name: "Credit Analysis",

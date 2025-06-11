@@ -19,7 +19,7 @@ import AgentMonitor from "@/pages/AgentMonitor";
 import AgentDesigner from "@/pages/AgentDesigner";
 
 import TradeFinanceDocuments from "@/pages/TradeFinanceDocuments";
-import MT700Lifecycle from "@/pages/MT700Lifecycle";
+import LCLifecycle from "@/pages/LCLifecycle";
 import MessageBuilder from "@/pages/MessageBuilder";
 import MTIntelligenceComplete from "@/pages/MTIntelligenceComplete";
 import SwiftMessageTypes from "@/pages/SwiftMessageTypes";
@@ -106,11 +106,11 @@ function Router() {
             <Route path="/test-drive/agent-code" component={AgentCode} />
             <Route path="/test-drive/validation" component={DiscrepancyAnalysis} />
             <Route path="/test-drive/documents" component={DocumentUpload} />
-            <Route path="/test-drive/swift" component={MT700Lifecycle} />
+            <Route path="/test-drive/swift" component={LCLifecycle} />
             
             {/* SWIFT Messages Routes */}
-            <Route path="/mt700-lifecycle" component={MT700Lifecycle} />
-            <Route path="/swift/mt700-lifecycle" component={MT700Lifecycle} />
+            <Route path="/mt700-lifecycle" component={LCLifecycle} />
+            <Route path="/swift/mt700-lifecycle" component={LCLifecycle} />
             <Route path="/message-builder" component={MessageBuilder} />
             <Route path="/mt-intelligence" component={MTIntelligenceComplete} />
             <Route path="/swift/mt-intelligence" component={MTIntelligence} />
@@ -121,7 +121,7 @@ function Router() {
             <Route path="/swift/message-validation" component={SwiftValidation} />
             <Route path="/swift/code-generator" component={MessageBuilder} />
             <Route path="/swift/dependencies" component={SwiftCategory7} />
-            <Route path="/swift/lifecycle" component={MT700Lifecycle} />
+            <Route path="/swift/lifecycle" component={LCLifecycle} />
             <Route path="/swift/analytics" component={MTIntelligence} />
             <Route path="/swift-message-types" component={SwiftMessageTypes} />
             <Route path="/swift-message/:messageType" component={SwiftMessageDetails} />
