@@ -131,26 +131,6 @@ const navigationItems = [
         href: "/incoterms/matrix",
         description: "Buyer/Seller responsibility matrix",
       },
-      {
-        name: "Validation Engine",
-        href: "/incoterms/validation",
-        description: "Validate Incoterms usage",
-      },
-      {
-        name: "AI Agents",
-        href: "/incoterms/agents",
-        description: "Autonomous Incoterms agents",
-      },
-      {
-        name: "Comparison Tool",
-        href: "/incoterms/comparison",
-        description: "Compare different Incoterms",
-      },
-      {
-        name: "Statistics",
-        href: "/incoterms/statistics",
-        description: "Usage analytics and trends",
-      },
     ],
   },
   {
