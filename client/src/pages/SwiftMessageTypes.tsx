@@ -47,15 +47,18 @@ export default function SwiftMessageTypes() {
     retry: false,
   });
 
-  // Fetch pre-parsed validation rules from Azure database
+  // Fetch pre-parsed validation rules from Azure database filtered by message type
   const { data: validationRules, isLoading: loadingValidationRules } = useQuery({
     queryKey: ["/api/swift/validation-rules-azure", selectedMessageType],
     queryFn: async () => {
-      const params = selectedMessageType !== "all" ? `?messageType=${selectedMessageType}` : "";
-      const response = await fetch(`/api/swift/validation-rules-azure${params}`);
+      if (selectedMessageType === "all") {
+        return []; // Don't fetch validation rules when "all" is selected
+      }
+      const response = await fetch(`/api/swift/validation-rules-azure?messageType=${selectedMessageType}`);
       if (!response.ok) throw new Error('Failed to fetch validation rules');
       return response.json();
     },
+    enabled: selectedMessageType !== "all", // Only fetch when a specific message type is selected
     retry: false,
   });
 
