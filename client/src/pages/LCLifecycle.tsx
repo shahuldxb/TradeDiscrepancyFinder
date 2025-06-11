@@ -136,7 +136,8 @@ export default function LCLifecycle() {
       duration: 'Maximum 5 banking days from presentation (UCP 600)',
       keyActions: ['Document analysis', 'Compliance verification', 'Discrepancy identification'],
       nextStates: ['Examination Completed'],
-      regulations: 'UCP 600 Article 14 - Standard for Examination of Documents'
+      regulations: 'UCP 600 Article 14 - Standard for Examination of Documents',
+      requiredDocuments: ['Examination checklist', 'Document analysis report', 'Compliance matrix', 'Expert review notes', 'UCP compliance verification']
     },
     'examination-completed': {
       title: 'Examination Completed',
@@ -145,7 +146,8 @@ export default function LCLifecycle() {
       duration: 'Completion within maximum examination period',
       keyActions: ['Final assessment', 'Decision communication', 'Next step determination'],
       nextStates: ['Complying Presentation', 'Discrepant Presentation'],
-      regulations: 'UCP 600 Article 16 - Complying Presentation'
+      regulations: 'UCP 600 Article 16 - Complying Presentation',
+      requiredDocuments: ['Final examination report', 'Compliance decision notice', 'Discrepancy list (if any)', 'Examination summary', 'SWIFT MT754/MT750']
     },
     'complying-presentation': {
       title: 'Complying Presentation',
@@ -154,7 +156,8 @@ export default function LCLifecycle() {
       duration: 'Payment processed according to LC terms',
       keyActions: ['Compliance confirmation', 'Payment authorization', 'Fund transfer'],
       nextStates: ['Authorized to Pay', 'Paid'],
-      regulations: 'UCP 600 Article 16 - Complying Presentation'
+      regulations: 'UCP 600 Article 16 - Complying Presentation',
+      requiredDocuments: ['Compliance certificate', 'Payment authorization', 'Fund transfer instructions', 'Complying presentation notice', 'SWIFT MT750']
     },
     'discrepant-presentation': {
       title: 'Discrepant Presentation',
@@ -163,7 +166,8 @@ export default function LCLifecycle() {
       duration: 'Resolution depends on discrepancy type and party response',
       keyActions: ['Discrepancy notification', 'Waiver request', 'Correction opportunity'],
       nextStates: ['Discrepancy Waived', 'Documents Refused', 'Documents Re-presented'],
-      regulations: 'UCP 600 Article 16 - Complying Presentation'
+      regulations: 'UCP 600 Article 16 - Complying Presentation',
+      requiredDocuments: ['Discrepancy notice', 'Detailed discrepancy list', 'Waiver request form', 'Correction instructions', 'SWIFT MT754']
     },
     'discrepancy-waived': {
       title: 'Discrepancy Waived',
@@ -172,7 +176,8 @@ export default function LCLifecycle() {
       duration: 'Waiver decision typically within 1-3 business days',
       keyActions: ['Applicant decision', 'Waiver authorization', 'Payment approval'],
       nextStates: ['Authorized to Pay', 'Paid'],
-      regulations: 'UCP 600 Article 16 - Complying Presentation'
+      regulations: 'UCP 600 Article 16 - Complying Presentation',
+      requiredDocuments: ['Waiver acceptance letter', 'Applicant authorization', 'Payment approval notice', 'Discrepancy waiver form', 'Commercial justification']
     },
     'documents-refused': {
       title: 'Documents Refused',
@@ -181,7 +186,8 @@ export default function LCLifecycle() {
       duration: 'Refusal communicated within maximum examination period',
       keyActions: ['Refusal notification', 'Document return', 'Alternative solutions'],
       nextStates: ['Documents Re-presented', 'Expired', 'Cancelled'],
-      regulations: 'UCP 600 Article 16 - Complying Presentation'
+      regulations: 'UCP 600 Article 16 - Complying Presentation',
+      requiredDocuments: ['Refusal notice', 'Returned documents', 'Reason for refusal', 'Document return receipt', 'Alternative options letter']
     },
     'authorized-to-pay': {
       title: 'Authorized to Pay',
@@ -190,7 +196,8 @@ export default function LCLifecycle() {
       duration: 'Authorization immediate, payment per LC terms',
       keyActions: ['Payment authorization', 'Fund commitment', 'Transfer initiation'],
       nextStates: ['Paid', 'Negotiated'],
-      regulations: 'UCP 600 Article 7 - Issuing Bank Undertaking'
+      regulations: 'UCP 600 Article 7 - Issuing Bank Undertaking',
+      requiredDocuments: ['Payment authorization letter', 'Fund commitment notice', 'Transfer instruction form', 'Beneficiary account details', 'SWIFT MT103']
     },
     'negotiated': {
       title: 'LC Negotiated',
@@ -199,7 +206,8 @@ export default function LCLifecycle() {
       duration: 'Negotiation can occur immediately upon compliant presentation',
       keyActions: ['Document purchase', 'Immediate payment', 'Risk assumption'],
       nextStates: ['Reimbursement Claimed', 'Paid'],
-      regulations: 'UCP 600 Article 2 - Definitions (Negotiation)'
+      regulations: 'UCP 600 Article 2 - Definitions (Negotiation)',
+      requiredDocuments: ['Negotiation agreement', 'Document purchase receipt', 'Discount calculation', 'Risk assessment form', 'Payment voucher']
     },
     'accepted': {
       title: 'Draft Accepted',
@@ -208,7 +216,8 @@ export default function LCLifecycle() {
       duration: 'Acceptance immediate, payment at maturity date',
       keyActions: ['Draft acceptance', 'Maturity date setting', 'Payment commitment'],
       nextStates: ['Paid at Maturity', 'Discharged'],
-      regulations: 'UCP 600 Article 7 - Issuing Bank Undertaking'
+      regulations: 'UCP 600 Article 7 - Issuing Bank Undertaking',
+      requiredDocuments: ['Accepted time draft', 'Maturity schedule', 'Acceptance stamp/signature', 'Payment commitment letter', 'Maturity notice']
     },
     'reimbursement-claimed': {
       title: 'Reimbursement Claimed',
@@ -217,7 +226,8 @@ export default function LCLifecycle() {
       duration: 'Claim processing: 1-5 business days',
       keyActions: ['Claim submission', 'Documentation verification', 'Fund recovery'],
       nextStates: ['Paid', 'Discharged'],
-      regulations: 'UCP 600 Article 13 - Reimbursement Undertakings'
+      regulations: 'UCP 600 Article 13 - Reimbursement Undertakings',
+      requiredDocuments: ['Reimbursement claim form', 'Payment evidence', 'Supporting documentation', 'Claim calculation', 'SWIFT MT202']
     },
     'paid': {
       title: 'LC Paid',
@@ -226,7 +236,8 @@ export default function LCLifecycle() {
       duration: 'Payment final and irrevocable',
       keyActions: ['Fund transfer completion', 'Payment confirmation', 'Transaction closure'],
       nextStates: ['Discharged', 'Fully Utilized'],
-      regulations: 'UCP 600 Article 7 - Issuing Bank Undertaking'
+      regulations: 'UCP 600 Article 7 - Issuing Bank Undertaking',
+      requiredDocuments: ['Payment confirmation receipt', 'Fund transfer evidence', 'Final payment notice', 'Transaction closure certificate', 'SWIFT MT910']
     },
     'discharged': {
       title: 'LC Discharged',
@@ -235,7 +246,8 @@ export default function LCLifecycle() {
       duration: 'Discharge is permanent and final',
       keyActions: ['Obligation completion', 'Formal closure', 'Record finalization'],
       nextStates: ['Terminal State'],
-      regulations: 'UCP 600 Article 6 - Availability, Expiry Date and Place for Presentation'
+      regulations: 'UCP 600 Article 6 - Availability, Expiry Date and Place for Presentation',
+      requiredDocuments: ['Discharge certificate', 'Final closure notice', 'Obligation release form', 'Archive documentation', 'Status update notification']
     },
     'expired': {
       title: 'LC Expired',
@@ -244,7 +256,8 @@ export default function LCLifecycle() {
       duration: 'Expiry is permanent based on specified date',
       keyActions: ['Automatic termination', 'Unused commitment release', 'Final status'],
       nextStates: ['Terminal State'],
-      regulations: 'UCP 600 Article 6 - Availability, Expiry Date and Place for Presentation'
+      regulations: 'UCP 600 Article 6 - Availability, Expiry Date and Place for Presentation',
+      requiredDocuments: ['Expiry notice', 'Unused commitment release', 'Final status report', 'Archive instruction', 'Termination certificate']
     },
     'fully-utilized': {
       title: 'Fully Utilized',
@@ -253,7 +266,8 @@ export default function LCLifecycle() {
       duration: 'Utilization is final and complete',
       keyActions: ['Complete utilization', 'Amount exhaustion', 'Facility closure'],
       nextStates: ['Discharged'],
-      regulations: 'UCP 600 Article 6 - Availability, Expiry Date and Place for Presentation'
+      regulations: 'UCP 600 Article 6 - Availability, Expiry Date and Place for Presentation',
+      requiredDocuments: ['Utilization certificate', 'Amount exhaustion notice', 'Final utilization report', 'Facility closure form', 'Complete transaction record']
     },
     'cancelled': {
       title: 'LC Cancelled',
@@ -262,7 +276,8 @@ export default function LCLifecycle() {
       duration: 'Cancellation is immediate and final',
       keyActions: ['Formal cancellation', 'Party agreement', 'Obligation release'],
       nextStates: ['Terminal State'],
-      regulations: 'UCP 600 Article 10 - Amendments'
+      regulations: 'UCP 600 Article 10 - Amendments',
+      requiredDocuments: ['Cancellation request', 'Party consent letters', 'Cancellation certificate', 'Obligation release notice', 'Final closure documentation']
     },
     'ceased': {
       title: 'LC Ceased',
@@ -271,7 +286,8 @@ export default function LCLifecycle() {
       duration: 'Cessation is immediate upon triggering event',
       keyActions: ['Event-triggered termination', 'Immediate cessation', 'Special handling'],
       nextStates: ['Terminal State'],
-      regulations: 'UCP 600 Article 36 - Force Majeure'
+      regulations: 'UCP 600 Article 36 - Force Majeure',
+      requiredDocuments: ['Cessation notice', 'Event documentation', 'Termination order', 'Special circumstances report', 'Emergency closure certificate']
     },
     'suspended': {
       title: 'LC Suspended',
@@ -280,7 +296,8 @@ export default function LCLifecycle() {
       duration: 'Suspension until issues resolved',
       keyActions: ['Temporary halt', 'Issue investigation', 'Resolution pending'],
       nextStates: ['Under Investigation', 'Resumed', 'Cancelled'],
-      regulations: 'Banking regulations and internal procedures'
+      regulations: 'Banking regulations and internal procedures',
+      requiredDocuments: ['Suspension order', 'Issue identification report', 'Investigation initiation notice', 'Temporary halt instruction', 'Resolution timeline']
     },
     'under-investigation': {
       title: 'Under Investigation',
@@ -289,7 +306,8 @@ export default function LCLifecycle() {
       duration: 'Investigation period varies by complexity',
       keyActions: ['Formal investigation', 'Evidence gathering', 'Compliance review'],
       nextStates: ['Blocked', 'Suspended', 'Cleared'],
-      regulations: 'Anti-fraud and compliance regulations'
+      regulations: 'Anti-fraud and compliance regulations',
+      requiredDocuments: ['Investigation order', 'Evidence collection form', 'Compliance review checklist', 'Investigation progress report', 'Preliminary findings']
     },
     'blocked': {
       title: 'LC Blocked',
@@ -298,7 +316,8 @@ export default function LCLifecycle() {
       duration: 'Block remains until legal/regulatory clearance',
       keyActions: ['Formal blocking', 'Legal hold', 'Regulatory compliance'],
       nextStates: ['Under Investigation', 'Cancelled'],
-      regulations: 'Sanctions, AML, and security regulations'
+      regulations: 'Sanctions, AML, and security regulations',
+      requiredDocuments: ['Blocking order', 'Legal justification', 'Regulatory compliance notice', 'Security alert documentation', 'Hold instruction']
     }
   };
 
@@ -561,6 +580,19 @@ export default function LCLifecycle() {
                                   <div>
                                     <div className="text-xs font-semibold text-orange-700 uppercase tracking-wide mb-1">Next States</div>
                                     <div className="text-sm text-gray-600">{explanation.nextStates.join(', ')}</div>
+                                  </div>
+                                )}
+                                
+                                {explanation?.requiredDocuments && explanation.requiredDocuments.length > 0 && (
+                                  <div>
+                                    <div className="text-xs font-semibold text-indigo-700 uppercase tracking-wide mb-1">Required Documents</div>
+                                    <div className="flex flex-wrap gap-1">
+                                      {explanation.requiredDocuments.map((doc, idx) => (
+                                        <span key={idx} className="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded">
+                                          {doc}
+                                        </span>
+                                      ))}
+                                    </div>
                                   </div>
                                 )}
                                 
