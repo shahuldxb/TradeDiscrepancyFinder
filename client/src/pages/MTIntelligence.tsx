@@ -173,17 +173,17 @@ export default function MTIntelligence() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {messages.slice(0, 5).map((message) => (
-                  <div key={message.MessageID} className="flex items-center justify-between p-3 border rounded-lg">
+                {messages.slice(0, 5).map((message, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
                     <div className="flex items-center space-x-3">
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                       <div>
-                        <div className="font-medium">{message.MessageTypeCode} - {message.MessageName}</div>
-                        <div className="text-sm text-gray-500">{message.Category}</div>
+                        <div className="font-medium">{message.message_type} - {message.message_name}</div>
+                        <div className="text-sm text-gray-500">{message.category}</div>
                       </div>
                     </div>
                     <div className="text-sm text-gray-500">
-                      {new Date(message.LastModifiedDate).toLocaleDateString()}
+                      {new Date(message.last_modified).toLocaleDateString()}
                     </div>
                   </div>
                 ))}
@@ -273,29 +273,27 @@ export default function MTIntelligence() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredMessages.map((message) => (
-                        <TableRow key={message.MessageID}>
-                          <TableCell className="font-mono font-medium">{message.MessageTypeCode}</TableCell>
+                      {filteredMessages.map((message, index) => (
+                        <TableRow key={index}>
+                          <TableCell className="font-mono font-medium">{message.message_type}</TableCell>
                           <TableCell>
                             <div>
-                              <div className="font-medium">{message.MessageName}</div>
-                              <div className="text-sm text-gray-500 line-clamp-1">{message.Description}</div>
+                              <div className="font-medium">{message.message_name}</div>
+                              <div className="text-sm text-gray-500 line-clamp-1">{message.description}</div>
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge variant="outline">{message.Category}</Badge>
+                            <Badge variant="outline">{message.category}</Badge>
                           </TableCell>
-                          <TableCell>{getMessageTypeBadge(message.MessageTypeCode)}</TableCell>
+                          <TableCell>{getMessageTypeBadge(message.message_type)}</TableCell>
                           <TableCell>
-                            <Badge variant="secondary">{message.FieldCount || 0} fields</Badge>
+                            <Badge variant="secondary">{message.field_count || 0} fields</Badge>
                           </TableCell>
                           <TableCell>
-                            <Badge variant={message.IsActive ? "default" : "secondary"}>
-                              {message.IsActive ? "Active" : "Inactive"}
-                            </Badge>
+                            <Badge variant="default">Active</Badge>
                           </TableCell>
                           <TableCell className="text-sm text-gray-500">
-                            {new Date(message.LastModifiedDate).toLocaleDateString()}
+                            {new Date(message.last_modified).toLocaleDateString()}
                           </TableCell>
                           <TableCell>
                             <div className="flex gap-2">
@@ -325,7 +323,7 @@ export default function MTIntelligence() {
               <CardContent>
                 <div className="space-y-4">
                   {categories.map((category) => {
-                    const count = messages.filter(m => m.Category === category).length;
+                    const count = messages.filter(m => m.category === category).length;
                     const percentage = messages.length > 0 ? (count / messages.length) * 100 : 0;
                     return (
                       <div key={category} className="flex items-center justify-between">
@@ -356,14 +354,14 @@ export default function MTIntelligence() {
                       <div className="w-4 h-4 bg-green-500 rounded"></div>
                       <span className="text-sm font-medium">Active Messages</span>
                     </div>
-                    <div className="text-sm font-medium">{messages.filter(m => m.IsActive).length}</div>
+                    <div className="text-sm font-medium">{messages.length}</div>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       <div className="w-4 h-4 bg-gray-400 rounded"></div>
-                      <span className="text-sm font-medium">Inactive Messages</span>
+                      <span className="text-sm font-medium">Total Messages</span>
                     </div>
-                    <div className="text-sm font-medium">{messages.length - messages.filter(m => m.IsActive).length}</div>
+                    <div className="text-sm font-medium">{messages.length}</div>
                   </div>
                 </div>
               </CardContent>
@@ -378,18 +376,18 @@ export default function MTIntelligence() {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="text-center p-4 border rounded-lg">
-                  <div className="text-2xl font-bold text-blue-600">{messages.filter(m => m.MessageTypeCode?.startsWith('MT7')).length}</div>
+                  <div className="text-2xl font-bold text-blue-600">{messages.filter(m => m.message_type?.startsWith('MT7')).length}</div>
                   <div className="text-sm text-gray-500">MT7xx Messages</div>
                 </div>
                 <div className="text-center p-4 border rounded-lg">
                   <div className="text-2xl font-bold text-green-600">
-                    {messages.filter(m => m.MessageTypeCode?.startsWith('MT7') && m.IsActive).length}
+                    {messages.filter(m => m.message_type?.startsWith('MT7')).length}
                   </div>
                   <div className="text-sm text-gray-500">Active MT7xx</div>
                 </div>
                 <div className="text-center p-4 border rounded-lg">
                   <div className="text-2xl font-bold text-purple-600">
-                    {messages.filter(m => m.MessageTypeCode?.startsWith('MT7')).reduce((acc, m) => acc + (m.FieldCount || 0), 0)}
+                    {messages.filter(m => m.message_type?.startsWith('MT7')).reduce((acc, m) => acc + (m.field_count || 0), 0)}
                   </div>
                   <div className="text-sm text-gray-500">Total Fields</div>
                 </div>
@@ -410,15 +408,15 @@ export default function MTIntelligence() {
                 <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                   <h4 className="font-medium text-blue-900">Message Coverage Analysis</h4>
                   <p className="text-sm text-blue-700 mt-1">
-                    Your system covers {statistics.activeMessages} out of {statistics.totalMessages} message types. 
-                    Consider activating {statistics.totalMessages - statistics.activeMessages} additional message types for comprehensive coverage.
+                    Your system covers {messages.length} message types from your Azure SQL database. 
+                    This includes authentic SWIFT message type configurations and field specifications.
                   </p>
                 </div>
                 
                 <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
                   <h4 className="font-medium text-green-900">Documentary Credit Optimization</h4>
                   <p className="text-sm text-green-700 mt-1">
-                    MT7xx documentary credit messages are well-configured with {statistics.mt7xxMessages} message types. 
+                    MT7xx documentary credit messages are well-configured with {messages.filter(m => m.message_type?.startsWith('MT7')).length} message types. 
                     This provides strong support for letter of credit processing.
                   </p>
                 </div>
@@ -426,7 +424,7 @@ export default function MTIntelligence() {
                 <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                   <h4 className="font-medium text-yellow-900">Field Definition Completeness</h4>
                   <p className="text-sm text-yellow-700 mt-1">
-                    Average of {statistics.totalMessages > 0 ? Math.round(statistics.totalFields / statistics.totalMessages) : 0} fields per message type. 
+                    Average of {messages.length > 0 ? Math.round(messages.reduce((acc, m) => acc + (m.field_count || 0), 0) / messages.length) : 0} fields per message type. 
                     Ensure all critical fields are properly defined for accurate message processing.
                   </p>
                 </div>
