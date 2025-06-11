@@ -29,70 +29,94 @@ import {
 } from "lucide-react";
 
 interface BusinessWorkflow {
-  workflow_id: number;
-  workflow_name: string;
-  workflow_description: string;
-  workflow_status: string;
-  workflow_type: string;
-  created_date: string;
-  updated_date: string;
-  owner_user_id?: string;
+  ls_WorkflowID: number;
+  ls_WorkflowCode: string;
+  ls_WorkflowName: string;
+  ls_WorkflowDescription: string;
+  ls_ProcessCategory: string;
+  ls_EstimatedDurationDays: number;
+  ls_RequiredDocuments: string;
+  ls_CriticalControlPoints: string;
+  ls_IsActive: boolean;
+  ls_CreatedDate: string;
+  ls_CreatedBy: string;
 }
 
 interface BusinessRule {
-  rule_id: number;
-  rule_name: string;
-  rule_description: string;
-  rule_type: string;
-  rule_condition: string;
-  rule_action: string;
-  is_active: boolean;
-  priority_level: number;
-  created_date: string;
+  ls_BusinessRuleID: number;
+  ls_RuleCode: string;
+  ls_RuleName: string;
+  ls_RuleDescription: string;
+  ls_RuleCategory: string;
+  ls_ApplicableDCTypes: string;
+  ls_ApplicableStates: string;
+  ls_RuleExpression: string;
+  ls_ErrorMessage: string;
+  ls_Severity: string;
+  ls_IsActive: boolean;
+  ls_CreatedDate: string;
+  ls_CreatedBy: string;
 }
 
 interface LifecycleState {
-  state_id: number;
-  state_name: string;
-  state_description: string;
-  state_type: string;
-  is_final_state: boolean;
-  is_initial_state: boolean;
-  created_date: string;
+  ls_LifecycleStateID: number;
+  ls_StateCode: string;
+  ls_StateName: string;
+  ls_StateDescription: string;
+  ls_StateCategory: string;
+  ls_IsTerminalState: boolean;
+  ls_RequiresApproval: boolean;
+  ls_AllowsAmendment: boolean;
+  ls_SortOrder: number;
+  ls_IsActive: boolean;
+  ls_CreatedDate: string;
+  ls_CreatedBy: string;
 }
 
 interface TransitionRule {
-  rule_id: number;
-  rule_name: string;
-  from_state_id: number;
-  to_state_id: number;
-  condition_expression: string;
-  action_on_transition: string;
-  is_active: boolean;
-  created_date: string;
+  ls_TransitionRuleID: number;
+  ls_FromStateID: number;
+  ls_ToStateID: number;
+  ls_TriggerEvent: string;
+  ls_IsAutomaticTransition: boolean;
+  ls_RequiresApproval: boolean;
+  ls_ApprovalRole: string;
+  ls_BusinessRuleExpression: string;
+  ls_TransitionConditions: string;
+  ls_IsActive: boolean;
+  ls_CreatedDate: string;
+  ls_CreatedBy: string;
 }
 
 interface ExaminationState {
-  state_id: number;
-  state_name: string;
-  state_description: string;
-  examination_type: string;
-  required_documents: string;
-  approval_level: string;
-  max_processing_time_hours: number;
-  created_date: string;
+  ls_ExaminationStateID: number;
+  ls_StateCode: string;
+  ls_StateName: string;
+  ls_StateDescription: string;
+  ls_ExaminationPhase: string;
+  ls_IsTerminalState: boolean;
+  ls_MaxProcessingDays: number;
+  ls_SortOrder: number;
+  ls_IsActive: boolean;
+  ls_CreatedDate: string;
+  ls_CreatedBy: string;
 }
 
 interface TransitionHistory {
-  history_id: number;
-  entity_id: string;
-  entity_type: string;
-  from_state_id: number;
-  to_state_id: number;
-  transition_timestamp: string;
-  transition_reason: string;
-  user_id?: string;
-  additional_data?: string;
+  ls_TransitionHistoryID: number;
+  ls_InstrumentID: number;
+  ls_FromStateID: number;
+  ls_ToStateID: number;
+  ls_TransitionDate: string;
+  ls_TransitionReason: string;
+  ls_TriggerEvent: string;
+  ls_ProcessedBy: string;
+  ls_ApprovedBy?: string;
+  ls_ApprovalDate?: string;
+  ls_Comments?: string;
+  ls_IsReversible: boolean;
+  ls_CreatedDate: string;
+  ls_CreatedBy: string;
 }
 
 interface LifecycleAnalytics {
@@ -171,9 +195,11 @@ export default function MT700Lifecycle() {
   };
 
   const filteredWorkflows = workflows?.filter(workflow => {
-    const matchesSearch = workflow.workflow_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         workflow.workflow_description?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === "all" || workflow.workflow_status === filterStatus;
+    const matchesSearch = workflow.ls_WorkflowName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         workflow.ls_WorkflowDescription?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = filterStatus === "all" || 
+                         (filterStatus === "active" && workflow.ls_IsActive) || 
+                         (filterStatus === "inactive" && !workflow.ls_IsActive);
     return matchesSearch && matchesStatus;
   }) || [];
 
@@ -393,21 +419,23 @@ export default function MT700Lifecycle() {
                 </TableHeader>
                 <TableBody>
                   {filteredWorkflows.map((workflow) => (
-                    <TableRow key={workflow.workflow_id}>
+                    <TableRow key={workflow.ls_WorkflowID}>
                       <TableCell>
                         <div>
-                          <div className="font-medium">{workflow.workflow_name}</div>
-                          <div className="text-sm text-gray-500">{workflow.workflow_description}</div>
+                          <div className="font-medium">{workflow.ls_WorkflowName}</div>
+                          <div className="text-sm text-gray-500">{workflow.ls_WorkflowDescription}</div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">{workflow.workflow_type}</Badge>
+                        <Badge variant="outline">{workflow.ls_ProcessCategory}</Badge>
                       </TableCell>
                       <TableCell>
-                        {getStatusBadge(workflow.workflow_status)}
+                        <Badge variant={workflow.ls_IsActive ? "default" : "secondary"}>
+                          {workflow.ls_IsActive ? "Active" : "Inactive"}
+                        </Badge>
                       </TableCell>
                       <TableCell className="text-sm text-gray-500">
-                        {new Date(workflow.created_date).toLocaleDateString()}
+                        {new Date(workflow.ls_CreatedDate).toLocaleDateString()}
                       </TableCell>
                       <TableCell>
                         <div className="flex space-x-2">
