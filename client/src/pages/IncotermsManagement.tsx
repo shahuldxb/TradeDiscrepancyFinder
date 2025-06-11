@@ -22,19 +22,10 @@ import {
 } from "lucide-react";
 
 interface Incoterm {
-  incoterm_id: number;
   term_code: string;
   term_name: string;
-  version: string;
-  full_description: string;
+  transfer_of_risk: string;
   transport_mode_group: string;
-  risk_transfer_point_desc: string;
-  delivery_location_type: string;
-  insurance_obligation_party: string;
-  insurance_coverage_level: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
 }
 
 interface Obligation {
@@ -62,7 +53,7 @@ export default function IncotermsManagement() {
   const [selectedTransport, setSelectedTransport] = useState("all");
 
   const { data: incoterms = [], isLoading: incotermLoading } = useQuery({
-    queryKey: ['/api/incoterms/swift/terms']
+    queryKey: ['/api/incoterms/matrix/terms']
   });
 
   const { data: obligations = [], isLoading: obligationLoading } = useQuery({
@@ -85,7 +76,8 @@ export default function IncotermsManagement() {
   });
 
   // Get transport mode icon
-  const getTransportIcon = (mode: string) => {
+  const getTransportIcon = (mode: string | undefined) => {
+    if (!mode) return <Globe className="h-4 w-4" />;
     const lowerMode = mode.toLowerCase();
     if (lowerMode.includes('sea') || lowerMode.includes('water')) {
       return <Ship className="h-4 w-4" />;

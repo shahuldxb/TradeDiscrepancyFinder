@@ -2186,6 +2186,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get MIncoterms data for matrix
+  app.get('/api/incoterms/matrix/terms', async (req, res) => {
+    try {
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+      
+      const result = await pool.request().query(`
+        SELECT 
+          incoterm_code as term_code,
+          incoterm_name as term_name,
+          transfer_of_risk,
+          mode_of_transport as transport_mode_group
+        FROM MIncoterms 
+        ORDER BY incoterm_code
+      `);
+      
+      res.json(result.recordset);
+    } catch (error) {
+      console.error('Error fetching MIncoterms:', error);
+      res.status(500).json({ error: 'Failed to fetch MIncoterms' });
+    }
+  });
+
   app.get('/api/incoterms/matrix/obligations', async (req, res) => {
     try {
       const { connectToAzureSQL } = await import('./azureSqlConnection');
