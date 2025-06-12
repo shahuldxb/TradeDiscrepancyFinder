@@ -47,18 +47,18 @@ export default function SwiftMessageTypes() {
     retry: false,
   });
 
-  // Fetch pre-parsed validation rules from Azure database filtered by message type
+  // Fetch comprehensive validation rules from Azure database with proper schema
   const { data: validationRules, isLoading: loadingValidationRules } = useQuery({
     queryKey: ["/api/swift/validation-rules-azure", selectedMessageType],
     queryFn: async () => {
-      if (selectedMessageType === "all") {
-        return []; // Don't fetch validation rules when "all" is selected
+      const params = new URLSearchParams();
+      if (selectedMessageType !== "all") {
+        params.append('messageTypeId', selectedMessageType);
       }
-      const response = await fetch(`/api/swift/validation-rules-azure?messageType=${selectedMessageType}`);
+      const response = await fetch(`/api/swift/validation-rules-azure?${params.toString()}`);
       if (!response.ok) throw new Error('Failed to fetch validation rules');
       return response.json();
     },
-    enabled: selectedMessageType !== "all", // Only fetch when a specific message type is selected
     retry: false,
   });
 
@@ -549,210 +549,291 @@ export default function SwiftMessageTypes() {
 
         <TabsContent value="validation">
           <div className="space-y-6">
-            {/* Filter for Validation Rules */}
+            {/* Enhanced Validation Rules Section */}
             <Card>
               <CardHeader>
-                <CardTitle>SWIFT Field Validation Rules</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  SWIFT Validation Rules Engine
+                </CardTitle>
                 <CardDescription>
-                  {selectedMessageType !== "all" 
-                    ? `Validation rules for ${selectedMessageType} fields based on content options` 
-                    : "Select a message type to view specific validation rules"}
+                  Comprehensive validation rules from Azure database with all 21 validation attributes
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex gap-4 mb-6">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-red-100 border border-red-300 rounded"></div>
-                    <span className="text-sm">Mandatory Fields</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-blue-100 border border-blue-300 rounded"></div>
-                    <span className="text-sm">Optional Fields</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-green-100 border border-green-300 rounded"></div>
-                    <span className="text-sm">Valid Format</span>
-                  </div>
+                {/* Statistics and Filter Controls */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                  <Card className="p-4">
+                    <div className="text-2xl font-bold text-blue-600">
+                      {Array.isArray(validationRules) ? validationRules.length : 0}
+                    </div>
+                    <div className="text-sm text-gray-600">Total Rules</div>
+                  </Card>
+                  <Card className="p-4">
+                    <div className="text-2xl font-bold text-red-600">
+                      {Array.isArray(validationRules) ? validationRules.filter((r: any) => r.is_mandatory).length : 0}
+                    </div>
+                    <div className="text-sm text-gray-600">Mandatory Rules</div>
+                  </Card>
+                  <Card className="p-4">
+                    <div className="text-2xl font-bold text-green-600">
+                      {Array.isArray(validationRules) ? validationRules.filter((r: any) => r.character_type).length : 0}
+                    </div>
+                    <div className="text-sm text-gray-600">Character Rules</div>
+                  </Card>
+                  <Card className="p-4">
+                    <div className="text-2xl font-bold text-purple-600">
+                      {Array.isArray(validationRules) ? validationRules.filter((r: any) => r.allows_repetition).length : 0}
+                    </div>
+                    <div className="text-sm text-gray-600">Repetition Rules</div>
+                  </Card>
                 </div>
 
-                {filteredFields && filteredFields.length > 0 ? (
+                {/* Validation Rules Display */}
+                {loadingValidationRules ? (
                   <div className="space-y-4">
-                    {/* Validation Rules Table */}
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="h-24 bg-gray-200 rounded animate-pulse" />
+                    ))}
+                  </div>
+                ) : Array.isArray(validationRules) && validationRules.length > 0 ? (
+                  <div className="space-y-6">
+                    {/* Comprehensive Validation Rules Table */}
                     <div className="overflow-x-auto">
                       <table className="w-full border-collapse text-sm border">
                         <thead>
-                          <tr className="border-b bg-slate-50">
-                            <th className="text-left p-3 font-semibold w-20">Field Tag</th>
-                            <th className="text-left p-3 font-semibold w-32">Field Name</th>
-                            <th className="text-left p-3 font-semibold w-24">Required</th>
-                            <th className="text-left p-3 font-semibold">Content Options & Validation Rules</th>
-                            <th className="text-left p-3 font-semibold w-20">Sequence</th>
+                          <tr className="border-b bg-gradient-to-r from-blue-50 to-purple-50">
+                            <th className="text-left p-3 font-semibold min-w-[80px]">Rule ID</th>
+                            <th className="text-left p-3 font-semibold min-w-[100px]">Field Tag</th>
+                            <th className="text-left p-3 font-semibold min-w-[200px]">Field Name</th>
+                            <th className="text-left p-3 font-semibold min-w-[120px]">Rule Type</th>
+                            <th className="text-left p-3 font-semibold min-w-[300px]">Description</th>
+                            <th className="text-left p-3 font-semibold min-w-[80px]">Priority</th>
+                            <th className="text-left p-3 font-semibold min-w-[100px]">Mandatory</th>
+                            <th className="text-left p-3 font-semibold min-w-[120px]">Character</th>
+                            <th className="text-left p-3 font-semibold min-w-[100px]">Length</th>
+                            <th className="text-left p-3 font-semibold min-w-[120px]">Formatting</th>
+                            <th className="text-left p-3 font-semibold min-w-[120px]">Sections</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {filteredFields.map((field: any) => {
-                            const isRequired = field.is_mandatory === 1 || field.is_mandatory === true;
-                            const contentOptions = field.content_options || '';
-                            
-                            // Get pre-parsed validation rules from Azure database
-                            const fieldValidationRules = Array.isArray(validationRules) 
-                              ? validationRules.filter((rule: any) => rule.field_id === field.field_id)
-                              : [];
-                            
-                            // Separate mandatory and optional rules
-                            const mandatoryRules = fieldValidationRules.filter((rule: any) => 
-                              rule.is_mandatory === 1 || rule.field_is_mandatory === true
-                            );
-                            const optionalRules = fieldValidationRules.filter((rule: any) => 
-                              rule.is_mandatory === 0 && rule.field_is_mandatory !== true
-                            );
-
-                            return (
-                              <tr key={field.field_id} className={`border-b hover:${isRequired ? 'bg-red-25' : 'bg-blue-25'} transition-colors`}>
-                                <td className="p-3">
-                                  <Badge variant="outline" className="font-mono font-semibold">
-                                    {field.tag || field.field_code}
-                                  </Badge>
-                                </td>
-                                <td className="p-3 max-w-xs">
-                                  <div className="truncate" title={field.field_name}>
-                                    {field.field_name}
+                          {validationRules.map((rule: any) => (
+                            <tr key={rule.rule_id} className="border-b hover:bg-blue-25 transition-colors">
+                              <td className="p-3">
+                                <Badge variant="outline" className="font-mono">
+                                  {rule.rule_id}
+                                </Badge>
+                              </td>
+                              <td className="p-3">
+                                <Badge className="bg-blue-100 text-blue-800 font-mono font-bold">
+                                  {rule.field_tag}
+                                </Badge>
+                              </td>
+                              <td className="p-3 max-w-xs">
+                                <div className="font-medium text-gray-900">
+                                  {rule.field_name}
+                                </div>
+                                <div className="text-xs text-gray-500 mt-1">
+                                  Field ID: {rule.field_id} | Type ID: {rule.message_type_id}
+                                </div>
+                              </td>
+                              <td className="p-3">
+                                <Badge className={`
+                                  ${rule.validation_rule_type?.includes('FORMAT') ? 'bg-green-100 text-green-800' : 
+                                    rule.validation_rule_type?.includes('LENGTH') ? 'bg-yellow-100 text-yellow-800' :
+                                    rule.validation_rule_type?.includes('CONTENT') ? 'bg-purple-100 text-purple-800' :
+                                    'bg-gray-100 text-gray-800'}
+                                `}>
+                                  {rule.validation_rule_type || 'Standard'}
+                                </Badge>
+                              </td>
+                              <td className="p-3 max-w-sm">
+                                <div className="text-sm text-gray-800">
+                                  {rule.validation_rule_description}
+                                </div>
+                                {rule.content_options && (
+                                  <div className="text-xs text-gray-600 mt-1 font-mono bg-gray-50 p-1 rounded">
+                                    {rule.content_options}
                                   </div>
-                                </td>
-                                <td className="p-3">
-                                  <Badge 
-                                    className={isRequired 
-                                      ? "bg-red-100 text-red-800" 
-                                      : "bg-blue-100 text-blue-800"
-                                    }
-                                  >
-                                    {isRequired ? 'Mandatory' : 'Optional'}
-                                  </Badge>
-                                </td>
-                                <td className="p-3">
-                                  <div className="space-y-2">
-                                    {/* Content Options */}
-                                    <div className="text-xs text-gray-600 font-mono bg-gray-50 dark:bg-gray-800 p-2 rounded">
-                                      <span className="font-semibold">Format:</span> {contentOptions || 'Not specified'}
+                                )}
+                              </td>
+                              <td className="p-3 text-center">
+                                <Badge variant={rule.rule_priority <= 1 ? "destructive" : rule.rule_priority <= 3 ? "default" : "secondary"}>
+                                  {rule.rule_priority || 'N/A'}
+                                </Badge>
+                              </td>
+                              <td className="p-3">
+                                <Badge className={rule.is_mandatory ? "bg-red-100 text-red-800" : "bg-blue-100 text-blue-800"}>
+                                  {rule.is_mandatory ? 'Required' : 'Optional'}
+                                </Badge>
+                              </td>
+                              <td className="p-3">
+                                <div className="space-y-1">
+                                  {rule.character_type && (
+                                    <Badge variant="outline" className="text-xs">
+                                      {rule.character_type}
+                                    </Badge>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="p-3">
+                                <div className="space-y-1 text-xs">
+                                  {rule.min_length && (
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-gray-500">Min:</span>
+                                      <span className="font-mono">{rule.min_length}</span>
                                     </div>
-
-                                    {/* Mandatory Validation Rules */}
-                                    {mandatoryRules.length > 0 && (
-                                      <div className="space-y-1">
-                                        <div className="text-xs font-semibold text-red-600 dark:text-red-400 uppercase tracking-wide flex items-center">
-                                          <span className="w-2 h-2 bg-red-500 rounded-full mr-1"></span>
-                                          Mandatory Rules
-                                        </div>
-                                        {mandatoryRules.map((rule: any, idx: number) => (
-                                          <div key={`mandatory-${idx}`} className="text-xs bg-red-50 dark:bg-red-900/20 p-2 rounded border-l-2 border-red-400">
-                                            <div className="font-semibold text-red-700 dark:text-red-300">
-                                              {rule.validation_rule_type}
-                                            </div>
-                                            <div className="text-red-600 dark:text-red-400 mt-1">
-                                              {rule.validation_rule_description}
-                                            </div>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    )}
-
-                                    {/* Optional Validation Rules */}
-                                    {optionalRules.length > 0 && (
-                                      <div className="space-y-1">
-                                        <div className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide flex items-center">
-                                          <span className="w-2 h-2 bg-blue-500 rounded-full mr-1"></span>
-                                          Optional Rules
-                                        </div>
-                                        {optionalRules.map((rule: any, idx: number) => (
-                                          <div key={`optional-${idx}`} className="text-xs bg-blue-50 dark:bg-blue-900/20 p-2 rounded border-l-2 border-blue-400">
-                                            <div className="font-semibold text-blue-700 dark:text-blue-300">
-                                              {rule.validation_rule_type}
-                                            </div>
-                                            <div className="text-blue-600 dark:text-blue-400 mt-1">
-                                              {rule.validation_rule_description}
-                                            </div>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    )}
-
-                                    {/* Loading/No Rules Message */}
-                                    {mandatoryRules.length === 0 && optionalRules.length === 0 && (
-                                      <div className="text-xs text-gray-500 dark:text-gray-400 italic bg-gray-50 dark:bg-gray-800 p-2 rounded">
-                                        Validation rules are being populated from Azure database...
-                                      </div>
-                                    )}
-                                  </div>
-                                </td>
-                                <td className="p-3 text-center">
-                                  <Badge variant="outline" className="text-xs">
-                                    {field.sequence || 'N/A'}
-                                  </Badge>
-                                </td>
-                              </tr>
-                            );
-                          })}
+                                  )}
+                                  {rule.max_length && (
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-gray-500">Max:</span>
+                                      <span className="font-mono">{rule.max_length}</span>
+                                    </div>
+                                  )}
+                                  {rule.exact_length && (
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-gray-500">Exact:</span>
+                                      <span className="font-mono">{rule.exact_length}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="p-3">
+                                <div className="space-y-1">
+                                  {rule.allows_repetition && (
+                                    <Badge variant="outline" className="text-xs bg-green-50 text-green-700">
+                                      Repetition
+                                    </Badge>
+                                  )}
+                                  {rule.allows_crlf && (
+                                    <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700">
+                                      CRLF
+                                    </Badge>
+                                  )}
+                                  {rule.allows_slash && (
+                                    <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700">
+                                      Slash
+                                    </Badge>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="p-3">
+                                <div className="space-y-1">
+                                  {rule.has_optional_sections && (
+                                    <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700">
+                                      Optional
+                                    </Badge>
+                                  )}
+                                  {rule.has_conditional_sections && (
+                                    <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700">
+                                      Conditional
+                                    </Badge>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
                         </tbody>
                       </table>
                     </div>
-
-                    {/* Validation Summary */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-                      <Card>
-                        <CardContent className="p-4">
-                          <div className="flex items-center gap-2">
-                            <AlertTriangle className="h-5 w-5 text-red-500" />
-                            <div>
-                              <p className="font-semibold">Mandatory Fields</p>
-                              <p className="text-2xl font-bold text-red-600">
-                                {filteredFields.filter((f: any) => f.is_mandatory === 1 || f.is_mandatory === true).length}
-                              </p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                      
-                      <Card>
-                        <CardContent className="p-4">
-                          <div className="flex items-center gap-2">
-                            <CheckCircle className="h-5 w-5 text-blue-500" />
-                            <div>
-                              <p className="font-semibold">Optional Fields</p>
-                              <p className="text-2xl font-bold text-blue-600">
-                                {filteredFields.filter((f: any) => f.is_mandatory !== 1 && f.is_mandatory !== true).length}
-                              </p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                      
-                      <Card>
-                        <CardContent className="p-4">
-                          <div className="flex items-center gap-2">
-                            <Settings className="h-5 w-5 text-green-500" />
-                            <div>
-                              <p className="font-semibold">Total Rules</p>
-                              <p className="text-2xl font-bold text-green-600">
-                                {filteredFields.length}
-                              </p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
                   </div>
                 ) : (
-                  <div className="text-center py-8">
-                    <AlertTriangle className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                    <p className="text-gray-600">
-                      {selectedMessageType !== "all" 
-                        ? `No validation rules available for ${selectedMessageType}` 
-                        : "Select a message type to view validation rules"}
+                  <div className="text-center py-12">
+                    <Settings className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Validation Rules Found</h3>
+                    <p className="text-gray-600 mb-4">
+                      {selectedMessageType === "all" 
+                        ? "Select a specific message type to view validation rules" 
+                        : "No validation rules available for this message type"}
                     </p>
+                    <div className="text-sm text-gray-500">
+                      Validation rules are automatically loaded from the Azure database
+                    </div>
                   </div>
                 )}
               </CardContent>
             </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="details">
+          <div className="space-y-6">
+            {showMessageDetail && selectedMessage ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    {selectedMessage.message_type} - {selectedMessage.message_type_name}
+                  </CardTitle>
+                  <CardDescription>
+                    Detailed information about {selectedMessage.description || selectedMessage.message_type_name}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <h4 className="font-semibold mb-2">Message Information</h4>
+                      <dl className="space-y-2 text-sm">
+                        <div>
+                          <dt className="font-medium text-gray-600">Message Type:</dt>
+                          <dd className="font-mono">{selectedMessage.message_type}</dd>
+                        </div>
+                        <div>
+                          <dt className="font-medium text-gray-600">Full Name:</dt>
+                          <dd>{selectedMessage.message_type_name}</dd>
+                        </div>
+                        <div>
+                          <dt className="font-medium text-gray-600">Purpose:</dt>
+                          <dd>{selectedMessage.purpose || 'Not specified'}</dd>
+                        </div>
+                        <div>
+                          <dt className="font-medium text-gray-600">Category:</dt>
+                          <dd>
+                            <Badge>{selectedMessage.category}</Badge>
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="font-medium text-gray-600">Max Length:</dt>
+                          <dd>{selectedMessage.max_length || 'Not specified'}</dd>
+                        </div>
+                      </dl>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold mb-2">Related Fields</h4>
+                      <div className="text-sm text-gray-600">
+                        {Array.isArray(swiftFields) && swiftFields.filter((f: any) => 
+                          f.message_type_id === selectedMessage.message_type_id).length} fields defined
+                      </div>
+                      <div className="mt-4 space-y-2">
+                        <Button 
+                          size="sm" 
+                          onClick={() => setActiveTab("fields")}
+                          className="w-full"
+                        >
+                          View Fields
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => setActiveTab("validation")}
+                          className="w-full"
+                        >
+                          View Validation Rules
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="text-center py-12">
+                <Settings className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No Message Selected</h3>
+                <p className="text-gray-600">
+                  Select a message type from the overview tab to view detailed information
+                </p>
+              </div>
+            )}
           </div>
         </TabsContent>
 
@@ -767,7 +848,6 @@ export default function SwiftMessageTypes() {
             <CardContent>
               {selectedMessage ? (
                 <div className="space-y-6">
-                  {/* Message Information */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-4">
                       <h3 className="font-semibold">Message Information</h3>
@@ -780,15 +860,8 @@ export default function SwiftMessageTypes() {
                           <span className="text-gray-600">Category:</span>
                           <span>{selectedMessage.category}</span>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Status:</span>
-                          <Badge className={selectedMessage.is_active ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}>
-                            {selectedMessage.is_active ? "Active" : "Inactive"}
-                          </Badge>
-                        </div>
                       </div>
                     </div>
-
                     <div className="space-y-4">
                       <h3 className="font-semibold">Usage Information</h3>
                       <div className="space-y-2">
@@ -796,46 +869,14 @@ export default function SwiftMessageTypes() {
                           <span className="text-gray-600 block mb-1">Purpose:</span>
                           <p className="text-sm">{selectedMessage.purpose}</p>
                         </div>
-                        <div>
-                          <span className="text-gray-600 block mb-1">Description:</span>
-                          <p className="text-sm">{selectedMessage.description}</p>
-                        </div>
                       </div>
                     </div>
                   </div>
-
-                  {/* Related Fields */}
-                  <div className="space-y-4">
-                    <h3 className="font-semibold">Related SWIFT Fields</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {Array.isArray(swiftFields) ? swiftFields.slice(0, 6).map((field: any) => (
-                        <div key={field.field_code} className="p-3 bg-gray-50 rounded">
-                          <div className="flex items-center justify-between mb-2">
-                            <Badge variant="outline" className="text-xs">{field.field_code}</Badge>
-                            <span className="text-xs text-gray-500">{field.format}</span>
-                          </div>
-                          <p className="text-sm font-medium">{field.field_name}</p>
-                          <p className="text-xs text-gray-600">Max: {field.max_length} chars</p>
-                        </div>
-                      )) : []}
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex gap-2 pt-4 border-t">
-                    <Button variant="outline" onClick={() => setActiveTab("overview")}>
-                      Back to Overview
-                    </Button>
-                    <Button variant="outline" onClick={() => setActiveTab("fields")}>
-                      View All Fields
-                    </Button>
-                  </div>
                 </div>
               ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Message type not found or no data available.</p>
-                  <p className="text-sm">Please select a message type from the overview tab.</p>
+                <div className="text-center py-8">
+                  <AlertTriangle className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                  <p className="text-gray-600">Select a message type to view details</p>
                 </div>
               )}
             </CardContent>

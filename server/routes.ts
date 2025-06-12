@@ -2726,17 +2726,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get validation rules from Azure database
+  // Get validation rules from Azure database using proper schema
   app.get('/api/swift/validation-rules-azure', async (req, res) => {
     try {
       const fieldId = req.query.fieldId as string;
-      const messageType = req.query.messageType as string;
+      const messageTypeId = req.query.messageTypeId as string;
       
-      console.log(`Fetching validation rules for field ID: ${fieldId || 'All'}, message type: ${messageType || 'All'}`);
+      console.log(`Fetching validation rules for field ID: ${fieldId || 'All'}, message type ID: ${messageTypeId || 'All'}`);
       
-      const { getValidationRulesFromAzure } = await import('./azureDataService');
-      const validationRules = await getValidationRulesFromAzure(fieldId, messageType);
-      res.json(validationRules);
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+      
+      let query = `
+        SELECT TOP (1000) 
+          [rule_id],
+          [field_id],
+          [message_type_id],
+          [field_tag],
+          [field_name],
+          [content_options],
+          [validation_rule_type],
+          [validation_rule_description],
+          [rule_priority],
+          [is_mandatory],
+          [character_type],
+          [min_length],
+          [max_length],
+          [exact_length],
+          [allows_repetition],
+          [allows_crlf],
+          [allows_slash],
+          [has_optional_sections],
+          [has_conditional_sections],
+          [created_at],
+          [updated_at]
+        FROM [swift].[validation_rules]
+      `;
+      
+      const conditions = [];
+      const request = pool.request();
+      
+      if (fieldId && fieldId !== 'All') {
+        conditions.push('[field_id] = @fieldId');
+        request.input('fieldId', fieldId);
+      }
+      
+      if (messageTypeId && messageTypeId !== 'All') {
+        conditions.push('[message_type_id] = @messageTypeId');
+        request.input('messageTypeId', messageTypeId);
+      }
+      
+      if (conditions.length > 0) {
+        query += ` WHERE ${conditions.join(' AND ')}`;
+      }
+      
+      query += ' ORDER BY [rule_priority] ASC, [field_tag] ASC, [rule_id] ASC';
+      
+      const result = await request.query(query);
+      res.json(result.recordset);
     } catch (error: any) {
       console.error('Error fetching validation rules from Azure:', error);
       res.status(500).json({ 
