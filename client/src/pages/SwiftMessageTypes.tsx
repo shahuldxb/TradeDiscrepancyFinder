@@ -28,6 +28,10 @@ export default function SwiftMessageTypes() {
   const [showMessageDetail, setShowMessageDetail] = useState(false);
   const [selectedFieldType, setSelectedFieldType] = useState("all");
   const [selectedMessageType, setSelectedMessageType] = useState("all");
+  const [validationRuleType, setValidationRuleType] = useState("all");
+  const [rulePriority, setRulePriority] = useState("all");
+  const [groupByField, setGroupByField] = useState(false);
+  const [sortBy, setSortBy] = useState("priority"); // priority, mandatory, field_id
 
   // Fetch SWIFT message types from Azure
   const { data: messageTypes, isLoading: loadingMessageTypes } = useQuery({
@@ -110,6 +114,54 @@ export default function SwiftMessageTypes() {
   // Group fields by mandatory/optional
   const mandatoryFields = filteredFields.filter((f: any) => f.is_mandatory);
   const optionalFields = filteredFields.filter((f: any) => !f.is_mandatory);
+
+  // Filter and sort validation rules
+  const filteredValidationRules = Array.isArray(validationRules) ? validationRules.filter((rule: any) => {
+    const matchesRuleType = validationRuleType === "all" || 
+      (rule.validation_rule_type && rule.validation_rule_type.toLowerCase().includes(validationRuleType.toLowerCase()));
+    
+    const matchesPriority = rulePriority === "all" || 
+      (rulePriority === "high" && rule.rule_priority <= 1) ||
+      (rulePriority === "medium" && rule.rule_priority >= 2 && rule.rule_priority <= 3) ||
+      (rulePriority === "low" && rule.rule_priority >= 4);
+    
+    const matchesSearch = searchTerm === "" ||
+      rule.field_tag?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      rule.field_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      rule.validation_rule_description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      rule.validation_rule_type?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    return matchesRuleType && matchesPriority && matchesSearch;
+  }).sort((a: any, b: any) => {
+    switch (sortBy) {
+      case "mandatory":
+        if (a.is_mandatory !== b.is_mandatory) {
+          return b.is_mandatory - a.is_mandatory; // Required first
+        }
+        return a.field_tag?.localeCompare(b.field_tag) || 0;
+      case "field_id":
+        return (a.field_id || 0) - (b.field_id || 0);
+      case "priority":
+      default:
+        return (a.rule_priority || 999) - (b.rule_priority || 999);
+    }
+  }) : [];
+
+  // Group validation rules by field ID if enabled
+  const groupedValidationRules = groupByField ? 
+    filteredValidationRules.reduce((groups: any, rule: any) => {
+      const fieldKey = `${rule.field_id}_${rule.field_tag}`;
+      if (!groups[fieldKey]) {
+        groups[fieldKey] = {
+          field_id: rule.field_id,
+          field_tag: rule.field_tag,
+          field_name: rule.field_name,
+          rules: []
+        };
+      }
+      groups[fieldKey].rules.push(rule);
+      return groups;
+    }, {}) : null;
 
   if (loadingMessageTypes || loadingFields) {
     return (
@@ -561,32 +613,123 @@ export default function SwiftMessageTypes() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {/* Statistics and Filter Controls */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                  <Card className="p-4">
-                    <div className="text-2xl font-bold text-blue-600">
-                      {Array.isArray(validationRules) ? validationRules.length : 0}
+                {/* Enhanced Filter Controls */}
+                <div className="space-y-6 mb-6">
+                  {/* Statistics Dashboard */}
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                    <Card className="p-4">
+                      <div className="text-2xl font-bold text-blue-600">
+                        {filteredValidationRules.length}
+                      </div>
+                      <div className="text-sm text-gray-600">Filtered Rules</div>
+                    </Card>
+                    <Card className="p-4">
+                      <div className="text-2xl font-bold text-red-600">
+                        {filteredValidationRules.filter((r: any) => r.is_mandatory).length}
+                      </div>
+                      <div className="text-sm text-gray-600">Mandatory</div>
+                    </Card>
+                    <Card className="p-4">
+                      <div className="text-2xl font-bold text-blue-600">
+                        {filteredValidationRules.filter((r: any) => !r.is_mandatory).length}
+                      </div>
+                      <div className="text-sm text-gray-600">Optional</div>
+                    </Card>
+                    <Card className="p-4">
+                      <div className="text-2xl font-bold text-green-600">
+                        {filteredValidationRules.filter((r: any) => r.character_type).length}
+                      </div>
+                      <div className="text-sm text-gray-600">Character Rules</div>
+                    </Card>
+                    <Card className="p-4">
+                      <div className="text-2xl font-bold text-purple-600">
+                        {groupByField ? Object.keys(groupedValidationRules || {}).length : filteredValidationRules.length}
+                      </div>
+                      <div className="text-sm text-gray-600">{groupByField ? 'Field Groups' : 'Total Rules'}</div>
+                    </Card>
+                  </div>
+
+                  {/* Advanced Filter Controls */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 mb-2 block">Rule Type</label>
+                      <Select value={validationRuleType} onValueChange={setValidationRuleType}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Filter by rule type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Rule Types</SelectItem>
+                          <SelectItem value="FORMAT">Format Rules</SelectItem>
+                          <SelectItem value="LENGTH">Length Rules</SelectItem>
+                          <SelectItem value="CONTENT">Content Rules</SelectItem>
+                          <SelectItem value="MANDATORY">Mandatory Rules</SelectItem>
+                          <SelectItem value="PATTERN">Pattern Rules</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
-                    <div className="text-sm text-gray-600">Total Rules</div>
-                  </Card>
-                  <Card className="p-4">
-                    <div className="text-2xl font-bold text-red-600">
-                      {Array.isArray(validationRules) ? validationRules.filter((r: any) => r.is_mandatory).length : 0}
+
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 mb-2 block">Priority Level</label>
+                      <Select value={rulePriority} onValueChange={setRulePriority}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Filter by priority" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Priorities</SelectItem>
+                          <SelectItem value="high">High Priority (1)</SelectItem>
+                          <SelectItem value="medium">Medium Priority (2-3)</SelectItem>
+                          <SelectItem value="low">Low Priority (4+)</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
-                    <div className="text-sm text-gray-600">Mandatory Rules</div>
-                  </Card>
-                  <Card className="p-4">
-                    <div className="text-2xl font-bold text-green-600">
-                      {Array.isArray(validationRules) ? validationRules.filter((r: any) => r.character_type).length : 0}
+
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 mb-2 block">Sort Order</label>
+                      <Select value={sortBy} onValueChange={setSortBy}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sort by" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="priority">Priority Level</SelectItem>
+                          <SelectItem value="mandatory">Required/Optional</SelectItem>
+                          <SelectItem value="field_id">Field ID</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
-                    <div className="text-sm text-gray-600">Character Rules</div>
-                  </Card>
-                  <Card className="p-4">
-                    <div className="text-2xl font-bold text-purple-600">
-                      {Array.isArray(validationRules) ? validationRules.filter((r: any) => r.allows_repetition).length : 0}
+
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 mb-2 block">View Options</label>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="groupByField"
+                          checked={groupByField}
+                          onChange={(e) => setGroupByField(e.target.checked)}
+                          className="rounded border-gray-300"
+                        />
+                        <label htmlFor="groupByField" className="text-sm text-gray-700">
+                          Group by Field ID
+                        </label>
+                      </div>
                     </div>
-                    <div className="text-sm text-gray-600">Repetition Rules</div>
-                  </Card>
+                  </div>
+
+                  {/* Search and Results Summary */}
+                  <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                      <Input
+                        placeholder="Search rules by field tag, name, or description..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      Showing {filteredValidationRules.length} of {Array.isArray(validationRules) ? validationRules.length : 0} rules
+                      {groupByField && groupedValidationRules && ` in ${Object.keys(groupedValidationRules).length} field groups`}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Validation Rules Display */}
@@ -596,146 +739,256 @@ export default function SwiftMessageTypes() {
                       <div key={i} className="h-24 bg-gray-200 rounded animate-pulse" />
                     ))}
                   </div>
-                ) : Array.isArray(validationRules) && validationRules.length > 0 ? (
+                ) : filteredValidationRules.length > 0 ? (
                   <div className="space-y-6">
-                    {/* Comprehensive Validation Rules Table */}
-                    <div className="overflow-x-auto">
-                      <table className="w-full border-collapse text-sm border">
-                        <thead>
-                          <tr className="border-b bg-gradient-to-r from-blue-50 to-purple-50">
-                            <th className="text-left p-3 font-semibold min-w-[80px]">Rule ID</th>
-                            <th className="text-left p-3 font-semibold min-w-[100px]">Field Tag</th>
-                            <th className="text-left p-3 font-semibold min-w-[200px]">Field Name</th>
-                            <th className="text-left p-3 font-semibold min-w-[120px]">Rule Type</th>
-                            <th className="text-left p-3 font-semibold min-w-[300px]">Description</th>
-                            <th className="text-left p-3 font-semibold min-w-[80px]">Priority</th>
-                            <th className="text-left p-3 font-semibold min-w-[100px]">Mandatory</th>
-                            <th className="text-left p-3 font-semibold min-w-[120px]">Character</th>
-                            <th className="text-left p-3 font-semibold min-w-[100px]">Length</th>
-                            <th className="text-left p-3 font-semibold min-w-[120px]">Formatting</th>
-                            <th className="text-left p-3 font-semibold min-w-[120px]">Sections</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {validationRules.map((rule: any) => (
-                            <tr key={rule.rule_id} className="border-b hover:bg-blue-25 transition-colors">
-                              <td className="p-3">
-                                <Badge variant="outline" className="font-mono">
-                                  {rule.rule_id}
-                                </Badge>
-                              </td>
-                              <td className="p-3">
-                                <Badge className="bg-blue-100 text-blue-800 font-mono font-bold">
-                                  {rule.field_tag}
-                                </Badge>
-                              </td>
-                              <td className="p-3 max-w-xs">
-                                <div className="font-medium text-gray-900">
-                                  {rule.field_name}
-                                </div>
-                                <div className="text-xs text-gray-500 mt-1">
-                                  Field ID: {rule.field_id} | Type ID: {rule.message_type_id}
-                                </div>
-                              </td>
-                              <td className="p-3">
-                                <Badge className={`
-                                  ${rule.validation_rule_type?.includes('FORMAT') ? 'bg-green-100 text-green-800' : 
-                                    rule.validation_rule_type?.includes('LENGTH') ? 'bg-yellow-100 text-yellow-800' :
-                                    rule.validation_rule_type?.includes('CONTENT') ? 'bg-purple-100 text-purple-800' :
-                                    'bg-gray-100 text-gray-800'}
-                                `}>
-                                  {rule.validation_rule_type || 'Standard'}
-                                </Badge>
-                              </td>
-                              <td className="p-3 max-w-sm">
-                                <div className="text-sm text-gray-800">
-                                  {rule.validation_rule_description}
-                                </div>
-                                {rule.content_options && (
-                                  <div className="text-xs text-gray-600 mt-1 font-mono bg-gray-50 p-1 rounded">
-                                    {rule.content_options}
+                    {/* Grouped View */}
+                    {groupByField && groupedValidationRules ? (
+                      <div className="space-y-6">
+                        {Object.entries(groupedValidationRules).map(([fieldKey, fieldGroup]: [string, any]) => (
+                          <Card key={fieldKey} className="border-l-4 border-l-blue-500">
+                            <CardHeader className="pb-3">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <Badge className="bg-blue-100 text-blue-800 font-mono text-lg px-3 py-1">
+                                    {fieldGroup.field_tag}
+                                  </Badge>
+                                  <div>
+                                    <h3 className="font-semibold text-lg">{fieldGroup.field_name}</h3>
+                                    <div className="text-sm text-gray-600">Field ID: {fieldGroup.field_id}</div>
                                   </div>
-                                )}
-                              </td>
-                              <td className="p-3 text-center">
-                                <Badge variant={rule.rule_priority <= 1 ? "destructive" : rule.rule_priority <= 3 ? "default" : "secondary"}>
-                                  {rule.rule_priority || 'N/A'}
-                                </Badge>
-                              </td>
-                              <td className="p-3">
-                                <Badge className={rule.is_mandatory ? "bg-red-100 text-red-800" : "bg-blue-100 text-blue-800"}>
-                                  {rule.is_mandatory ? 'Required' : 'Optional'}
-                                </Badge>
-                              </td>
-                              <td className="p-3">
-                                <div className="space-y-1">
-                                  {rule.character_type && (
-                                    <Badge variant="outline" className="text-xs">
-                                      {rule.character_type}
-                                    </Badge>
-                                  )}
                                 </div>
-                              </td>
-                              <td className="p-3">
-                                <div className="space-y-1 text-xs">
-                                  {rule.min_length && (
-                                    <div className="flex items-center gap-1">
-                                      <span className="text-gray-500">Min:</span>
-                                      <span className="font-mono">{rule.min_length}</span>
+                                <div className="flex items-center gap-2">
+                                  <Badge variant="outline">{fieldGroup.rules.length} rules</Badge>
+                                  <Badge className={fieldGroup.rules.some((r: any) => r.is_mandatory) ? "bg-red-100 text-red-800" : "bg-blue-100 text-blue-800"}>
+                                    {fieldGroup.rules.some((r: any) => r.is_mandatory) ? 'Has Required Rules' : 'Optional Rules'}
+                                  </Badge>
+                                </div>
+                              </div>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="space-y-3">
+                                {fieldGroup.rules.map((rule: any) => (
+                                  <div key={rule.rule_id} className="border rounded-lg p-4 bg-gray-50">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                      <div>
+                                        <div className="flex items-center gap-2 mb-2">
+                                          <Badge variant="outline" className="text-xs">Rule {rule.rule_id}</Badge>
+                                          <Badge className={rule.is_mandatory ? "bg-red-100 text-red-800" : "bg-blue-100 text-blue-800"}>
+                                            {rule.is_mandatory ? 'Required' : 'Optional'}
+                                          </Badge>
+                                          <Badge variant={rule.rule_priority <= 1 ? "destructive" : rule.rule_priority <= 3 ? "default" : "secondary"}>
+                                            P{rule.rule_priority}
+                                          </Badge>
+                                        </div>
+                                        <div className="text-sm font-medium text-gray-900">
+                                          {rule.validation_rule_type || 'Standard Rule'}
+                                        </div>
+                                      </div>
+                                      <div className="md:col-span-2">
+                                        <div className="text-sm text-gray-800 mb-2">
+                                          {rule.validation_rule_description}
+                                        </div>
+                                        {rule.content_options && (
+                                          <div className="text-xs text-gray-600 font-mono bg-white p-2 rounded border">
+                                            {rule.content_options}
+                                          </div>
+                                        )}
+                                        <div className="flex gap-2 mt-2 flex-wrap">
+                                          {rule.character_type && (
+                                            <Badge variant="outline" className="text-xs">
+                                              {rule.character_type}
+                                            </Badge>
+                                          )}
+                                          {rule.min_length && (
+                                            <Badge variant="outline" className="text-xs">
+                                              Min: {rule.min_length}
+                                            </Badge>
+                                          )}
+                                          {rule.max_length && (
+                                            <Badge variant="outline" className="text-xs">
+                                              Max: {rule.max_length}
+                                            </Badge>
+                                          )}
+                                          {rule.exact_length && (
+                                            <Badge variant="outline" className="text-xs">
+                                              Exact: {rule.exact_length}
+                                            </Badge>
+                                          )}
+                                          {rule.allows_repetition && (
+                                            <Badge variant="outline" className="text-xs bg-green-50 text-green-700">
+                                              Repetition
+                                            </Badge>
+                                          )}
+                                          {rule.allows_crlf && (
+                                            <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700">
+                                              CRLF
+                                            </Badge>
+                                          )}
+                                          {rule.allows_slash && (
+                                            <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700">
+                                              Slash
+                                            </Badge>
+                                          )}
+                                          {rule.has_optional_sections && (
+                                            <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700">
+                                              Optional Sections
+                                            </Badge>
+                                          )}
+                                          {rule.has_conditional_sections && (
+                                            <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700">
+                                              Conditional Sections
+                                            </Badge>
+                                          )}
+                                        </div>
+                                      </div>
                                     </div>
-                                  )}
-                                  {rule.max_length && (
-                                    <div className="flex items-center gap-1">
-                                      <span className="text-gray-500">Max:</span>
-                                      <span className="font-mono">{rule.max_length}</span>
-                                    </div>
-                                  )}
-                                  {rule.exact_length && (
-                                    <div className="flex items-center gap-1">
-                                      <span className="text-gray-500">Exact:</span>
-                                      <span className="font-mono">{rule.exact_length}</span>
-                                    </div>
-                                  )}
-                                </div>
-                              </td>
-                              <td className="p-3">
-                                <div className="space-y-1">
-                                  {rule.allows_repetition && (
-                                    <Badge variant="outline" className="text-xs bg-green-50 text-green-700">
-                                      Repetition
-                                    </Badge>
-                                  )}
-                                  {rule.allows_crlf && (
-                                    <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700">
-                                      CRLF
-                                    </Badge>
-                                  )}
-                                  {rule.allows_slash && (
-                                    <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700">
-                                      Slash
-                                    </Badge>
-                                  )}
-                                </div>
-                              </td>
-                              <td className="p-3">
-                                <div className="space-y-1">
-                                  {rule.has_optional_sections && (
-                                    <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700">
-                                      Optional
-                                    </Badge>
-                                  )}
-                                  {rule.has_conditional_sections && (
-                                    <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700">
-                                      Conditional
-                                    </Badge>
-                                  )}
-                                </div>
-                              </td>
+                                  </div>
+                                ))}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    ) : (
+                      /* Ungrouped Table View */
+                      <div className="overflow-x-auto">
+                        <table className="w-full border-collapse text-sm border">
+                          <thead>
+                            <tr className="border-b bg-gradient-to-r from-blue-50 to-purple-50">
+                              <th className="text-left p-3 font-semibold min-w-[80px]">Rule ID</th>
+                              <th className="text-left p-3 font-semibold min-w-[100px]">Field Tag</th>
+                              <th className="text-left p-3 font-semibold min-w-[200px]">Field Name</th>
+                              <th className="text-left p-3 font-semibold min-w-[120px]">Rule Type</th>
+                              <th className="text-left p-3 font-semibold min-w-[300px]">Description</th>
+                              <th className="text-left p-3 font-semibold min-w-[80px]">Priority</th>
+                              <th className="text-left p-3 font-semibold min-w-[100px]">Mandatory</th>
+                              <th className="text-left p-3 font-semibold min-w-[120px]">Character</th>
+                              <th className="text-left p-3 font-semibold min-w-[100px]">Length</th>
+                              <th className="text-left p-3 font-semibold min-w-[120px]">Formatting</th>
+                              <th className="text-left p-3 font-semibold min-w-[120px]">Sections</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                          </thead>
+                          <tbody>
+                            {filteredValidationRules.map((rule: any) => (
+                              <tr key={rule.rule_id} className="border-b hover:bg-blue-25 transition-colors">
+                                <td className="p-3">
+                                  <Badge variant="outline" className="font-mono">
+                                    {rule.rule_id}
+                                  </Badge>
+                                </td>
+                                <td className="p-3">
+                                  <Badge className="bg-blue-100 text-blue-800 font-mono font-bold">
+                                    {rule.field_tag}
+                                  </Badge>
+                                </td>
+                                <td className="p-3 max-w-xs">
+                                  <div className="font-medium text-gray-900">
+                                    {rule.field_name}
+                                  </div>
+                                  <div className="text-xs text-gray-500 mt-1">
+                                    Field ID: {rule.field_id} | Type ID: {rule.message_type_id}
+                                  </div>
+                                </td>
+                                <td className="p-3">
+                                  <Badge className={`
+                                    ${rule.validation_rule_type?.includes('FORMAT') ? 'bg-green-100 text-green-800' : 
+                                      rule.validation_rule_type?.includes('LENGTH') ? 'bg-yellow-100 text-yellow-800' :
+                                      rule.validation_rule_type?.includes('CONTENT') ? 'bg-purple-100 text-purple-800' :
+                                      'bg-gray-100 text-gray-800'}
+                                  `}>
+                                    {rule.validation_rule_type || 'Standard'}
+                                  </Badge>
+                                </td>
+                                <td className="p-3 max-w-sm">
+                                  <div className="text-sm text-gray-800">
+                                    {rule.validation_rule_description}
+                                  </div>
+                                  {rule.content_options && (
+                                    <div className="text-xs text-gray-600 mt-1 font-mono bg-gray-50 p-1 rounded">
+                                      {rule.content_options}
+                                    </div>
+                                  )}
+                                </td>
+                                <td className="p-3 text-center">
+                                  <Badge variant={rule.rule_priority <= 1 ? "destructive" : rule.rule_priority <= 3 ? "default" : "secondary"}>
+                                    {rule.rule_priority || 'N/A'}
+                                  </Badge>
+                                </td>
+                                <td className="p-3">
+                                  <Badge className={rule.is_mandatory ? "bg-red-100 text-red-800" : "bg-blue-100 text-blue-800"}>
+                                    {rule.is_mandatory ? 'Required' : 'Optional'}
+                                  </Badge>
+                                </td>
+                                <td className="p-3">
+                                  <div className="space-y-1">
+                                    {rule.character_type && (
+                                      <Badge variant="outline" className="text-xs">
+                                        {rule.character_type}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="p-3">
+                                  <div className="space-y-1 text-xs">
+                                    {rule.min_length && (
+                                      <div className="flex items-center gap-1">
+                                        <span className="text-gray-500">Min:</span>
+                                        <span className="font-mono">{rule.min_length}</span>
+                                      </div>
+                                    )}
+                                    {rule.max_length && (
+                                      <div className="flex items-center gap-1">
+                                        <span className="text-gray-500">Max:</span>
+                                        <span className="font-mono">{rule.max_length}</span>
+                                      </div>
+                                    )}
+                                    {rule.exact_length && (
+                                      <div className="flex items-center gap-1">
+                                        <span className="text-gray-500">Exact:</span>
+                                        <span className="font-mono">{rule.exact_length}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="p-3">
+                                  <div className="space-y-1">
+                                    {rule.allows_repetition && (
+                                      <Badge variant="outline" className="text-xs bg-green-50 text-green-700">
+                                        Repetition
+                                      </Badge>
+                                    )}
+                                    {rule.allows_crlf && (
+                                      <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700">
+                                        CRLF
+                                      </Badge>
+                                    )}
+                                    {rule.allows_slash && (
+                                      <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700">
+                                        Slash
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="p-3">
+                                  <div className="space-y-1">
+                                    {rule.has_optional_sections && (
+                                      <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700">
+                                        Optional
+                                      </Badge>
+                                    )}
+                                    {rule.has_conditional_sections && (
+                                      <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700">
+                                        Conditional
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="text-center py-12">
