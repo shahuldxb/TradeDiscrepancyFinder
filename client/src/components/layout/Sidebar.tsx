@@ -301,9 +301,9 @@ const navigationItems = [
         description: "Manage master documents (swift.Masterdocuments)",
       },
       {
-        name: "Sub Document Types",
+        name: "Sub Documents",
         href: "/lifecycle/sub-document-types",
-        description: "Manage sub document types (swift.subdocumentypes)",
+        description: "Browse and manage sub document types grouped by master documents",
       },
       {
         name: "Lifecycle States",
