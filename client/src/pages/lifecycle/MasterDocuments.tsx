@@ -106,60 +106,70 @@ export default function MasterDocuments() {
             </CardContent>
           </Card>
         ) : masterDocuments && masterDocuments.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {masterDocuments.map((doc) => (
-              <Card key={doc.DocumentID} className="bg-white/90 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-shadow">
-                <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white">
-                        {doc.DocumentName}
-                      </CardTitle>
-                      <CardDescription className="flex items-center space-x-2 mt-2">
-                        <span className="text-sm text-gray-600 dark:text-gray-300">
-                          {doc.DocumentCode}
-                        </span>
-                        <Badge variant={doc.IsActive ? "default" : "secondary"} className="text-xs">
-                          {doc.IsActive ? "Active" : "Inactive"}
-                        </Badge>
-                      </CardDescription>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                        ID: {doc.DocumentID}
-                      </span>
+          <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
+            <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700">
+              <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white">
+                Master Documents Registry
+              </CardTitle>
+              <CardDescription className="text-gray-600 dark:text-gray-300">
+                Complete list of trade finance documents from swift.masterdocuments
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                {masterDocuments.map((doc, index) => (
+                  <div key={doc.DocumentID} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-start space-x-4">
+                          <div className="flex-shrink-0">
+                            <span className="inline-flex items-center justify-center w-10 h-10 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg font-semibold text-sm">
+                              {doc.DocumentID}
+                            </span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center space-x-3 mb-2">
+                              <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
+                                {doc.DocumentName}
+                              </h3>
+                              <Badge variant={doc.IsActive ? "default" : "secondary"} className="text-xs flex-shrink-0">
+                                {doc.IsActive ? "Active" : "Inactive"}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center space-x-4 mb-2">
+                              <span className="text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded">
+                                {doc.DocumentCode}
+                              </span>
+                              <div className="flex items-center space-x-2">
+                                <div className={`w-2 h-2 rounded-full ${doc.IsActive ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                                <span className="text-sm text-gray-600 dark:text-gray-400">
+                                  {doc.IsActive ? 'Active' : 'Inactive'}
+                                </span>
+                              </div>
+                            </div>
+                            <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">
+                              {doc.Description || "No description available"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2 ml-4 flex-shrink-0">
+                        <Button size="sm" variant="outline" className="h-8 w-8 p-0">
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button size="sm" variant="outline" className="h-8 w-8 p-0">
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:border-red-300">
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <p className="text-gray-700 dark:text-gray-300 mb-4 line-clamp-3">
-                    {doc.Description || "No description available"}
-                  </p>
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <div className={`w-3 h-3 rounded-full ${doc.IsActive ? 'bg-green-500' : 'bg-gray-400'}`}></div>
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        {doc.IsActive ? 'Active' : 'Inactive'}
-                      </span>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      <Button size="sm" variant="outline">
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                      <Button size="sm" variant="outline">
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700">
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         ) : (
           <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
             <CardContent className="p-8 text-center">
