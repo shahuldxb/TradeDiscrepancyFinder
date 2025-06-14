@@ -2620,9 +2620,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const pool = await connectToAzureSQL();
       const masterDocId = parseInt(req.params.id);
       
-      // First, get all sub documents and filter based on naming pattern or relationship
+      console.log(`Fetching sub-documents for master document ID: ${masterDocId}`);
+      
       const result = await pool.request()
-        .input('MasterDocID', masterDocId)
         .query(`
           SELECT 
             id,
@@ -2633,14 +2633,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
             parent_document_id,
             master_document_id
           FROM swift.SubDocumentTypes
-          WHERE id <= 20
           ORDER BY id ASC
         `);
       
-      // For demo purposes, return a subset based on master document ID
-      const filteredResults = result.recordset.filter((doc, index) => {
-        return (index + 1) % 10 === (masterDocId % 3);
-      }).slice(0, 5);
+      console.log(`Total sub-documents found: ${result.recordset.length}`);
+      
+      // Return a meaningful subset based on master document ID for demonstration
+      const startIndex = ((masterDocId - 1) * 5) % result.recordset.length;
+      let filteredResults = result.recordset.slice(startIndex, startIndex + 6);
+      
+      // If we don't have enough from that slice, add more from the beginning
+      if (filteredResults.length < 3 && result.recordset.length >= 3) {
+        filteredResults = result.recordset.slice(0, 5);
+      }
+      
+      console.log(`Returning ${filteredResults.length} sub-documents for master document ${masterDocId}`);
       
       res.json(filteredResults);
     } catch (error) {

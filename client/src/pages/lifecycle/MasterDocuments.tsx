@@ -62,9 +62,20 @@ export default function MasterDocuments() {
     queryKey: ["/api/lifecycle/master-documents"],
   });
 
-  const { data: subDocuments, isLoading: isLoadingSubDocs } = useQuery<SubDocument[]>({
+  const { data: subDocuments, isLoading: isLoadingSubDocs, error: subDocError } = useQuery<SubDocument[]>({
     queryKey: ["/api/lifecycle/master-documents", selectedDocument?.DocumentID, "sub-documents"],
     enabled: !!selectedDocument,
+    queryFn: async () => {
+      if (!selectedDocument) return [];
+      console.log('Fetching sub-documents for document ID:', selectedDocument.DocumentID);
+      const response = await fetch(`/api/lifecycle/master-documents/${selectedDocument.DocumentID}/sub-documents`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch sub-documents: ${response.statusText}`);
+      }
+      const data = await response.json();
+      console.log('Sub-documents response:', data);
+      return data;
+    },
   });
 
   const updateMutation = useMutation({
@@ -104,6 +115,7 @@ export default function MasterDocuments() {
   };
 
   const handleDocumentClick = (document: MasterDocument) => {
+    console.log('Clicked document:', document);
     setSelectedDocument(document);
   };
 
@@ -184,7 +196,7 @@ export default function MasterDocuments() {
             {isLoading ? (
               <div className="space-y-4">
                 {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <Card key={i} className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
+                  <Card key={`loading-${i}`} className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
                     <CardContent className="p-4 animate-pulse">
                       <div className="flex items-center space-x-4">
                         <div className="w-10 h-10 bg-gray-200 rounded-lg"></div>
@@ -305,7 +317,14 @@ export default function MasterDocuments() {
 
           {/* Sub Documents Panel */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Sub Documents</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Sub Documents</h3>
+              {selectedDocument && (
+                <div className="text-sm text-gray-500">
+                  Selected: {selectedDocument.DocumentName} (ID: {selectedDocument.DocumentID})
+                </div>
+              )}
+            </div>
             {!selectedDocument ? (
               <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
                 <CardContent className="p-8 text-center">
@@ -317,7 +336,7 @@ export default function MasterDocuments() {
             ) : isLoadingSubDocs ? (
               <div className="space-y-4">
                 {[1, 2, 3].map((i) => (
-                  <Card key={i} className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
+                  <Card key={`sub-loading-${i}`} className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
                     <CardContent className="p-4 animate-pulse">
                       <div className="flex items-center space-x-4">
                         <div className="w-8 h-8 bg-gray-200 rounded"></div>
@@ -330,6 +349,14 @@ export default function MasterDocuments() {
                   </Card>
                 ))}
               </div>
+            ) : subDocError ? (
+              <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
+                <CardContent className="p-8 text-center">
+                  <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Sub Documents</h3>
+                  <p className="text-gray-600">{subDocError.message}</p>
+                </CardContent>
+              </Card>
             ) : subDocuments && subDocuments.length > 0 ? (
               <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
                 <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-100 dark:from-green-800 dark:to-emerald-700">
