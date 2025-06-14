@@ -1054,10 +1054,11 @@ export class AzureDataService {
           sd.Description,
           sd.IsActive,
           sd.CreatedDate,
+          sd.UpdatedDate,
           md.DocumentName as ParentDocumentName,
           md.DocumentCode as ParentDocumentCode
-        FROM SubDocumentTypes sd
-        JOIN MasterDocuments md ON sd.ParentDocumentID = md.DocumentID
+        FROM swift.SubDocumentTypes sd
+        JOIN swift.Masterdocuments md ON sd.ParentDocumentID = md.DocumentID
         WHERE sd.IsActive = 1
       `;
       

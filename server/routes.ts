@@ -2598,18 +2598,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Sub Document Types CRUD Operations (swift.SubDocumentTypes)
   app.get('/api/lifecycle/sub-document-types', async (req, res) => {
     try {
-      const { connectToAzureSQL } = await import('./azureSqlConnection');
-      const pool = await connectToAzureSQL();
-      
-      const result = await pool.request().query(`
-        SELECT * FROM swift.SubDocumentTypes
-        ORDER BY id DESC
-      `);
-      
-      res.json(result.recordset);
+      console.log('Fetching sub document types from Azure database...');
+      const { azureDataService } = await import('./azureDataService');
+      const subDocumentTypes = await azureDataService.getSubDocumentTypes();
+      console.log(`Fetched ${subDocumentTypes.length} sub document types from Azure`);
+      res.json(subDocumentTypes);
     } catch (error) {
-      console.error('Error fetching sub document types:', error);
-      res.status(500).json({ error: 'Failed to fetch sub document types' });
+      console.error('Error fetching sub document types from Azure:', error);
+      res.status(500).json({ error: 'Failed to fetch sub document types from Azure database' });
     }
   });
 
