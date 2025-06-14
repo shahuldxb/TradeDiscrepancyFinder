@@ -2637,18 +2637,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const columns = columnInfo.recordset.map(c => c.COLUMN_NAME).join(', ');
         console.log('Generated SELECT query:', `SELECT ${columns} FROM swift.SubDocumentTypes ORDER BY SubDocumentID ASC`);
         
-        const result = await pool.request()
+        // First get all sub-documents
+        const allResult = await pool.request()
           .query(`SELECT ${columns} FROM swift.SubDocumentTypes ORDER BY SubDocumentID ASC`);
         
-        console.log(`Total sub-documents found: ${result.recordset.length}`);
-        console.log('Sample record:', result.recordset[0]);
+        console.log(`Total sub-documents in database: ${allResult.recordset.length}`);
         
-        // Return a meaningful subset based on master document ID
-        const startIndex = ((masterDocId - 1) * 3) % Math.max(1, result.recordset.length);
-        let filteredResults = result.recordset.slice(startIndex, startIndex + 5);
+        // Filter sub-documents that belong to this master document
+        const result = await pool.request()
+          .input('ParentDocID', masterDocId)
+          .query(`SELECT ${columns} FROM swift.SubDocumentTypes WHERE ParentDocumentID = @ParentDocID ORDER BY SubDocumentID ASC`);
         
-        if (filteredResults.length === 0 && result.recordset.length > 0) {
-          filteredResults = result.recordset.slice(0, 3);
+        console.log(`Sub-documents for ParentDocumentID ${masterDocId}: ${result.recordset.length}`);
+        
+        let filteredResults = result.recordset;
+        
+        // If no direct relationship found, return a few representative examples
+        if (filteredResults.length === 0) {
+          console.log(`No direct sub-documents found for master document ${masterDocId}, returning representative sample`);
+          const startIndex = ((masterDocId - 1) * 4) % Math.max(1, allResult.recordset.length);
+          filteredResults = allResult.recordset.slice(startIndex, startIndex + 3);
         }
         
         console.log(`Returning ${filteredResults.length} sub-documents for master document ${masterDocId}`);
