@@ -317,10 +317,15 @@ export default function MasterDocuments() {
           {/* Sub Documents Panel */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Sub Documents</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                {selectedDocument 
+                  ? `Sub Documents - ${selectedDocument.DocumentName}` 
+                  : 'Sub Documents'
+                }
+              </h3>
               {selectedDocument && (
                 <div className="text-sm text-gray-500">
-                  Selected: {selectedDocument.DocumentName} (ID: {selectedDocument.DocumentID})
+                  ID: {selectedDocument.DocumentID}
                 </div>
               )}
             </div>
@@ -357,47 +362,78 @@ export default function MasterDocuments() {
                 </CardContent>
               </Card>
             ) : subDocuments && subDocuments.length > 0 ? (
-              <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
-                <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-100 dark:from-green-800 dark:to-emerald-700">
-                  <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Sub Documents for {selectedDocument.DocumentName}
-                  </CardTitle>
-                  <CardDescription className="text-gray-600 dark:text-gray-300">
-                    Document ID: {selectedDocument.DocumentID} - {selectedDocument.DocumentCode}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                    {subDocuments.map((subDoc) => (
-                      <div key={subDoc.SubDocumentID} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                        <div className="flex items-center space-x-4">
-                          <div className="flex-shrink-0">
-                            <span className="inline-flex items-center justify-center w-8 h-8 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded font-semibold text-sm">
-                              {subDoc.SubDocumentID}
-                            </span>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center space-x-3 mb-1">
-                              <h4 className="text-md font-medium text-gray-900 dark:text-white truncate">
-                                {subDoc.SubDocumentName}
-                              </h4>
-                              <Badge variant={subDoc.IsActive ? "default" : "secondary"} className="text-xs">
-                                {subDoc.IsActive ? "Active" : "Inactive"}
-                              </Badge>
+              <div className="space-y-4">
+                {/* Summary Card */}
+                <Card className="bg-gradient-to-r from-blue-50 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-800/30 border-0 shadow-xl">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
+                          {selectedDocument.DocumentName}
+                        </h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-300">
+                          Master Document ID: {selectedDocument.DocumentID} • {selectedDocument.DocumentCode}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                          {subDocuments.length}
+                        </div>
+                        <div className="text-xs text-gray-500">Sub Documents</div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Sub Documents List */}
+                <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
+                  <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-100 dark:from-green-800 dark:to-emerald-700">
+                    <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white">
+                      Related Sub Documents
+                    </CardTitle>
+                    <CardDescription className="text-gray-600 dark:text-gray-300">
+                      Documents grouped under Master ID {selectedDocument.DocumentID}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                      {subDocuments.map((subDoc, index) => (
+                        <div key={subDoc.SubDocumentID} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                          <div className="flex items-center space-x-4">
+                            <div className="flex-shrink-0">
+                              <span className="inline-flex items-center justify-center w-10 h-10 bg-gradient-to-br from-green-100 to-emerald-200 dark:from-green-900/30 dark:to-emerald-800/30 text-green-700 dark:text-green-400 rounded-lg font-semibold text-sm shadow-sm">
+                                {index + 1}
+                              </span>
                             </div>
-                            <p className="text-sm text-blue-600 dark:text-blue-400 mb-1">
-                              {subDoc.SubDocumentCode}
-                            </p>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
-                              {subDoc.Description || "No description available"}
-                            </p>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center space-x-3 mb-2">
+                                <h4 className="text-md font-semibold text-gray-900 dark:text-white truncate">
+                                  {subDoc.SubDocumentName}
+                                </h4>
+                                <Badge variant={subDoc.IsActive ? "default" : "secondary"} className="text-xs">
+                                  {subDoc.IsActive ? "Active" : "Inactive"}
+                                </Badge>
+                              </div>
+                              <div className="flex items-center space-x-4 mb-1">
+                                <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                                  {subDoc.SubDocumentCode}
+                                </p>
+                                <span className="text-xs text-gray-400">•</span>
+                                <p className="text-xs text-gray-500">
+                                  Sub ID: {subDoc.SubDocumentID}
+                                </p>
+                              </div>
+                              <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                                {subDoc.Description || "No description available"}
+                              </p>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             ) : (
               <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
                 <CardContent className="p-8 text-center">
