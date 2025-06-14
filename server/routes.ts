@@ -2541,7 +2541,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           Description,
           IsActive
         FROM swift.masterdocuments
-        ORDER BY DocumentID DESC
+        ORDER BY DocumentID ASC
       `);
       
       res.json(result.recordset);
