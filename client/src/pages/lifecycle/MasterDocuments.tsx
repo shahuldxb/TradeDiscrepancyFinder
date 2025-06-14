@@ -1,7 +1,15 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import { 
   FileText, 
   Database, 
@@ -11,7 +19,9 @@ import {
   Edit,
   Trash2,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Save,
+  X
 } from "lucide-react";
 
 interface MasterDocument {
@@ -23,9 +33,77 @@ interface MasterDocument {
 }
 
 export default function MasterDocuments() {
+  const [editingDocument, setEditingDocument] = useState<MasterDocument | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    DocumentCode: "",
+    DocumentName: "",
+    Description: "",
+    IsActive: true
+  });
+
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
   const { data: masterDocuments, isLoading, error } = useQuery<MasterDocument[]>({
     queryKey: ["/api/lifecycle/master-documents"],
   });
+
+  const updateMutation = useMutation({
+    mutationFn: async (data: { id: number; updates: Partial<MasterDocument> }) => {
+      return apiRequest(`/api/lifecycle/master-documents/${data.id}`, {
+        method: "PUT",
+        body: JSON.stringify(data.updates),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/lifecycle/master-documents"] });
+      toast({
+        title: "Success",
+        description: "Document updated successfully",
+      });
+      setIsEditDialogOpen(false);
+      setEditingDocument(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to update document",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleEdit = (document: MasterDocument) => {
+    setEditingDocument(document);
+    setFormData({
+      DocumentCode: document.DocumentCode,
+      DocumentName: document.DocumentName,
+      Description: document.Description || "",
+      IsActive: document.IsActive
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSave = () => {
+    if (!editingDocument) return;
+    
+    updateMutation.mutate({
+      id: editingDocument.DocumentID,
+      updates: formData
+    });
+  };
+
+  const handleCancel = () => {
+    setIsEditDialogOpen(false);
+    setEditingDocument(null);
+    setFormData({
+      DocumentCode: "",
+      DocumentName: "",
+      Description: "",
+      IsActive: true
+    });
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-slate-900 dark:via-blue-900/10 dark:to-purple-900/10">
@@ -157,7 +235,12 @@ export default function MasterDocuments() {
                         <Button size="sm" variant="outline" className="h-8 w-8 p-0">
                           <Eye className="w-4 h-4" />
                         </Button>
-                        <Button size="sm" variant="outline" className="h-8 w-8 p-0">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="h-8 w-8 p-0"
+                          onClick={() => handleEdit(doc)}
+                        >
                           <Edit className="w-4 h-4" />
                         </Button>
                         <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:border-red-300">
@@ -228,6 +311,99 @@ export default function MasterDocuments() {
             </Card>
           </div>
         )}
+
+        {/* Edit Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center space-x-2">
+                <Edit className="w-5 h-5" />
+                <span>Edit Master Document</span>
+              </DialogTitle>
+              <DialogDescription>
+                Update the master document details. Changes will be saved to the Azure SQL database.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="grid gap-6 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="documentCode" className="text-right font-medium">
+                  Document Code
+                </Label>
+                <Input
+                  id="documentCode"
+                  value={formData.DocumentCode}
+                  onChange={(e) => setFormData({ ...formData, DocumentCode: e.target.value })}
+                  className="col-span-3"
+                  placeholder="e.g., DOC001"
+                />
+              </div>
+              
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="documentName" className="text-right font-medium">
+                  Document Name
+                </Label>
+                <Input
+                  id="documentName"
+                  value={formData.DocumentName}
+                  onChange={(e) => setFormData({ ...formData, DocumentName: e.target.value })}
+                  className="col-span-3"
+                  placeholder="Enter document name"
+                />
+              </div>
+              
+              <div className="grid grid-cols-4 items-start gap-4">
+                <Label htmlFor="description" className="text-right font-medium pt-2">
+                  Description
+                </Label>
+                <Textarea
+                  id="description"
+                  value={formData.Description}
+                  onChange={(e) => setFormData({ ...formData, Description: e.target.value })}
+                  className="col-span-3"
+                  placeholder="Enter document description"
+                  rows={3}
+                />
+              </div>
+              
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="isActive" className="text-right font-medium">
+                  Active Status
+                </Label>
+                <div className="col-span-3 flex items-center space-x-2">
+                  <Switch
+                    id="isActive"
+                    checked={formData.IsActive}
+                    onCheckedChange={(checked) => setFormData({ ...formData, IsActive: checked })}
+                  />
+                  <span className="text-sm text-gray-600">
+                    {formData.IsActive ? "Active" : "Inactive"}
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={handleCancel} disabled={updateMutation.isPending}>
+                <X className="w-4 h-4 mr-2" />
+                Cancel
+              </Button>
+              <Button onClick={handleSave} disabled={updateMutation.isPending}>
+                {updateMutation.isPending ? (
+                  <>
+                    <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-gray-300 border-t-white"></div>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    Save Changes
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

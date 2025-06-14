@@ -2541,7 +2541,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           Description,
           IsActive
         FROM swift.masterdocuments
-        WHERE IsActive = 1
         ORDER BY DocumentID DESC
       `);
       
@@ -2549,6 +2548,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching master documents:', error);
       res.status(500).json({ error: 'Failed to fetch master documents' });
+    }
+  });
+
+  // Update Master Document
+  app.put('/api/lifecycle/master-documents/:id', async (req, res) => {
+    try {
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+      const documentId = parseInt(req.params.id);
+      const { DocumentCode, DocumentName, Description, IsActive } = req.body;
+      
+      const result = await pool.request()
+        .input('DocumentID', documentId)
+        .input('DocumentCode', DocumentCode)
+        .input('DocumentName', DocumentName)
+        .input('Description', Description)
+        .input('IsActive', IsActive)
+        .query(`
+          UPDATE swift.masterdocuments 
+          SET 
+            DocumentCode = @DocumentCode,
+            DocumentName = @DocumentName,
+            Description = @Description,
+            IsActive = @IsActive
+          WHERE DocumentID = @DocumentID;
+          
+          SELECT 
+            DocumentID,
+            DocumentCode,
+            DocumentName,
+            Description,
+            IsActive
+          FROM swift.masterdocuments 
+          WHERE DocumentID = @DocumentID;
+        `);
+      
+      if (result.recordset.length === 0) {
+        return res.status(404).json({ error: 'Master document not found' });
+      }
+      
+      res.json(result.recordset[0]);
+    } catch (error) {
+      console.error('Error updating master document:', error);
+      res.status(500).json({ error: 'Failed to update master document' });
     }
   });
 
