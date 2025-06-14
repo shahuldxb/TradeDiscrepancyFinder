@@ -2613,6 +2613,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get Sub Documents for a specific Master Document
+  app.get('/api/lifecycle/master-documents/:id/sub-documents', async (req, res) => {
+    try {
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+      const masterDocId = parseInt(req.params.id);
+      
+      const result = await pool.request()
+        .input('MasterDocID', masterDocId)
+        .query(`
+          SELECT 
+            sdt.*,
+            md.DocumentCode as MasterDocumentCode,
+            md.DocumentName as MasterDocumentName
+          FROM swift.SubDocumentTypes sdt
+          LEFT JOIN swift.masterdocuments md ON sdt.master_document_id = md.DocumentID
+          WHERE sdt.master_document_id = @MasterDocID OR sdt.parent_document_id = @MasterDocID
+          ORDER BY sdt.id ASC
+        `);
+      
+      res.json(result.recordset);
+    } catch (error) {
+      console.error('Error fetching sub documents for master document:', error);
+      res.status(500).json({ error: 'Failed to fetch sub documents' });
+    }
+  });
+
   // Lifecycle States CRUD Operations (swift.ls_LifecycleStates)
   app.get('/api/lifecycle/lifecycle-states', async (req, res) => {
     try {

@@ -32,9 +32,22 @@ interface MasterDocument {
   IsActive: boolean;
 }
 
+interface SubDocument {
+  id: number;
+  sub_document_name: string;
+  sub_document_code: string;
+  description: string;
+  is_required: boolean;
+  master_document_id?: number;
+  parent_document_id?: number;
+  MasterDocumentCode?: string;
+  MasterDocumentName?: string;
+}
+
 export default function MasterDocuments() {
   const [editingDocument, setEditingDocument] = useState<MasterDocument | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState<MasterDocument | null>(null);
   const [formData, setFormData] = useState({
     DocumentCode: "",
     DocumentName: "",
@@ -47,6 +60,11 @@ export default function MasterDocuments() {
 
   const { data: masterDocuments, isLoading, error } = useQuery<MasterDocument[]>({
     queryKey: ["/api/lifecycle/master-documents"],
+  });
+
+  const { data: subDocuments, isLoading: isLoadingSubDocs } = useQuery<SubDocument[]>({
+    queryKey: ["/api/lifecycle/master-documents", selectedDocument?.DocumentID, "sub-documents"],
+    enabled: !!selectedDocument,
   });
 
   const updateMutation = useMutation({
@@ -83,6 +101,10 @@ export default function MasterDocuments() {
       IsActive: document.IsActive
     });
     setIsEditDialogOpen(true);
+  };
+
+  const handleDocumentClick = (document: MasterDocument) => {
+    setSelectedDocument(document);
   };
 
   const handleSave = () => {
@@ -154,24 +176,27 @@ export default function MasterDocuments() {
           </div>
         </div>
 
-        {/* Content */}
-        {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <Card key={i} className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
-                <CardHeader className="animate-pulse">
-                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                  <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-                </CardHeader>
-                <CardContent className="animate-pulse">
-                  <div className="space-y-2">
-                    <div className="h-3 bg-gray-200 rounded"></div>
-                    <div className="h-3 bg-gray-200 rounded w-5/6"></div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+        {/* Split Layout Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Master Documents Panel */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Master Documents</h3>
+            {isLoading ? (
+              <div className="space-y-4">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <Card key={i} className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
+                    <CardContent className="p-4 animate-pulse">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-10 h-10 bg-gray-200 rounded-lg"></div>
+                        <div className="flex-1 space-y-2">
+                          <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                          <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
         ) : error ? (
           <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
             <CardContent className="p-8 text-center">
@@ -199,9 +224,16 @@ export default function MasterDocuments() {
                   <div key={doc.DocumentID} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
-                        <div className="flex items-start space-x-4">
+                        <div 
+                          className="flex items-start space-x-4 cursor-pointer"
+                          onClick={() => handleDocumentClick(doc)}
+                        >
                           <div className="flex-shrink-0">
-                            <span className="inline-flex items-center justify-center w-10 h-10 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg font-semibold text-sm">
+                            <span className={`inline-flex items-center justify-center w-10 h-10 rounded-lg font-semibold text-sm ${
+                              selectedDocument?.DocumentID === doc.DocumentID 
+                                ? 'bg-blue-600 text-white' 
+                                : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                            }`}>
                               {doc.DocumentID}
                             </span>
                           </div>
@@ -239,7 +271,10 @@ export default function MasterDocuments() {
                           size="sm" 
                           variant="outline" 
                           className="h-8 w-8 p-0"
-                          onClick={() => handleEdit(doc)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEdit(doc);
+                          }}
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
@@ -253,10 +288,10 @@ export default function MasterDocuments() {
               </div>
             </CardContent>
           </Card>
-        ) : (
-          <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
-            <CardContent className="p-8 text-center">
-              <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            ) : (
+              <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
+                <CardContent className="p-8 text-center">
+                  <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-gray-900 mb-2">No Documents Found</h3>
               <p className="text-gray-600 mb-4">No active master documents are currently available</p>
               <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
