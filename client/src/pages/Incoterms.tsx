@@ -18,9 +18,19 @@ interface ResponsibilityMatrix {
 export default function Incoterms() {
   const [selectedTab, setSelectedTab] = useState("overview");
 
-  // Fetch responsibility matrix
-  const { data: responsibilityMatrix, isLoading: loadingMatrix } = useQuery<ResponsibilityMatrix[]>({
-    queryKey: ["/api/incoterms/responsibility-matrix"],
+  // Fetch responsibility matrix from working Azure tables
+  const { data: responsibilityMatrix, isLoading: loadingMatrix } = useQuery({
+    queryKey: ["/api/incoterms/matrix/responsibilities"],
+  });
+
+  // Fetch Incoterms terms from working Azure tables
+  const { data: incotermsTerms, isLoading: loadingTerms } = useQuery({
+    queryKey: ["/api/incoterms/matrix/terms"],
+  });
+
+  // Fetch obligations from working Azure tables
+  const { data: obligations, isLoading: loadingObligations } = useQuery({
+    queryKey: ["/api/incoterms/matrix/obligations"],
   });
 
   const getTransportIcon = (mode: string) => {
@@ -306,38 +316,74 @@ export default function Incoterms() {
                 </div>
               </div>
               <CardContent className="p-6">
-                {loadingMatrix ? (
-                  <div className="text-center py-8">Loading matrix...</div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <Table className="banking-table">
-                      <TableHeader className="banking-table-header">
-                        <TableRow>
-                          <TableHead className="text-white">Incoterm</TableHead>
-                          <TableHead className="text-white">Category</TableHead>
-                          <TableHead className="text-white">Seller Responsibility</TableHead>
-                          <TableHead className="text-white">Buyer Responsibility</TableHead>
-                          <TableHead className="text-white">Critical Point</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {responsibilityMatrix?.slice(0, 10).map((item) => (
-                          <TableRow key={item.id} className="banking-table-row">
-                            <TableCell className="banking-table-cell font-medium">{item.incoterm_code}</TableCell>
-                            <TableCell className="banking-table-cell">{item.responsibility_category}</TableCell>
-                            <TableCell className="banking-table-cell">{item.seller_responsibility}</TableCell>
-                            <TableCell className="banking-table-cell">{item.buyer_responsibility}</TableCell>
-                            <TableCell className="banking-table-cell">
-                              {item.critical_point ? (
-                                <Badge className="status-error">Critical</Badge>
-                              ) : (
-                                <Badge className="status-active">Standard</Badge>
-                              )}
-                            </TableCell>
+                {loadingMatrix || loadingTerms || loadingObligations ? (
+                  <div className="text-center py-8">Loading responsibility matrix...</div>
+                ) : responsibilityMatrix && (responsibilityMatrix as any[])?.length > 0 ? (
+                  <div className="space-y-6">
+                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-semibold text-blue-800">Matrix Overview</h4>
+                        <div className="text-sm text-blue-700">
+                          {(incotermsTerms as any[])?.length || 11} Incoterms × {(obligations as any[])?.length || 11} Obligations = {(responsibilityMatrix as any[])?.length} assignments
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="overflow-x-auto">
+                      <Table className="banking-table">
+                        <TableHeader className="banking-table-header">
+                          <TableRow>
+                            <TableHead className="text-white">Incoterm Code</TableHead>
+                            <TableHead className="text-white">Obligation</TableHead>
+                            <TableHead className="text-white">Responsibility</TableHead>
+                            <TableHead className="text-white">Party</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {(responsibilityMatrix as any[])?.slice(0, 20).map((item: any, index: number) => (
+                            <TableRow key={`${item.incoterm_code}-${item.obligation_id}-${index}`} className="banking-table-row">
+                              <TableCell className="banking-table-cell font-medium">
+                                <Badge variant="outline" className="font-mono">
+                                  {item.incoterm_code}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="banking-table-cell">
+                                <div className="font-medium">{item.obligation_name}</div>
+                                <div className="text-xs text-gray-500">ID: {item.obligation_id}</div>
+                              </TableCell>
+                              <TableCell className="banking-table-cell">
+                                <Badge className={
+                                  item.responsibility === 'Seller' ? 'bg-green-100 text-green-800' :
+                                  item.responsibility === 'Buyer' ? 'bg-blue-100 text-blue-800' :
+                                  item.responsibility === 'Negotiable' ? 'bg-gray-100 text-gray-800' :
+                                  'bg-orange-100 text-orange-800'
+                                }>
+                                  {item.responsibility}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="banking-table-cell">
+                                <div className="text-sm">
+                                  {item.responsibility === 'Seller' ? '🏭 Seller' :
+                                   item.responsibility === 'Buyer' ? '🏢 Buyer' :
+                                   item.responsibility === 'Negotiable' ? '🤝 Negotiable' :
+                                   '⚖️ Other'}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    
+                    {(responsibilityMatrix as any[])?.length > 20 && (
+                      <div className="text-center text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
+                        Showing first 20 of {(responsibilityMatrix as any[])?.length} total responsibility assignments
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    No responsibility matrix data available from Azure database
                   </div>
                 )}
               </CardContent>
