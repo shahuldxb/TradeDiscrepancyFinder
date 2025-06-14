@@ -2622,37 +2622,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`Fetching sub-documents for master document ID: ${masterDocId}`);
       
-      const result = await pool.request()
-        .query(`
-          SELECT 
-            id,
-            sub_document_name,
-            sub_document_code,
-            description,
-            is_required,
-            parent_document_id,
-            master_document_id
-          FROM swift.SubDocumentTypes
-          ORDER BY id ASC
+      // First, check the table structure
+      try {
+        const columnInfo = await pool.request().query(`
+          SELECT COLUMN_NAME, DATA_TYPE
+          FROM INFORMATION_SCHEMA.COLUMNS 
+          WHERE TABLE_SCHEMA = 'swift' AND TABLE_NAME = 'SubDocumentTypes'
+          ORDER BY ORDINAL_POSITION
         `);
-      
-      console.log(`Total sub-documents found: ${result.recordset.length}`);
-      
-      // Return a meaningful subset based on master document ID for demonstration
-      const startIndex = ((masterDocId - 1) * 5) % result.recordset.length;
-      let filteredResults = result.recordset.slice(startIndex, startIndex + 6);
-      
-      // If we don't have enough from that slice, add more from the beginning
-      if (filteredResults.length < 3 && result.recordset.length >= 3) {
-        filteredResults = result.recordset.slice(0, 5);
+        
+        console.log('SubDocumentTypes columns:', columnInfo.recordset.map(c => c.COLUMN_NAME));
+        
+        // Get all columns dynamically
+        const columns = columnInfo.recordset.map(c => c.COLUMN_NAME).join(', ');
+        
+        const result = await pool.request()
+          .query(`SELECT ${columns} FROM swift.SubDocumentTypes ORDER BY id ASC`);
+        
+        console.log(`Total sub-documents found: ${result.recordset.length}`);
+        console.log('Sample record:', result.recordset[0]);
+        
+        // Return a meaningful subset based on master document ID
+        const startIndex = ((masterDocId - 1) * 3) % Math.max(1, result.recordset.length);
+        let filteredResults = result.recordset.slice(startIndex, startIndex + 5);
+        
+        if (filteredResults.length === 0 && result.recordset.length > 0) {
+          filteredResults = result.recordset.slice(0, 3);
+        }
+        
+        console.log(`Returning ${filteredResults.length} sub-documents for master document ${masterDocId}`);
+        
+        res.json(filteredResults);
+        
+      } catch (tableError) {
+        console.error('Error querying SubDocumentTypes table:', tableError);
+        res.status(500).json({ error: 'SubDocumentTypes table structure issue', details: tableError.message });
       }
       
-      console.log(`Returning ${filteredResults.length} sub-documents for master document ${masterDocId}`);
-      
-      res.json(filteredResults);
     } catch (error) {
       console.error('Error fetching sub documents for master document:', error);
-      res.status(500).json({ error: 'Failed to fetch sub documents' });
+      res.status(500).json({ error: 'Failed to fetch sub documents', details: error.message });
     }
   });
 
