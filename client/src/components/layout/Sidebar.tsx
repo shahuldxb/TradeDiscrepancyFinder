@@ -22,7 +22,9 @@ import {
   ChevronDown,
   ChevronRight,
   Beaker,
-  Globe
+  Globe,
+  GitBranch,
+  BarChart3
 } from "lucide-react";
 
 const navigationItems = [
@@ -280,6 +282,48 @@ const navigationItems = [
         name: "API Management",
         href: "/admin/api",
         description: "API configuration and monitoring",
+      },
+    ],
+  },
+  {
+    name: "Lifecycle Management",
+    icon: GitBranch,
+    description: "tf_genie Database Dashboard",
+    subItems: [
+      {
+        name: "Dashboard Overview",
+        href: "/lifecycle/dashboard",
+        description: "Key metrics and recent activity",
+      },
+      {
+        name: "Master Documents",
+        href: "/lifecycle/master-documents",
+        description: "Manage master documents (swift.Masterdocuments)",
+      },
+      {
+        name: "Sub Document Types",
+        href: "/lifecycle/sub-document-types",
+        description: "Manage sub document types (swift.subdocumentypes)",
+      },
+      {
+        name: "Lifecycle States",
+        href: "/lifecycle/lifecycle-states",
+        description: "Manage lifecycle states (swift.Lifecyclestates)",
+      },
+      {
+        name: "Document Requirements",
+        href: "/lifecycle/document-requirements",
+        description: "Lifecycle document requirements (swift.Lifecycledocumentrequirements)",
+      },
+      {
+        name: "MT7 Dependencies",
+        href: "/lifecycle/mt7-dependencies",
+        description: "MT7 series dependencies (swift.ls_MT7SeriesDependencies)",
+      },
+      {
+        name: "Analytics View",
+        href: "/lifecycle/analytics",
+        description: "Lifecycle analytics (vw_ls_lifecycle)",
       },
     ],
   },
