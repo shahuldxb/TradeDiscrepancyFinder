@@ -2447,6 +2447,251 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Lifecycle Management Dashboard API Routes
+  // tf_genie Database Dashboard - Core Tables Management
+  
+  // Dashboard Overview - Key Metrics
+  app.get('/api/lifecycle/dashboard/metrics', async (req, res) => {
+    try {
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+      
+      // Get counts from all core tables
+      const masterDocsResult = await pool.request().query(`
+        SELECT COUNT(*) as count FROM swift.Masterdocuments
+      `);
+      
+      const subDocTypesResult = await pool.request().query(`
+        SELECT COUNT(*) as count FROM swift.subdocumentypes
+      `);
+      
+      const lifecycleStatesResult = await pool.request().query(`
+        SELECT COUNT(*) as count FROM swift.Lifecyclestates
+      `);
+      
+      const mt7DepsResult = await pool.request().query(`
+        SELECT COUNT(*) as count FROM swift.ls_MT7SeriesDependencies
+      `);
+      
+      const docRequirementsResult = await pool.request().query(`
+        SELECT COUNT(*) as count FROM swift.Lifecycledocumentrequirements
+      `);
+      
+      const metrics = {
+        masterDocuments: masterDocsResult.recordset[0].count,
+        subDocumentTypes: subDocTypesResult.recordset[0].count,
+        lifecycleStates: lifecycleStatesResult.recordset[0].count,
+        mt7Dependencies: mt7DepsResult.recordset[0].count,
+        documentRequirements: docRequirementsResult.recordset[0].count,
+        totalRecords: masterDocsResult.recordset[0].count + subDocTypesResult.recordset[0].count + 
+                     lifecycleStatesResult.recordset[0].count + mt7DepsResult.recordset[0].count + 
+                     docRequirementsResult.recordset[0].count
+      };
+      
+      res.json(metrics);
+    } catch (error) {
+      console.error('Error fetching lifecycle dashboard metrics:', error);
+      res.status(500).json({ error: 'Failed to fetch dashboard metrics' });
+    }
+  });
+
+  // Recent Activity - Simulated for now
+  app.get('/api/lifecycle/dashboard/recent-activity', async (req, res) => {
+    try {
+      // This would typically come from an audit log table
+      const recentActivity = [
+        {
+          action: "Master Document Created",
+          description: "New document added to swift.Masterdocuments",
+          timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+          status: "success"
+        },
+        {
+          action: "Lifecycle State Updated",
+          description: "State transition in swift.Lifecyclestates",
+          timestamp: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+          status: "success"
+        },
+        {
+          action: "Document Requirement Added",
+          description: "New requirement in swift.Lifecycledocumentrequirements",
+          timestamp: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
+          status: "success"
+        }
+      ];
+      
+      res.json(recentActivity);
+    } catch (error) {
+      console.error('Error fetching recent activity:', error);
+      res.status(500).json({ error: 'Failed to fetch recent activity' });
+    }
+  });
+
+  // Master Documents CRUD Operations (swift.Masterdocuments)
+  app.get('/api/lifecycle/master-documents', async (req, res) => {
+    try {
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+      
+      const result = await pool.request().query(`
+        SELECT * FROM swift.Masterdocuments
+        ORDER BY id DESC
+      `);
+      
+      res.json(result.recordset);
+    } catch (error) {
+      console.error('Error fetching master documents:', error);
+      res.status(500).json({ error: 'Failed to fetch master documents' });
+    }
+  });
+
+  app.post('/api/lifecycle/master-documents', async (req, res) => {
+    try {
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+      
+      const { document_name, document_type, status, description } = req.body;
+      
+      const result = await pool.request()
+        .input('document_name', document_name)
+        .input('document_type', document_type)
+        .input('status', status)
+        .input('description', description)
+        .query(`
+          INSERT INTO swift.Masterdocuments (document_name, document_type, status, description, created_at)
+          OUTPUT INSERTED.*
+          VALUES (@document_name, @document_type, @status, @description, GETDATE())
+        `);
+      
+      res.json({ success: true, data: result.recordset[0] });
+    } catch (error) {
+      console.error('Error creating master document:', error);
+      res.status(500).json({ error: 'Failed to create master document' });
+    }
+  });
+
+  // Sub Document Types CRUD Operations (swift.subdocumentypes)
+  app.get('/api/lifecycle/sub-document-types', async (req, res) => {
+    try {
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+      
+      const result = await pool.request().query(`
+        SELECT * FROM swift.subdocumentypes
+        ORDER BY id DESC
+      `);
+      
+      res.json(result.recordset);
+    } catch (error) {
+      console.error('Error fetching sub document types:', error);
+      res.status(500).json({ error: 'Failed to fetch sub document types' });
+    }
+  });
+
+  // Lifecycle States CRUD Operations (swift.Lifecyclestates)
+  app.get('/api/lifecycle/lifecycle-states', async (req, res) => {
+    try {
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+      
+      const result = await pool.request().query(`
+        SELECT * FROM swift.Lifecyclestates
+        ORDER BY stateid
+      `);
+      
+      res.json(result.recordset);
+    } catch (error) {
+      console.error('Error fetching lifecycle states:', error);
+      res.status(500).json({ error: 'Failed to fetch lifecycle states' });
+    }
+  });
+
+  // Document Requirements CRUD Operations (swift.Lifecycledocumentrequirements)
+  app.get('/api/lifecycle/document-requirements', async (req, res) => {
+    try {
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+      
+      const result = await pool.request().query(`
+        SELECT * FROM swift.Lifecycledocumentrequirements
+        ORDER BY id DESC
+      `);
+      
+      res.json(result.recordset);
+    } catch (error) {
+      console.error('Error fetching document requirements:', error);
+      res.status(500).json({ error: 'Failed to fetch document requirements' });
+    }
+  });
+
+  // MT7 Dependencies CRUD Operations (swift.ls_MT7SeriesDependencies)
+  app.get('/api/lifecycle/mt7-dependencies', async (req, res) => {
+    try {
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+      
+      const result = await pool.request().query(`
+        SELECT * FROM swift.ls_MT7SeriesDependencies
+        ORDER BY id DESC
+      `);
+      
+      res.json(result.recordset);
+    } catch (error) {
+      console.error('Error fetching MT7 dependencies:', error);
+      res.status(500).json({ error: 'Failed to fetch MT7 dependencies' });
+    }
+  });
+
+  // Analytics View - Grouped Lifecycle Data (vw_ls_lifecycle)
+  app.get('/api/lifecycle/analytics', async (req, res) => {
+    try {
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+      
+      const result = await pool.request().query(`
+        SELECT * FROM vw_ls_lifecycle
+        ORDER BY stateid, credit_code, document_code
+      `);
+      
+      // Group data hierarchically as specified in the UI/UX document
+      const groupedData = {};
+      
+      result.recordset.forEach(row => {
+        const stateKey = `${row.stateid}_${row.statement}`;
+        if (!groupedData[stateKey]) {
+          groupedData[stateKey] = {
+            stateid: row.stateid,
+            statement: row.statement,
+            credits: {}
+          };
+        }
+        
+        const creditKey = `${row.credit_code}_${row.credit_name}`;
+        if (!groupedData[stateKey].credits[creditKey]) {
+          groupedData[stateKey].credits[creditKey] = {
+            credit_code: row.credit_code,
+            credit_name: row.credit_name,
+            documents: []
+          };
+        }
+        
+        groupedData[stateKey].credits[creditKey].documents.push({
+          document_code: row.document_code,
+          document_name: row.document_name
+        });
+      });
+      
+      res.json({
+        raw: result.recordset,
+        grouped: groupedData,
+        totalRecords: result.recordset.length
+      });
+    } catch (error) {
+      console.error('Error fetching lifecycle analytics:', error);
+      res.status(500).json({ error: 'Failed to fetch lifecycle analytics' });
+    }
+  });
+
   // AI-Centric Incoterms Agent Status
   app.get('/api/incoterms/agents/status', async (req, res) => {
     try {

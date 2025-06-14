@@ -41,6 +41,7 @@ import UCPDashboard from "@/pages/UCPDashboard";
 import DocumentaryCredits from "@/pages/DocumentaryCredits";
 import MTIntelligence from "@/pages/MTIntelligence";
 import MT7xxMessages from "@/pages/MT7xxMessages";
+import LifecycleDashboard from "@/pages/lifecycle/LifecycleDashboard";
 
 import NotFound from "@/pages/not-found";
 
@@ -138,10 +139,19 @@ function Router() {
             <Route path="/analysis/audit" component={DiscrepancyAnalysis} />
             
             {/* Incoterms Management Routes */}
-            <Route path="/incoterms" component={IncotermsDataGrid} />
+            <Route path="/incoterms" component={Incoterms} />
             <Route path="/incoterms/matrix" component={IncotermsManagement} />
             <Route path="/incoterms/validation" component={IncotermsValidation} />
             <Route path="/incoterms/agents" component={IncotermsAgents} />
+            
+            {/* Lifecycle Management Routes */}
+            <Route path="/lifecycle/dashboard" component={LifecycleDashboard} />
+            <Route path="/lifecycle/master-documents" component={LifecycleDashboard} />
+            <Route path="/lifecycle/sub-document-types" component={LifecycleDashboard} />
+            <Route path="/lifecycle/lifecycle-states" component={LifecycleDashboard} />
+            <Route path="/lifecycle/document-requirements" component={LifecycleDashboard} />
+            <Route path="/lifecycle/mt7-dependencies" component={LifecycleDashboard} />
+            <Route path="/lifecycle/analytics" component={LifecycleDashboard} />
             
             {/* System Admin Routes */}
             <Route path="/admin/users" component={AgentMonitor} />
