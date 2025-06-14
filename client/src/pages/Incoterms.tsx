@@ -18,19 +18,20 @@ interface ResponsibilityMatrix {
 export default function Incoterms() {
   const [selectedTab, setSelectedTab] = useState("overview");
 
-  // Fetch responsibility matrix from working Azure tables
+  // Only fetch matrix data when the matrix tab is selected
   const { data: responsibilityMatrix, isLoading: loadingMatrix } = useQuery({
     queryKey: ["/api/incoterms/matrix/responsibilities"],
+    enabled: selectedTab === "matrix",
   });
 
-  // Fetch Incoterms terms from working Azure tables
   const { data: incotermsTerms, isLoading: loadingTerms } = useQuery({
     queryKey: ["/api/incoterms/matrix/terms"],
+    enabled: selectedTab === "matrix",
   });
 
-  // Fetch obligations from working Azure tables
   const { data: obligations, isLoading: loadingObligations } = useQuery({
     queryKey: ["/api/incoterms/matrix/obligations"],
+    enabled: selectedTab === "matrix",
   });
 
   const getTransportIcon = (mode: string) => {
