@@ -2635,9 +2635,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Get all columns dynamically
         const columns = columnInfo.recordset.map(c => c.COLUMN_NAME).join(', ');
+        console.log('Generated SELECT query:', `SELECT ${columns} FROM swift.SubDocumentTypes ORDER BY SubDocumentID ASC`);
         
         const result = await pool.request()
-          .query(`SELECT ${columns} FROM swift.SubDocumentTypes ORDER BY id ASC`);
+          .query(`SELECT ${columns} FROM swift.SubDocumentTypes ORDER BY SubDocumentID ASC`);
         
         console.log(`Total sub-documents found: ${result.recordset.length}`);
         console.log('Sample record:', result.recordset[0]);

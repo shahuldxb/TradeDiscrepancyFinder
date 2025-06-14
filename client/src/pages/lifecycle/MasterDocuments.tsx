@@ -33,15 +33,14 @@ interface MasterDocument {
 }
 
 interface SubDocument {
-  id: number;
-  sub_document_name: string;
-  sub_document_code: string;
-  description: string;
-  is_required: boolean;
-  master_document_id?: number;
-  parent_document_id?: number;
-  MasterDocumentCode?: string;
-  MasterDocumentName?: string;
+  SubDocumentID: number;
+  SubDocumentName: string;
+  SubDocumentCode: string;
+  Description: string;
+  IsActive: boolean;
+  ParentDocumentID?: number;
+  CreatedDate?: string;
+  UpdatedDate?: string;
 }
 
 export default function MasterDocuments() {
@@ -370,27 +369,27 @@ export default function MasterDocuments() {
                 <CardContent className="p-0">
                   <div className="divide-y divide-gray-200 dark:divide-gray-700">
                     {subDocuments.map((subDoc) => (
-                      <div key={subDoc.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                      <div key={subDoc.SubDocumentID} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                         <div className="flex items-center space-x-4">
                           <div className="flex-shrink-0">
                             <span className="inline-flex items-center justify-center w-8 h-8 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded font-semibold text-sm">
-                              {subDoc.id}
+                              {subDoc.SubDocumentID}
                             </span>
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center space-x-3 mb-1">
                               <h4 className="text-md font-medium text-gray-900 dark:text-white truncate">
-                                {subDoc.sub_document_name}
+                                {subDoc.SubDocumentName}
                               </h4>
-                              <Badge variant={subDoc.is_required ? "default" : "secondary"} className="text-xs">
-                                {subDoc.is_required ? "Required" : "Optional"}
+                              <Badge variant={subDoc.IsActive ? "default" : "secondary"} className="text-xs">
+                                {subDoc.IsActive ? "Active" : "Inactive"}
                               </Badge>
                             </div>
                             <p className="text-sm text-blue-600 dark:text-blue-400 mb-1">
-                              {subDoc.sub_document_code}
+                              {subDoc.SubDocumentCode}
                             </p>
                             <p className="text-sm text-gray-600 dark:text-gray-400">
-                              {subDoc.description || "No description available"}
+                              {subDoc.Description || "No description available"}
                             </p>
                           </div>
                         </div>
