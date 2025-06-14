@@ -2458,7 +2458,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get counts from actual Azure SQL tables from tf_genie database
       const masterDocsResult = await pool.request().query(`
-        SELECT COUNT(*) as count FROM swift.masterdocuments
+        SELECT COUNT(*) as count FROM swift.masterdocuments WHERE IsActive = 1
       `);
       
       const subDocTypesResult = await pool.request().query(`
@@ -2534,8 +2534,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const pool = await connectToAzureSQL();
       
       const result = await pool.request().query(`
-        SELECT * FROM swift.masterdocuments
-        ORDER BY id DESC
+        SELECT 
+          DocumentID,
+          DocumentCode,
+          DocumentName,
+          Description,
+          IsActive
+        FROM swift.masterdocuments
+        WHERE IsActive = 1
+        ORDER BY DocumentID DESC
       `);
       
       res.json(result.recordset);

@@ -42,6 +42,7 @@ import DocumentaryCredits from "@/pages/DocumentaryCredits";
 import MTIntelligence from "@/pages/MTIntelligence";
 import MT7xxMessages from "@/pages/MT7xxMessages";
 import LifecycleDashboard from "@/pages/lifecycle/LifecycleDashboard";
+import MasterDocuments from "@/pages/lifecycle/MasterDocuments";
 
 import NotFound from "@/pages/not-found";
 
@@ -146,7 +147,7 @@ function Router() {
             
             {/* Lifecycle Management Routes */}
             <Route path="/lifecycle/dashboard" component={LifecycleDashboard} />
-            <Route path="/lifecycle/master-documents" component={LifecycleDashboard} />
+            <Route path="/lifecycle/master-documents" component={MasterDocuments} />
             <Route path="/lifecycle/sub-document-types" component={LifecycleDashboard} />
             <Route path="/lifecycle/lifecycle-states" component={LifecycleDashboard} />
             <Route path="/lifecycle/document-requirements" component={LifecycleDashboard} />
