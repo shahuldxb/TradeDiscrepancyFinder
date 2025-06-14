@@ -1,0 +1,114 @@
+# Trade Finance Discrepancy Resolution Platform
+
+## Overview
+
+This is a sophisticated Trade Finance Discrepancy Resolution Platform that leverages autonomous AI agents for intelligent document processing and dynamic workflow management. The system is built around CrewAI microservices architecture with Azure SQL Server as the primary database, focusing on SWIFT message processing (MT700 series) and UCP 600 compliance validation.
+
+## System Architecture
+
+### Frontend Architecture
+- **TypeScript React Frontend** with Vite build system
+- **Shadcn/UI Components** for modern, accessible UI
+- **TanStack Query** for efficient data fetching and caching
+- **Tailwind CSS** for styling with custom design system
+- **React Hook Form** with Zod validation for form handling
+
+### Backend Architecture
+- **Node.js + Express** server with TypeScript
+- **CrewAI Microservices** for autonomous agent orchestration
+- **Azure SQL Server** as primary database (tf_genie database)
+- **Drizzle ORM** configuration (though primarily using raw SQL for Azure)
+- **Replit Authentication** for user management
+- **OpenAI/Gemini AI** integration for document intelligence
+
+### Database Strategy
+- **Primary Database**: Azure SQL Server (tf_genie) hosted on shahulmi.database.windows.net
+- **Backup Configuration**: PostgreSQL support via Drizzle (for potential migration)
+- **Multi-Schema Design**: Separate schemas for different data domains (swift, etc.)
+
+## Key Components
+
+### 1. SWIFT Message Processing System
+- **MT700 Lifecycle Management**: Complete documentary credit processing
+- **MT701/MT702 Support**: Credit advice and amendment validation
+- **Field Validation Engine**: Real-time validation against Azure database tables
+- **Message Type Registry**: Comprehensive SWIFT field definitions and rules
+
+### 2. Document Management System
+- **OCR Processing**: PDF and image document text extraction
+- **Document Sets**: Grouped document processing with lifecycle tracking
+- **File Upload/Storage**: Secure document handling with metadata
+- **Discrepancy Detection**: AI-powered document analysis
+
+### 3. Autonomous AI Agent Framework
+- **Agent Task Management**: Queued task processing with status tracking
+- **Custom Agent Creation**: User-defined agents with specific roles
+- **CrewAI Integration**: Multi-agent collaboration for complex workflows
+- **Agent Configuration**: Dynamic agent setup with customizable parameters
+
+### 4. UCP 600 Compliance Engine
+- **UCP Articles Database**: Complete UCP 600 rule repository
+- **Validation Rules**: Automated compliance checking
+- **Business Rules Engine**: Configurable validation logic
+- **Discrepancy Resolution**: AI-assisted resolution workflows
+
+### 5. Incoterms 2020 Management
+- **Complete Incoterms Implementation**: All 11 terms with detailed specifications
+- **Responsibility Matrix**: Seller/buyer obligation tracking
+- **AI Agent Validation**: Automated Incoterms compliance checking
+- **Trade Finance Integration**: Connection to LC processing
+
+## Data Flow
+
+1. **Document Upload** → OCR Processing → Text Extraction → Azure SQL Storage
+2. **SWIFT Message Validation** → Field Rules Check → Database Validation → Result Storage
+3. **Agent Task Creation** → Queue Management → Processing → Result Persistence
+4. **Discrepancy Detection** → UCP Rules Application → Resolution Workflow → Status Update
+5. **User Authentication** → Replit OIDC → Azure SQL Session Management
+
+## External Dependencies
+
+### Cloud Services
+- **Azure SQL Server**: Primary database hosting
+- **Replit Infrastructure**: Development and deployment platform
+- **OpenAI API**: AI-powered document analysis (optional)
+- **Google Gemini**: Alternative AI processing capability
+
+### Key Libraries
+- **mssql**: Azure SQL Server connectivity
+- **@google/generative-ai**: Gemini AI integration
+- **@radix-ui/***: UI component primitives
+- **drizzle-orm**: Database ORM layer
+- **@tanstack/react-query**: Data fetching and state management
+
+### Development Tools
+- **tsx**: TypeScript execution for development
+- **esbuild**: Production build optimization
+- **Vite**: Frontend development server and bundling
+
+## Deployment Strategy
+
+### Development Environment
+- **Local Development**: Node.js with PostgreSQL fallback
+- **Replit Development**: Direct Azure SQL connection
+- **Hot Reload**: Vite dev server with tsx backend execution
+
+### Production Environment
+- **Replit Autoscale Deployment**: Automatic scaling based on demand
+- **Port Configuration**: External port 80 mapping to internal port 5000
+- **Build Process**: Vite frontend build + esbuild backend bundle
+- **Environment Variables**: Azure credentials and API keys via .env
+
+### Database Configuration
+- **Primary**: Azure SQL Server with encrypted connections
+- **Connection Pooling**: Optimized for concurrent access
+- **Schema Management**: Multi-schema approach for data organization
+- **Backup Strategy**: Drizzle ORM as potential migration path
+
+## Changelog
+
+- June 14, 2025. Initial setup
+
+## User Preferences
+
+Preferred communication style: Simple, everyday language.
