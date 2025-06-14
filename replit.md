@@ -108,6 +108,7 @@ This is a sophisticated Trade Finance Discrepancy Resolution Platform that lever
 ## Changelog
 
 - June 14, 2025. Initial setup
+- June 14, 2025. Fixed Sub Documents navigation and API - Updated left sidebar with "Sub Documents" menu item, created comprehensive SubDocuments.tsx page with search/filter capabilities, fixed Azure SQL schema issues in azureDataService.ts getSubDocumentTypes method to properly fetch 192 sub-documents with correct column mappings
 
 ## User Preferences
 

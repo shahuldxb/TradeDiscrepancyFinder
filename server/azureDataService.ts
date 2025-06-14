@@ -1045,33 +1045,73 @@ export class AzureDataService {
   async getSubDocumentTypes(parentDocumentId?: number) {
     try {
       const pool = await connectToAzureSQL();
+      
+      // First, dynamically check what columns exist
+      const columnCheck = await pool.request().query(`
+        SELECT COLUMN_NAME
+        FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = 'swift' AND TABLE_NAME = 'SubDocumentTypes'
+        ORDER BY ORDINAL_POSITION
+      `);
+      
+      const availableColumns = columnCheck.recordset.map(c => c.COLUMN_NAME);
+      console.log('Available SubDocumentTypes columns:', availableColumns);
+      
+      // Build dynamic SELECT query based on available columns
+      const selectColumns = [
+        'sd.SubDocumentID',
+        'sd.ParentDocumentID', 
+        'sd.SubDocumentCode',
+        'sd.SubDocumentName',
+        'sd.Description'
+      ];
+      
+      // Add optional columns if they exist
+      if (availableColumns.includes('IsActive')) {
+        selectColumns.push('sd.IsActive');
+      }
+      if (availableColumns.includes('CreatedDate')) {
+        selectColumns.push('sd.CreatedDate');
+      }
+      if (availableColumns.includes('UpdatedDate')) {
+        selectColumns.push('sd.UpdatedDate');
+      }
+      
       let query = `
         SELECT 
-          sd.SubDocumentID,
-          sd.ParentDocumentID,
-          sd.SubDocumentCode,
-          sd.SubDocumentName,
-          sd.Description,
-          sd.IsActive,
-          sd.CreatedDate,
-          sd.UpdatedDate,
+          ${selectColumns.join(',\n          ')},
           md.DocumentName as ParentDocumentName,
           md.DocumentCode as ParentDocumentCode
         FROM swift.SubDocumentTypes sd
         JOIN swift.Masterdocuments md ON sd.ParentDocumentID = md.DocumentID
-        WHERE sd.IsActive = 1
       `;
       
       const request = pool.request();
       
+      // Add WHERE clause only if IsActive column exists
+      let whereClause = '';
+      if (availableColumns.includes('IsActive')) {
+        whereClause = 'WHERE sd.IsActive = 1';
+      }
+      
       if (parentDocumentId) {
-        query += ' AND sd.ParentDocumentID = @parentDocumentId';
+        if (whereClause) {
+          whereClause += ' AND sd.ParentDocumentID = @parentDocumentId';
+        } else {
+          whereClause = 'WHERE sd.ParentDocumentID = @parentDocumentId';
+        }
         request.input('parentDocumentId', parentDocumentId);
+      }
+      
+      if (whereClause) {
+        query += ` ${whereClause}`;
       }
       
       query += ' ORDER BY sd.SubDocumentCode';
       
+      console.log('Executing query:', query);
       const result = await request.query(query);
+      console.log(`Found ${result.recordset.length} sub-document types`);
       return result.recordset;
     } catch (error) {
       console.error('Error fetching sub document types from Azure:', error);
