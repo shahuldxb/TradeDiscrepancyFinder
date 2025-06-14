@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -332,7 +332,44 @@ const navigationItems = [
 export default function Sidebar() {
   const [location] = useLocation();
   const { user } = useAuth();
-  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(() => {
+    // Auto-expand lifecycle management if on a lifecycle page
+    const initialExpanded = new Set<string>();
+    if (location.startsWith('/lifecycle/')) {
+      initialExpanded.add('Lifecycle Management');
+    }
+    return initialExpanded;
+  });
+
+  // Auto-expand sections based on current location
+  useEffect(() => {
+    const newExpanded = new Set(expandedItems);
+    let shouldUpdate = false;
+    
+    if (location.startsWith('/lifecycle/') && !newExpanded.has('Lifecycle Management')) {
+      newExpanded.add('Lifecycle Management');
+      shouldUpdate = true;
+    } else if (location.startsWith('/swift/') && !newExpanded.has('SWIFT Messages')) {
+      newExpanded.add('SWIFT Messages');
+      shouldUpdate = true;
+    } else if (location.startsWith('/incoterms/') && !newExpanded.has('Incoterms Management')) {
+      newExpanded.add('Incoterms Management');
+      shouldUpdate = true;
+    } else if (location.startsWith('/ucp600/') && !newExpanded.has('UCP 600 Management')) {
+      newExpanded.add('UCP 600 Management');
+      shouldUpdate = true;
+    } else if ((location.startsWith('/ai/') || location.includes('agent')) && !newExpanded.has('AI & Automation')) {
+      newExpanded.add('AI & Automation');
+      shouldUpdate = true;
+    } else if (location.startsWith('/admin/') && !newExpanded.has('System & Analytics')) {
+      newExpanded.add('System & Analytics');
+      shouldUpdate = true;
+    }
+    
+    if (shouldUpdate) {
+      setExpandedItems(newExpanded);
+    }
+  }, [location]);
 
   const toggleExpanded = (itemName: string) => {
     const newExpanded = new Set(expandedItems);
