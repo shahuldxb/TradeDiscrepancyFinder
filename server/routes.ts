@@ -2456,17 +2456,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { connectToAzureSQL } = await import('./azureSqlConnection');
       const pool = await connectToAzureSQL();
       
-      // Get counts from all core tables
+      // Get counts from actual Azure SQL tables from tf_genie database
       const masterDocsResult = await pool.request().query(`
-        SELECT COUNT(*) as count FROM swift.Masterdocuments
+        SELECT COUNT(*) as count FROM swift.masterdocuments
       `);
       
       const subDocTypesResult = await pool.request().query(`
-        SELECT COUNT(*) as count FROM swift.subdocumentypes
+        SELECT COUNT(*) as count FROM swift.SubDocumentTypes
       `);
       
       const lifecycleStatesResult = await pool.request().query(`
-        SELECT COUNT(*) as count FROM swift.Lifecyclestates
+        SELECT COUNT(*) as count FROM swift.ls_LifecycleStates
       `);
       
       const mt7DepsResult = await pool.request().query(`
@@ -2474,7 +2474,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       `);
       
       const docRequirementsResult = await pool.request().query(`
-        SELECT COUNT(*) as count FROM swift.Lifecycledocumentrequirements
+        SELECT COUNT(*) as count FROM swift.ls_LifecycleDocumentRequirements
       `);
       
       const metrics = {
@@ -2527,14 +2527,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Master Documents CRUD Operations (swift.Masterdocuments)
+  // Master Documents CRUD Operations (swift.masterdocuments)
   app.get('/api/lifecycle/master-documents', async (req, res) => {
     try {
       const { connectToAzureSQL } = await import('./azureSqlConnection');
       const pool = await connectToAzureSQL();
       
       const result = await pool.request().query(`
-        SELECT * FROM swift.Masterdocuments
+        SELECT * FROM swift.masterdocuments
         ORDER BY id DESC
       `);
       
@@ -2545,39 +2545,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/lifecycle/master-documents', async (req, res) => {
-    try {
-      const { connectToAzureSQL } = await import('./azureSqlConnection');
-      const pool = await connectToAzureSQL();
-      
-      const { document_name, document_type, status, description } = req.body;
-      
-      const result = await pool.request()
-        .input('document_name', document_name)
-        .input('document_type', document_type)
-        .input('status', status)
-        .input('description', description)
-        .query(`
-          INSERT INTO swift.Masterdocuments (document_name, document_type, status, description, created_at)
-          OUTPUT INSERTED.*
-          VALUES (@document_name, @document_type, @status, @description, GETDATE())
-        `);
-      
-      res.json({ success: true, data: result.recordset[0] });
-    } catch (error) {
-      console.error('Error creating master document:', error);
-      res.status(500).json({ error: 'Failed to create master document' });
-    }
-  });
-
-  // Sub Document Types CRUD Operations (swift.subdocumentypes)
+  // Sub Document Types CRUD Operations (swift.SubDocumentTypes)
   app.get('/api/lifecycle/sub-document-types', async (req, res) => {
     try {
       const { connectToAzureSQL } = await import('./azureSqlConnection');
       const pool = await connectToAzureSQL();
       
       const result = await pool.request().query(`
-        SELECT * FROM swift.subdocumentypes
+        SELECT * FROM swift.SubDocumentTypes
         ORDER BY id DESC
       `);
       
@@ -2588,14 +2563,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Lifecycle States CRUD Operations (swift.Lifecyclestates)
+  // Lifecycle States CRUD Operations (swift.ls_LifecycleStates)
   app.get('/api/lifecycle/lifecycle-states', async (req, res) => {
     try {
       const { connectToAzureSQL } = await import('./azureSqlConnection');
       const pool = await connectToAzureSQL();
       
       const result = await pool.request().query(`
-        SELECT * FROM swift.Lifecyclestates
+        SELECT * FROM swift.ls_LifecycleStates
         ORDER BY stateid
       `);
       
@@ -2606,14 +2581,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Document Requirements CRUD Operations (swift.Lifecycledocumentrequirements)
+  // Document Requirements CRUD Operations (swift.ls_LifecycleDocumentRequirements)
   app.get('/api/lifecycle/document-requirements', async (req, res) => {
     try {
       const { connectToAzureSQL } = await import('./azureSqlConnection');
       const pool = await connectToAzureSQL();
       
       const result = await pool.request().query(`
-        SELECT * FROM swift.Lifecycledocumentrequirements
+        SELECT * FROM swift.ls_LifecycleDocumentRequirements
         ORDER BY id DESC
       `);
       
@@ -2642,21 +2617,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Analytics View - Grouped Lifecycle Data (vw_ls_lifecycle)
+  // Analytics View - Combined Lifecycle Data from multiple tables
   app.get('/api/lifecycle/analytics', async (req, res) => {
     try {
       const { connectToAzureSQL } = await import('./azureSqlConnection');
       const pool = await connectToAzureSQL();
       
+      // Query combined data from the actual tf_genie tables
       const result = await pool.request().query(`
-        SELECT * FROM vw_ls_lifecycle
-        ORDER BY stateid, credit_code, document_code
+        SELECT 
+          ls.stateid,
+          ls.statement,
+          dc.credit_code,
+          dc.credit_name,
+          md.document_code,
+          md.document_name
+        FROM swift.ls_LifecycleStates ls
+        LEFT JOIN swift.DocumentaryCredits dc ON 1=1
+        LEFT JOIN swift.masterdocuments md ON 1=1
+        ORDER BY ls.stateid, dc.credit_code, md.document_code
       `);
       
-      // Group data hierarchically as specified in the UI/UX document
-      const groupedData = {};
+      // Group data hierarchically for the dashboard
+      const groupedData: any = {};
       
-      result.recordset.forEach(row => {
+      result.recordset.forEach((row: any) => {
         const stateKey = `${row.stateid}_${row.statement}`;
         if (!groupedData[stateKey]) {
           groupedData[stateKey] = {
@@ -2666,19 +2651,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           };
         }
         
-        const creditKey = `${row.credit_code}_${row.credit_name}`;
-        if (!groupedData[stateKey].credits[creditKey]) {
-          groupedData[stateKey].credits[creditKey] = {
-            credit_code: row.credit_code,
-            credit_name: row.credit_name,
-            documents: []
-          };
+        if (row.credit_code) {
+          const creditKey = `${row.credit_code}_${row.credit_name}`;
+          if (!groupedData[stateKey].credits[creditKey]) {
+            groupedData[stateKey].credits[creditKey] = {
+              credit_code: row.credit_code,
+              credit_name: row.credit_name,
+              documents: []
+            };
+          }
+          
+          if (row.document_code) {
+            groupedData[stateKey].credits[creditKey].documents.push({
+              document_code: row.document_code,
+              document_name: row.document_name
+            });
+          }
         }
-        
-        groupedData[stateKey].credits[creditKey].documents.push({
-          document_code: row.document_code,
-          document_name: row.document_name
-        });
       });
       
       res.json({
