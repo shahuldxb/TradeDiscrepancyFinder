@@ -2,44 +2,47 @@ import { connectToAzureSQL } from './server/azureSqlConnection.js';
 
 async function checkLifecycleTables() {
   try {
+    console.log('Connecting to Azure SQL Server...');
     const pool = await connectToAzureSQL();
     
-    console.log('=== LIFECYCLE TABLE STRUCTURES ===\n');
+    // Check for all lifecycle-related tables
+    const tableCheck = await pool.request().query(`
+      SELECT TABLE_NAME 
+      FROM INFORMATION_SCHEMA.TABLES 
+      WHERE TABLE_SCHEMA = 'swift' 
+      AND (TABLE_NAME LIKE '%lifecycle%' OR TABLE_NAME LIKE '%state%' OR TABLE_NAME LIKE '%stage%')
+      ORDER BY TABLE_NAME
+    `);
     
-    const tables = [
-      'ls_BusinessProcessWorkflows',
-      'ls_BusinessRules', 
-      'ls_LifecycleStates',
-      'ls_DocumentExaminationStates',
-      'ls_LifecycleTransitionRules',
-      'ls_StateTransitionHistory'
-    ];
-    
-    for (const table of tables) {
-      console.log(`${table}:`);
-      const result = await pool.request().query(`
-        SELECT COLUMN_NAME, DATA_TYPE 
+    console.log('Available lifecycle-related tables:');
+    for (const table of tableCheck.recordset) {
+      console.log(`- swift.${table.TABLE_NAME}`);
+      
+      // Get column info for each table
+      const columns = await pool.request().query(`
+        SELECT COLUMN_NAME, DATA_TYPE
         FROM INFORMATION_SCHEMA.COLUMNS 
-        WHERE TABLE_SCHEMA = 'swift' AND TABLE_NAME = '${table}'
+        WHERE TABLE_SCHEMA = 'swift' AND TABLE_NAME = '${table.TABLE_NAME}'
         ORDER BY ORDINAL_POSITION
       `);
       
-      result.recordset.forEach(col => {
-        console.log(`  - ${col.COLUMN_NAME} (${col.DATA_TYPE})`);
-      });
+      console.log(`  Columns: ${columns.recordset.map(c => c.COLUMN_NAME).join(', ')}`);
       
       // Get sample data
-      const sampleResult = await pool.request().query(`SELECT TOP 1 * FROM swift.${table}`);
-      if (sampleResult.recordset.length > 0) {
-        console.log(`  Sample data: ${JSON.stringify(sampleResult.recordset[0])}`);
+      try {
+        const sample = await pool.request().query(`
+          SELECT TOP 3 * FROM swift.${table.TABLE_NAME}
+        `);
+        console.log(`  Sample count: ${sample.recordset.length} records`);
+      } catch (e) {
+        console.log(`  Sample data: Error - ${e.message}`);
       }
       console.log('');
     }
     
     await pool.close();
-    console.log('Schema check completed successfully.');
-  } catch (err) {
-    console.error('Error:', err.message);
+  } catch (error) {
+    console.error('Error:', error.message);
   }
 }
 

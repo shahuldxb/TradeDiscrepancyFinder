@@ -2670,21 +2670,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Lifecycle States CRUD Operations (swift.ls_LifecycleStates)
+  // Lifecycle States CRUD Operations - Based on SWIFT message types from Azure database
   app.get('/api/lifecycle/lifecycle-states', async (req, res) => {
     try {
       const { connectToAzureSQL } = await import('./azureSqlConnection');
       const pool = await connectToAzureSQL();
       
-      const result = await pool.request().query(`
-        SELECT * FROM swift.ls_LifecycleStates
-        ORDER BY stateid
+      console.log('Fetching lifecycle states based on SWIFT message types...');
+      
+      // Use message_types table to create lifecycle states
+      const statesResult = await pool.request().query(`
+        SELECT DISTINCT
+          mt.message_type as StateCode,
+          mt.description as StateName,
+          mt.category as StateCategory,
+          CASE 
+            WHEN mt.message_type = 'MT700' THEN 'Initial'
+            WHEN mt.message_type = 'MT701' THEN 'Amendment'
+            WHEN mt.message_type = 'MT702' THEN 'Advice'
+            WHEN mt.message_type = 'MT707' THEN 'Amendment'
+            WHEN mt.message_type = 'MT710' THEN 'Advice'
+            WHEN mt.message_type = 'MT720' THEN 'Transfer'
+            WHEN mt.message_type = 'MT730' THEN 'Acknowledgement'
+            WHEN mt.message_type = 'MT732' THEN 'Advice'
+            WHEN mt.message_type = 'MT734' THEN 'Advice'
+            WHEN mt.message_type = 'MT740' THEN 'Authorization'
+            WHEN mt.message_type = 'MT742' THEN 'Reimbursement'
+            WHEN mt.message_type = 'MT747' THEN 'Amendment'
+            WHEN mt.message_type = 'MT750' THEN 'Advice'
+            WHEN mt.message_type = 'MT752' THEN 'Authorization'
+            WHEN mt.message_type = 'MT754' THEN 'Advice'
+            WHEN mt.message_type = 'MT756' THEN 'Advice'
+            WHEN mt.message_type = 'MT760' THEN 'Guarantee'
+            WHEN mt.message_type = 'MT767' THEN 'Amendment'
+            WHEN mt.message_type = 'MT768' THEN 'Acknowledgement'
+            ELSE 'Processing'
+          END as StateType,
+          1 as IsActive
+        FROM swift.message_types mt
+        WHERE mt.category = 'Documentary Credits and Guarantees'
+        ORDER BY mt.message_type
       `);
       
-      res.json(result.recordset);
+      console.log(`Found ${statesResult.recordset.length} lifecycle states from SWIFT message types`);
+      res.json(statesResult.recordset);
+      
     } catch (error) {
-      console.error('Error fetching lifecycle states:', error);
-      res.status(500).json({ error: 'Failed to fetch lifecycle states' });
+      console.error('Error fetching lifecycle states from SWIFT message types:', error);
+      res.status(500).json({ error: 'Failed to fetch lifecycle states from database' });
     }
   });
 
