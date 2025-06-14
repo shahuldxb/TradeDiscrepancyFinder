@@ -209,98 +209,180 @@ export default function MasterDocuments() {
             </CardContent>
           </Card>
         ) : masterDocuments && masterDocuments.length > 0 ? (
-          <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
-            <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700">
-              <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white">
-                Master Documents Registry
-              </CardTitle>
-              <CardDescription className="text-gray-600 dark:text-gray-300">
-                Complete list of trade finance documents from swift.masterdocuments
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                {masterDocuments.map((doc, index) => (
-                  <div key={doc.DocumentID} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div 
-                          className="flex items-start space-x-4 cursor-pointer"
-                          onClick={() => handleDocumentClick(doc)}
-                        >
-                          <div className="flex-shrink-0">
-                            <span className={`inline-flex items-center justify-center w-10 h-10 rounded-lg font-semibold text-sm ${
-                              selectedDocument?.DocumentID === doc.DocumentID 
-                                ? 'bg-blue-600 text-white' 
-                                : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                            }`}>
-                              {doc.DocumentID}
-                            </span>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center space-x-3 mb-2">
-                              <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
-                                {doc.DocumentName}
-                              </h3>
-                              <Badge variant={doc.IsActive ? "default" : "secondary"} className="text-xs flex-shrink-0">
-                                {doc.IsActive ? "Active" : "Inactive"}
-                              </Badge>
-                            </div>
-                            <div className="flex items-center space-x-4 mb-2">
-                              <span className="text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded">
-                                {doc.DocumentCode}
-                              </span>
-                              <div className="flex items-center space-x-2">
-                                <div className={`w-2 h-2 rounded-full ${doc.IsActive ? 'bg-green-500' : 'bg-gray-400'}`}></div>
-                                <span className="text-sm text-gray-600 dark:text-gray-400">
-                                  {doc.IsActive ? 'Active' : 'Inactive'}
+              <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
+                <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700">
+                  <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white">
+                    Master Documents Registry
+                  </CardTitle>
+                  <CardDescription className="text-gray-600 dark:text-gray-300">
+                    Complete list of trade finance documents from swift.masterdocuments
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {masterDocuments.map((doc, index) => (
+                      <div key={doc.DocumentID} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div 
+                              className="flex items-start space-x-4 cursor-pointer"
+                              onClick={() => handleDocumentClick(doc)}
+                            >
+                              <div className="flex-shrink-0">
+                                <span className={`inline-flex items-center justify-center w-10 h-10 rounded-lg font-semibold text-sm ${
+                                  selectedDocument?.DocumentID === doc.DocumentID 
+                                    ? 'bg-blue-600 text-white' 
+                                    : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                                }`}>
+                                  {doc.DocumentID}
                                 </span>
                               </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center space-x-3 mb-2">
+                                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
+                                    {doc.DocumentName}
+                                  </h3>
+                                  <Badge variant={doc.IsActive ? "default" : "secondary"} className="text-xs flex-shrink-0">
+                                    {doc.IsActive ? "Active" : "Inactive"}
+                                  </Badge>
+                                </div>
+                                <div className="flex items-center space-x-4 mb-2">
+                                  <span className="text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded">
+                                    {doc.DocumentCode}
+                                  </span>
+                                  <div className="flex items-center space-x-2">
+                                    <div className={`w-2 h-2 rounded-full ${doc.IsActive ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                                      {doc.IsActive ? 'Active' : 'Inactive'}
+                                    </span>
+                                  </div>
+                                </div>
+                                <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">
+                                  {doc.Description || "No description available"}
+                                </p>
+                              </div>
                             </div>
-                            <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">
-                              {doc.Description || "No description available"}
-                            </p>
+                          </div>
+                          <div className="flex items-center space-x-2 ml-4 flex-shrink-0">
+                            <Button size="sm" variant="outline" className="h-8 w-8 p-0">
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="h-8 w-8 p-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEdit(doc);
+                              }}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:border-red-300">
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-2 ml-4 flex-shrink-0">
-                        <Button size="sm" variant="outline" className="h-8 w-8 p-0">
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          className="h-8 w-8 p-0"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEdit(doc);
-                          }}
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:border-red-300">
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
             ) : (
               <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
                 <CardContent className="p-8 text-center">
                   <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">No Documents Found</h3>
-              <p className="text-gray-600 mb-4">No active master documents are currently available</p>
-              <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
-                <Plus className="w-4 h-4 mr-2" />
-                Add First Document
-              </Button>
-            </CardContent>
-          </Card>
-        )}
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">No Documents Found</h3>
+                  <p className="text-gray-600 mb-4">No active master documents are currently available</p>
+                  <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add First Document
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Sub Documents Panel */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Sub Documents</h3>
+            {!selectedDocument ? (
+              <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
+                <CardContent className="p-8 text-center">
+                  <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Select a Master Document</h3>
+                  <p className="text-gray-600">Click on a master document to view its related sub-documents</p>
+                </CardContent>
+              </Card>
+            ) : isLoadingSubDocs ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <Card key={i} className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
+                    <CardContent className="p-4 animate-pulse">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-8 h-8 bg-gray-200 rounded"></div>
+                        <div className="flex-1 space-y-2">
+                          <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                          <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : subDocuments && subDocuments.length > 0 ? (
+              <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
+                <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-100 dark:from-green-800 dark:to-emerald-700">
+                  <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Sub Documents for {selectedDocument.DocumentName}
+                  </CardTitle>
+                  <CardDescription className="text-gray-600 dark:text-gray-300">
+                    Document ID: {selectedDocument.DocumentID} - {selectedDocument.DocumentCode}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {subDocuments.map((subDoc) => (
+                      <div key={subDoc.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                        <div className="flex items-center space-x-4">
+                          <div className="flex-shrink-0">
+                            <span className="inline-flex items-center justify-center w-8 h-8 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded font-semibold text-sm">
+                              {subDoc.id}
+                            </span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center space-x-3 mb-1">
+                              <h4 className="text-md font-medium text-gray-900 dark:text-white truncate">
+                                {subDoc.sub_document_name}
+                              </h4>
+                              <Badge variant={subDoc.is_required ? "default" : "secondary"} className="text-xs">
+                                {subDoc.is_required ? "Required" : "Optional"}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-blue-600 dark:text-blue-400 mb-1">
+                              {subDoc.sub_document_code}
+                            </p>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              {subDoc.description || "No description available"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
+                <CardContent className="p-8 text-center">
+                  <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">No Sub Documents</h3>
+                  <p className="text-gray-600">This master document has no related sub-documents</p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
 
         {/* Statistics Summary */}
         {masterDocuments && masterDocuments.length > 0 && (
