@@ -3,6 +3,145 @@ import * as sql from 'mssql';
 
 export class AzureDataService {
   
+  // Forms Recognition Workflow Methods
+  async createIngestionRecord(data: any) {
+    try {
+      const pool = await connectToAzureSQL();
+      const result = await pool.request()
+        .input('ingestion_id', data.ingestion_id)
+        .input('original_filename', data.original_filename)
+        .input('file_type', data.file_type)
+        .input('file_size', data.file_size)
+        .input('status', data.status)
+        .input('processing_steps', data.processing_steps)
+        .query(`
+          INSERT INTO TF_ingestion (ingestion_id, original_filename, file_type, file_size, status, processing_steps, created_date)
+          VALUES (@ingestion_id, @original_filename, @file_type, @file_size, @status, @processing_steps, GETDATE())
+        `);
+      return data.ingestion_id;
+    } catch (error) {
+      console.error('Error creating ingestion record:', error);
+      throw error;
+    }
+  }
+
+  async updateProcessingSteps(ingestionId: string, steps: any[]) {
+    try {
+      const pool = await connectToAzureSQL();
+      await pool.request()
+        .input('ingestion_id', ingestionId)
+        .input('processing_steps', JSON.stringify(steps))
+        .query(`
+          UPDATE TF_ingestion 
+          SET processing_steps = @processing_steps, updated_date = GETDATE()
+          WHERE ingestion_id = @ingestion_id
+        `);
+    } catch (error) {
+      console.error('Error updating processing steps:', error);
+      throw error;
+    }
+  }
+
+  async updateIngestionStatus(ingestionId: string, status: string) {
+    try {
+      const pool = await connectToAzureSQL();
+      await pool.request()
+        .input('ingestion_id', ingestionId)
+        .input('status', status)
+        .query(`
+          UPDATE TF_ingestion 
+          SET status = @status, updated_date = GETDATE()
+          WHERE ingestion_id = @ingestion_id
+        `);
+    } catch (error) {
+      console.error('Error updating ingestion status:', error);
+      throw error;
+    }
+  }
+
+  async getIngestionRecord(ingestionId: string) {
+    try {
+      const pool = await connectToAzureSQL();
+      const result = await pool.request()
+        .input('ingestion_id', ingestionId)
+        .query(`
+          SELECT * FROM TF_ingestion WHERE ingestion_id = @ingestion_id
+        `);
+      return result.recordset[0];
+    } catch (error) {
+      console.error('Error getting ingestion record:', error);
+      throw error;
+    }
+  }
+
+  async createPdfRecord(data: any) {
+    try {
+      const pool = await connectToAzureSQL();
+      await pool.request()
+        .input('ingestion_id', data.ingestion_id)
+        .input('form_id', data.form_id)
+        .input('file_path', data.file_path)
+        .input('document_type', data.document_type)
+        .input('page_range', data.page_range)
+        .query(`
+          INSERT INTO TF_ingestion_Pdf (ingestion_id, form_id, file_path, document_type, page_range, created_date)
+          VALUES (@ingestion_id, @form_id, @file_path, @document_type, @page_range, GETDATE())
+        `);
+    } catch (error) {
+      console.error('Error creating PDF record:', error);
+      throw error;
+    }
+  }
+
+  async createTxtRecord(data: any) {
+    try {
+      const pool = await connectToAzureSQL();
+      await pool.request()
+        .input('ingestion_id', data.ingestion_id)
+        .input('content', data.content)
+        .input('confidence', data.confidence)
+        .input('language', data.language)
+        .query(`
+          INSERT INTO TF_ingestion_TXT (ingestion_id, content, confidence, language, created_date)
+          VALUES (@ingestion_id, @content, @confidence, @language, GETDATE())
+        `);
+    } catch (error) {
+      console.error('Error creating TXT record:', error);
+      throw error;
+    }
+  }
+
+  async createFieldRecord(data: any) {
+    try {
+      const pool = await connectToAzureSQL();
+      await pool.request()
+        .input('ingestion_id', data.ingestion_id)
+        .input('field_name', data.field_name)
+        .input('field_value', data.field_value)
+        .input('confidence', data.confidence)
+        .input('extraction_method', data.extraction_method)
+        .input('data_type', data.data_type)
+        .query(`
+          INSERT INTO TF_ingestion_fields (ingestion_id, field_name, field_value, confidence, extraction_method, data_type, created_date)
+          VALUES (@ingestion_id, @field_name, @field_value, @confidence, @extraction_method, @data_type, GETDATE())
+        `);
+    } catch (error) {
+      console.error('Error creating field record:', error);
+      throw error;
+    }
+  }
+
+  async testConnection() {
+    try {
+      const pool = await connectToAzureSQL();
+      await pool.request().query('SELECT 1 as test');
+      return true;
+    } catch (error) {
+      console.error('Azure SQL connection test failed:', error);
+      throw error;
+    }
+  }
+  
   // UCP Rules Engine - Replace PostgreSQL
   async getUCPArticles() {
     try {

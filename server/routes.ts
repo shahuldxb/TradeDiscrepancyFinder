@@ -2,6 +2,8 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
+import { completeFormsWorkflow } from "./completeFormsWorkflow";
+import { pythonBackendProxy } from "./pythonBackendProxy";
 import { setupLocalDevAuth, isAuthenticatedLocal } from "./localDevConfig";
 import { 
   insertDocumentSetSchema, 
@@ -4567,6 +4569,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`Starting field extraction for ${documentType} document...`);
       
+      const { spawn } = require('child_process');
       const pythonProcess = spawn('python', [
         'server/fieldExtractionService.py',
         filePath,
