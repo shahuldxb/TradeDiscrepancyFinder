@@ -7597,6 +7597,64 @@ Extraction Date: ${new Date().toISOString()}
     }
   });
 
+  // Fix OCR extraction for completed documents
+  app.post('/api/forms/fix-ocr-extraction', async (req, res) => {
+    try {
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+      
+      // Get completed ingestion records that don't have TXT records
+      const result = await pool.request().query(`
+        SELECT i.ingestion_id, i.original_filename, i.extracted_text
+        FROM TF_ingestion i
+        LEFT JOIN TF_ingestion_TXT t ON i.ingestion_id = t.ingestion_id
+        WHERE i.status = 'completed' 
+        AND t.id IS NULL
+        AND i.extracted_text IS NOT NULL
+        AND LEN(i.extracted_text) > 10
+      `);
+      
+      console.log(`Found ${result.recordset.length} records that need TXT table population`);
+      
+      let processedCount = 0;
+      for (const record of result.recordset) {
+        const { ingestion_id, original_filename, extracted_text } = record;
+        
+        console.log(`Processing ${ingestion_id}: ${original_filename}`);
+        
+        // Insert into TF_ingestion_TXT table
+        await pool.request()
+          .input('ingestionId', ingestion_id)
+          .input('content', extracted_text)
+          .input('language', 'en')
+          .query(`
+            INSERT INTO TF_ingestion_TXT (
+              ingestion_id, content, language, created_date
+            ) VALUES (
+              @ingestionId, @content, @language, GETDATE()
+            )
+          `);
+        
+        console.log(`✅ Created TXT record for ${ingestion_id} with ${extracted_text.length} characters`);
+        processedCount++;
+      }
+      
+      // Get final count
+      const txtCount = await pool.request().query('SELECT COUNT(*) as count FROM TF_ingestion_TXT');
+      
+      res.json({
+        success: true,
+        message: `Successfully processed ${processedCount} documents`,
+        processedCount,
+        totalTxtRecords: txtCount.recordset[0].count
+      });
+      
+    } catch (error) {
+      console.error('Error fixing OCR extraction:', error);
+      res.status(500).json({ error: 'Failed to fix OCR extraction: ' + (error as Error).message });
+    }
+  });
+
   // Reprocess specific document with real OCR
   app.post('/api/forms/reprocess/:id', async (req, res) => {
     try {

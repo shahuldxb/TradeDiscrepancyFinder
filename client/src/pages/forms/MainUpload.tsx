@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, FileText, Image, AlertCircle, CheckCircle, Clock, Download } from 'lucide-react';
+import { Upload, FileText, Image, AlertCircle, CheckCircle, Clock, Download, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -204,6 +204,31 @@ export default function MainUpload() {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+    } catch (error) {
+      addLog('Error', 'Download failed', (error as Error).message);
+    }
+  };
+
+  const downloadTextFile = async (formId: string, filename: string) => {
+    try {
+      addLog('Info', 'Text Download', `Downloading extracted text for ${filename}`);
+      
+      const response = await fetch(`/api/forms/download-text/${ingestionId}`);
+      if (!response.ok) {
+        throw new Error('Failed to download text file');
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `extracted_${filename.replace(/\.[^/.]+$/, "")}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      addLog('Info', 'Download Complete', `Text file downloaded successfully`);
     } catch (error) {
       addLog('Error', 'Download failed', (error as Error).message);
     }
