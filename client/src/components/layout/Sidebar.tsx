@@ -305,6 +305,16 @@ const navigationItems = [
         href: "/forms/backoffice",
         description: "Approve TF_forms and manage TF_fields",
       },
+      {
+        name: "Split PDF & Text",
+        href: "/forms/split",
+        description: "Individual forms from multi-page documents",
+      },
+      {
+        name: "Grouped Documents",
+        href: "/forms/grouped",
+        description: "Documents organized by form types",
+      },
     ],
   },
   {
