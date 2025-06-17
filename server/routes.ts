@@ -4239,8 +4239,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .input('ingestionId', ingestionId)
         .input('status', 'completed')
         .input('extractedText', ocrText)
-        .input('documentType', documentType)
-        .input('extractedData', JSON.stringify(extractedFields))
+        .input('documentType', classificationResult.documentType)
+        .input('extractedData', JSON.stringify(enhancedFields))
         .input('processingSteps', JSON.stringify(finalSteps))
         .query(`
           UPDATE TF_ingestion 
@@ -4254,7 +4254,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           WHERE ingestion_id = @ingestionId
         `);
       
-      console.log(`Processing completed for ${ingestionId}: ${documentType}`);
+      console.log(`Processing completed for ${ingestionId}: ${classificationResult.documentType}`);
       
     } catch (error) {
       console.error(`Processing failed for ${ingestionId}:`, error);
