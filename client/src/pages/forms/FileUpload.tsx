@@ -16,7 +16,8 @@ import {
   Clock, 
   Eye,
   Download,
-  Trash2
+  Trash2,
+  Copy
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -468,15 +469,116 @@ export default function FileUpload() {
             <CardHeader>
               <CardTitle>Processing Results</CardTitle>
               <CardDescription>
-                Extracted text, forms, and field data
+                Extracted text, forms, and field data from completed documents
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8 text-gray-500">
-                Processing results will appear here after Azure Document Intelligence completes analysis.
-                <br />
-                <span className="text-sm">Features: OCR text extraction, form classification, field detection</span>
-              </div>
+              {uploadedFiles.filter(f => f.status === 'completed' && f.results?.extractedText).length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  No completed documents yet. Upload and process files to see extraction results.
+                  <br />
+                  <span className="text-sm">Features: OCR text extraction, form classification, field detection</span>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {uploadedFiles
+                    .filter(f => f.status === 'completed' && f.results?.extractedText)
+                    .map((file) => (
+                      <div key={file.id} className="border rounded-lg p-6">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center space-x-3">
+                            {getFileIcon(file.type)}
+                            <div>
+                              <h3 className="font-semibold">{file.file.name}</h3>
+                              <p className="text-sm text-gray-500">
+                                {(file.file.size / 1024 / 1024).toFixed(2)} MB • {file.type.toUpperCase()}
+                              </p>
+                            </div>
+                          </div>
+                          <Badge variant="default">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Completed
+                          </Badge>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                          <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg">
+                            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                              {file.results?.extractedText ? file.results.extractedText.length.toLocaleString() : '0'}
+                            </div>
+                            <div className="text-sm text-gray-600 dark:text-gray-400">Characters Extracted</div>
+                          </div>
+                          <div className="bg-green-50 dark:bg-green-950 p-4 rounded-lg">
+                            <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                              {file.results?.extractedText ? file.results.extractedText.split(/\s+/).length.toLocaleString() : '0'}
+                            </div>
+                            <div className="text-sm text-gray-600 dark:text-gray-400">Words Detected</div>
+                          </div>
+                          <div className="bg-purple-50 dark:bg-purple-950 p-4 rounded-lg">
+                            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                              OCR
+                            </div>
+                            <div className="text-sm text-gray-600 dark:text-gray-400">Processing Method</div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          <div>
+                            <h4 className="font-medium mb-2 flex items-center">
+                              <FileText className="h-4 w-4 mr-2" />
+                              Extracted Text Preview
+                            </h4>
+                            <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg max-h-64 overflow-y-auto">
+                              <pre className="text-sm whitespace-pre-wrap font-mono">
+                                {file.results?.extractedText ? 
+                                  file.results.extractedText.substring(0, 1000) + 
+                                  (file.results.extractedText.length > 1000 ? '...\n\n[Showing first 1000 characters]' : '')
+                                  : 'No text extracted'}
+                              </pre>
+                            </div>
+                          </div>
+
+                          <div className="flex space-x-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => {
+                                if (file.results?.extractedText) {
+                                  const blob = new Blob([file.results.extractedText], { type: 'text/plain' });
+                                  const url = URL.createObjectURL(blob);
+                                  const a = document.createElement('a');
+                                  a.href = url;
+                                  a.download = `${file.file.name.replace(/\.[^/.]+$/, '')}_extracted.txt`;
+                                  a.click();
+                                  URL.revokeObjectURL(url);
+                                }
+                              }}
+                            >
+                              <Download className="h-4 w-4 mr-2" />
+                              Download Text
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => {
+                                if (file.results?.extractedText) {
+                                  navigator.clipboard.writeText(file.results.extractedText);
+                                  toast({
+                                    title: "Copied to clipboard",
+                                    description: "Extracted text copied successfully",
+                                  });
+                                }
+                              }}
+                            >
+                              <Copy className="h-4 w-4 mr-2" />
+                              Copy Text
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
