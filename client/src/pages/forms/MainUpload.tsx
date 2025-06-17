@@ -213,7 +213,7 @@ export default function MainUpload() {
     try {
       addLog('Info', 'Text Download', `Downloading extracted text for ${filename}`);
       
-      const response = await fetch(`/api/forms/download-text/${ingestionId}`);
+      const response = await fetch(`/api/forms/download-text/${formId}`);
       if (!response.ok) {
         throw new Error('Failed to download text file');
       }
@@ -231,6 +231,34 @@ export default function MainUpload() {
       addLog('Info', 'Download Complete', `Text file downloaded successfully`);
     } catch (error) {
       addLog('Error', 'Download failed', (error as Error).message);
+    }
+  };
+
+  const fixOCRExtraction = async () => {
+    try {
+      addLog('Info', 'OCR Fix', 'Processing completed documents to populate TXT table...');
+      
+      const response = await fetch('/api/forms/fix-ocr-extraction', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fix OCR extraction');
+      }
+      
+      const result = await response.json();
+      addLog('Info', 'OCR Fix Complete', `Processed ${result.processedCount} documents. Total TXT records: ${result.totalTxtRecords}`);
+      
+      // Refresh the records to show the new TXT entries
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+      
+    } catch (error) {
+      addLog('Error', 'OCR Fix Failed', (error as Error).message);
     }
   };
 
@@ -255,6 +283,14 @@ export default function MainUpload() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Forms Recognizer - File Upload & OCR</h1>
+        <Button 
+          onClick={fixOCRExtraction}
+          variant="outline"
+          className="flex items-center gap-2"
+        >
+          <FileText className="h-4 w-4" />
+          Fix OCR Extraction
+        </Button>
       </div>
 
       {/* File Upload Section */}
