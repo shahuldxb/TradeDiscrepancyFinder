@@ -4667,7 +4667,7 @@ DOCUMENTS REQUIRED:
         
         const result = await pool.request()
           .input('ingestionId', ingestionId)
-          .query(`SELECT original_filename, extracted_text, extracted_data, created_at FROM TF_ingestion WHERE ingestion_id = @ingestionId`);
+          .query(`SELECT original_filename, extracted_text, extracted_data, created_date FROM TF_ingestion WHERE ingestion_id = @ingestionId`);
         
         if (result.recordset.length === 0) {
           return res.status(404).json({ error: 'File not found' });
@@ -4680,7 +4680,7 @@ DOCUMENTS REQUIRED:
           structuredData: typeof record.extracted_data === 'string' 
             ? JSON.parse(record.extracted_data || '{}') 
             : record.extracted_data,
-          extractionDate: record.created_at,
+          extractionDate: record.created_date,
           generatedBy: 'Trade Finance Forms Recognition System'
         };
         

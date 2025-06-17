@@ -109,21 +109,30 @@ export default function IngestionManagement() {
     return new Date(dateString).toLocaleString();
   };
 
-  const handleDownload = async (ingestion: Ingestion) => {
+  const handleDownload = async (ingestion: Ingestion, format: 'txt' | 'json' = 'txt') => {
     try {
-      const response = await fetch(`/api/forms/download/${ingestion.ingestion_id}`);
+      const url = format === 'json' 
+        ? `/api/forms/download/${ingestion.ingestion_id}?format=json`
+        : `/api/forms/download/${ingestion.ingestion_id}`;
+        
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error('Download failed');
       }
       
       const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+      const downloadUrl = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url;
-      a.download = ingestion.original_filename || 'document';
+      a.href = downloadUrl;
+      
+      const baseName = ingestion.original_filename?.split('.')[0] || 'document';
+      a.download = format === 'json' 
+        ? `${baseName}_extracted.json`
+        : `${baseName}_extracted.txt`;
+        
       document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
+      window.URL.revokeObjectURL(downloadUrl);
       document.body.removeChild(a);
     } catch (error) {
       console.error('Download error:', error);
@@ -367,9 +376,15 @@ export default function IngestionManagement() {
                                 </ScrollArea>
                               </DialogContent>
                             </Dialog>
-                            <Button variant="ghost" size="sm" onClick={() => handleDownload(ingestion)}>
-                              <Download className="h-4 w-4" />
-                            </Button>
+                            <div className="flex gap-1">
+                              <Button variant="ghost" size="sm" onClick={() => handleDownload(ingestion, 'txt')} title="Download as TXT">
+                                <Download className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="sm" onClick={() => handleDownload(ingestion, 'json')} title="Download as JSON">
+                                <Download className="h-4 w-4" />
+                                <span className="text-xs ml-1">JSON</span>
+                              </Button>
+                            </div>
                           </div>
                         </TableCell>
                       </TableRow>
