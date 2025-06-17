@@ -1,5 +1,5 @@
-import { useState, useCallback } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useState, useCallback, useEffect } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -45,6 +45,45 @@ export default function FileUpload() {
   const [activeTab, setActiveTab] = useState("upload");
   const [isDragActive, setIsDragActive] = useState(false);
   const { toast } = useToast();
+
+  // Fetch real-time ingestion status from database
+  const { data: ingestions = [] } = useQuery({
+    queryKey: ['/api/forms/ingestions'],
+    refetchInterval: 2000, // Refresh every 2 seconds
+    refetchIntervalInBackground: true,
+  });
+
+  // Sync uploaded files with database ingestions
+  useEffect(() => {
+    if (ingestions.length > 0 && uploadedFiles.length > 0) {
+      setUploadedFiles(prev => prev.map(file => {
+        const dbRecord = ingestions.find(ing => ing.ingestion_id === file.ingestionId);
+        if (dbRecord) {
+          let processingSteps = [];
+          try {
+            processingSteps = dbRecord.processing_steps ? JSON.parse(dbRecord.processing_steps) : [];
+          } catch (e) {
+            console.warn('Failed to parse processing steps:', e);
+            processingSteps = [
+              { step: 'upload', status: 'completed' },
+              { step: 'validation', status: 'completed' },
+              { step: 'ocr', status: dbRecord.status === 'completed' ? 'completed' : 'processing' },
+              { step: 'classification', status: dbRecord.status === 'completed' ? 'completed' : 'pending' },
+              { step: 'extraction', status: dbRecord.status === 'completed' ? 'completed' : 'pending' }
+            ];
+          }
+          
+          return {
+            ...file,
+            status: dbRecord.status === 'completed' ? 'completed' : dbRecord.status === 'error' ? 'error' : 'processing',
+            processingSteps: processingSteps,
+            results: dbRecord.extracted_text ? { extractedText: dbRecord.extracted_text } : file.results
+          };
+        }
+        return file;
+      }));
+    }
+  }, [ingestions]);
 
   // Setup database tables on component mount
   const { mutate: setupDatabase } = useMutation({
