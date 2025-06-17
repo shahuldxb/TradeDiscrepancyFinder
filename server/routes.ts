@@ -4414,6 +4414,57 @@ and is ready for field extraction and classification.`;
     }
   });
   
+  // Complete all pending processing
+  app.post('/api/forms/complete-all-processing', async (req, res) => {
+    try {
+      const { completeAllProcessing } = await import('./completeProcessing');
+      const success = await completeAllProcessing();
+      
+      res.json({
+        success,
+        message: success ? 'All processing completed successfully' : 'Processing failed'
+      });
+      
+    } catch (error) {
+      console.error('Error completing all processing:', error);
+      res.status(500).json({ error: 'Failed to complete processing: ' + (error as Error).message });
+    }
+  });
+
+  // Manually complete processing pipeline for existing ingestion
+  app.post('/api/forms/complete-processing/:id', async (req, res) => {
+    try {
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+      
+      const ingestionId = req.params.id;
+      
+      // Get the current ingestion record
+      const result = await pool.request()
+        .input('ingestionId', ingestionId)
+        .query('SELECT * FROM TF_ingestion WHERE ingestion_id = @ingestionId');
+      
+      if (result.recordset.length === 0) {
+        return res.status(404).json({ error: 'Ingestion record not found' });
+      }
+      
+      const record = result.recordset[0];
+      
+      // Start the complete processing pipeline
+      await processDocumentPipeline(ingestionId, record.original_filename, pool);
+      
+      res.json({
+        success: true,
+        message: 'Processing pipeline completed',
+        ingestion_id: ingestionId
+      });
+      
+    } catch (error) {
+      console.error('Error completing processing:', error);
+      res.status(500).json({ error: 'Failed to complete processing: ' + (error as Error).message });
+    }
+  });
+
   // Get Ingestion Status
   app.get('/api/forms/ingestion/:id', async (req, res) => {
     try {
