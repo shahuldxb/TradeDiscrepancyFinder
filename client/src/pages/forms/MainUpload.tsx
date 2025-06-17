@@ -44,6 +44,7 @@ export default function MainUpload() {
     completed: false
   });
   const [extractedForms, setExtractedForms] = useState<ExtractedForm[]>([]);
+  const [isLoadingForms, setIsLoadingForms] = useState(false);
   const [currentIngestionId, setCurrentIngestionId] = useState<string>('');
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
