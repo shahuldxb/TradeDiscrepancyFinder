@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   Search, 
   Filter, 
@@ -19,7 +21,9 @@ import {
   CheckCircle,
   Clock,
   AlertCircle,
-  Database
+  Database,
+  Copy,
+  Code
 } from "lucide-react";
 
 interface Ingestion {
@@ -34,6 +38,10 @@ interface Ingestion {
   updated_date: string;
   processing_steps?: string;
   error_message?: string;
+  document_type?: string;
+  extracted_text?: string;
+  extracted_data?: string;
+  completion_date?: string;
 }
 
 export default function IngestionManagement() {
@@ -253,9 +261,88 @@ export default function IngestionManagement() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center space-x-1">
-                            <Button variant="ghost" size="sm">
-                              <Eye className="h-4 w-4" />
-                            </Button>
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button variant="ghost" size="sm">
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-4xl max-h-[80vh]">
+                                <DialogHeader>
+                                  <DialogTitle>Extracted Data - {ingestion.original_filename}</DialogTitle>
+                                  <DialogDescription>
+                                    OCR text and structured data extracted from your document
+                                  </DialogDescription>
+                                </DialogHeader>
+                                <ScrollArea className="h-[60vh] w-full rounded-md border p-4">
+                                  <Tabs defaultValue="structured" className="w-full">
+                                    <TabsList className="grid w-full grid-cols-2">
+                                      <TabsTrigger value="structured">Structured Data</TabsTrigger>
+                                      <TabsTrigger value="raw">Raw OCR Text</TabsTrigger>
+                                    </TabsList>
+                                    
+                                    <TabsContent value="structured" className="mt-4">
+                                      <div className="space-y-4">
+                                        <div className="flex items-center justify-between">
+                                          <h4 className="text-sm font-medium">Document Information</h4>
+                                          <Button variant="outline" size="sm" onClick={() => navigator.clipboard.writeText(ingestion.extracted_data || '')}>
+                                            <Copy className="h-4 w-4 mr-1" />
+                                            Copy JSON
+                                          </Button>
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-2 gap-4">
+                                          <div>
+                                            <label className="text-sm font-medium text-gray-600">Document Type</label>
+                                            <p className="text-sm mt-1 p-2 bg-gray-50 dark:bg-gray-800 rounded">
+                                              {ingestion.document_type || 'Not classified'}
+                                            </p>
+                                          </div>
+                                          <div>
+                                            <label className="text-sm font-medium text-gray-600">Status</label>
+                                            <p className="text-sm mt-1 p-2 bg-gray-50 dark:bg-gray-800 rounded">
+                                              {ingestion.status}
+                                            </p>
+                                          </div>
+                                        </div>
+                                        
+                                        {ingestion.extracted_data && (
+                                          <div>
+                                            <label className="text-sm font-medium text-gray-600">Extracted Fields</label>
+                                            <pre className="text-xs mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded overflow-auto">
+                                              {JSON.stringify(JSON.parse(ingestion.extracted_data), null, 2)}
+                                            </pre>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </TabsContent>
+                                    
+                                    <TabsContent value="raw" className="mt-4">
+                                      <div className="space-y-4">
+                                        <div className="flex items-center justify-between">
+                                          <h4 className="text-sm font-medium">OCR Extracted Text</h4>
+                                          <Button variant="outline" size="sm" onClick={() => navigator.clipboard.writeText(ingestion.extracted_text || '')}>
+                                            <Copy className="h-4 w-4 mr-1" />
+                                            Copy Text
+                                          </Button>
+                                        </div>
+                                        
+                                        {ingestion.extracted_text ? (
+                                          <div className="text-sm p-4 bg-gray-50 dark:bg-gray-800 rounded border font-mono whitespace-pre-wrap">
+                                            {ingestion.extracted_text}
+                                          </div>
+                                        ) : (
+                                          <div className="text-center py-8 text-gray-500">
+                                            <FileText className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                                            <p>No OCR text available for this document</p>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </TabsContent>
+                                  </Tabs>
+                                </ScrollArea>
+                              </DialogContent>
+                            </Dialog>
                             <Button variant="ghost" size="sm">
                               <Download className="h-4 w-4" />
                             </Button>
