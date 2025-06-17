@@ -10005,6 +10005,156 @@ Extraction Date: ${new Date().toISOString()}
     }
   });
 
+  // Create individual record endpoints for split forms
+  app.post('/api/forms/create-ingestion-record', async (req, res) => {
+    try {
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+      
+      const {
+        ingestion_id, file_path, file_type, original_filename, file_size,
+        status, document_type, extracted_text, extracted_data, processing_steps
+      } = req.body;
+      
+      await pool.request()
+        .input('ingestionId', ingestion_id)
+        .input('filePath', file_path)
+        .input('fileType', file_type)
+        .input('originalFilename', original_filename)
+        .input('fileSize', file_size)
+        .input('status', status)
+        .input('documentType', document_type)
+        .input('extractedText', extracted_text)
+        .input('extractedData', extracted_data)
+        .input('processingSteps', processing_steps)
+        .query(`
+          INSERT INTO TF_ingestion (
+            ingestion_id, file_path, file_type, original_filename, file_size, 
+            status, document_type, extracted_text, extracted_data, processing_steps,
+            created_date, updated_date, completion_date
+          ) VALUES (
+            @ingestionId, @filePath, @fileType, @originalFilename, @fileSize,
+            @status, @documentType, @extractedText, @extractedData, @processingSteps,
+            GETDATE(), GETDATE(), GETDATE()
+          )
+        `);
+      
+      res.json({ success: true, message: 'Ingestion record created' });
+    } catch (error) {
+      console.error('Error creating ingestion record:', error);
+      res.status(500).json({ error: 'Failed to create ingestion record' });
+    }
+  });
+
+  app.post('/api/forms/create-pdf-record', async (req, res) => {
+    try {
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+      
+      const { ingestion_id, form_id, file_path, document_type, page_range } = req.body;
+      
+      await pool.request()
+        .input('ingestionId', ingestion_id)
+        .input('formId', form_id)
+        .input('filePath', file_path)
+        .input('documentType', document_type)
+        .input('pageRange', page_range)
+        .query(`
+          INSERT INTO TF_ingestion_Pdf (
+            ingestion_id, form_id, file_path, document_type, page_range, created_date
+          ) VALUES (
+            @ingestionId, @formId, @filePath, @documentType, @pageRange, GETDATE()
+          )
+        `);
+      
+      res.json({ success: true, message: 'PDF record created' });
+    } catch (error) {
+      console.error('Error creating PDF record:', error);
+      res.status(500).json({ error: 'Failed to create PDF record' });
+    }
+  });
+
+  app.post('/api/forms/create-txt-record', async (req, res) => {
+    try {
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+      
+      const { ingestion_id, content, language, form_id } = req.body;
+      
+      await pool.request()
+        .input('ingestionId', ingestion_id)
+        .input('content', content)
+        .input('language', language)
+        .input('formId', form_id)
+        .query(`
+          INSERT INTO TF_ingestion_TXT (
+            ingestion_id, content, language, form_id, created_date
+          ) VALUES (
+            @ingestionId, @content, @language, @formId, GETDATE()
+          )
+        `);
+      
+      res.json({ success: true, message: 'TXT record created' });
+    } catch (error) {
+      console.error('Error creating TXT record:', error);
+      res.status(500).json({ error: 'Failed to create TXT record' });
+    }
+  });
+
+  app.post('/api/forms/create-field-record', async (req, res) => {
+    try {
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+      
+      const { ingestion_id, form_id, field_name, field_value, extraction_method } = req.body;
+      
+      await pool.request()
+        .input('ingestionId', ingestion_id)
+        .input('formId', form_id)
+        .input('fieldName', field_name)
+        .input('fieldValue', field_value)
+        .input('extractionMethod', extraction_method)
+        .query(`
+          INSERT INTO TF_ingestion_fields (
+            ingestion_id, form_id, field_name, field_value, extraction_method, created_date
+          ) VALUES (
+            @ingestionId, @formId, @fieldName, @fieldValue, @extractionMethod, GETDATE()
+          )
+        `);
+      
+      res.json({ success: true, message: 'Field record created' });
+    } catch (error) {
+      console.error('Error creating field record:', error);
+      res.status(500).json({ error: 'Failed to create field record' });
+    }
+  });
+
+  app.post('/api/forms/update-parent-document', async (req, res) => {
+    try {
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+      
+      const { ingestion_id, extracted_data, document_type } = req.body;
+      
+      await pool.request()
+        .input('ingestionId', ingestion_id)
+        .input('extractedData', extracted_data)
+        .input('documentType', document_type)
+        .query(`
+          UPDATE TF_ingestion 
+          SET extracted_data = @extractedData,
+              document_type = @documentType,
+              updated_date = GETDATE()
+          WHERE ingestion_id = @ingestionId
+        `);
+      
+      res.json({ success: true, message: 'Parent document updated' });
+    } catch (error) {
+      console.error('Error updating parent document:', error);
+      res.status(500).json({ error: 'Failed to update parent document' });
+    }
+  });
+
   // Multi-page form processing endpoint
   app.post('/api/forms/process-multipage/:ingestionId', async (req, res) => {
     try {
