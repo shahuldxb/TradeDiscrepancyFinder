@@ -164,6 +164,7 @@ function Router() {
             {/* Forms Recognition Routes */}
             <Route path="/forms/upload" component={FileUpload} />
             <Route path="/forms/ingestion" component={IngestionManagement} />
+            <Route path="/forms/grouped" component={GroupedDocuments} />
             <Route path="/forms/approval" component={FormApproval} />
             <Route path="/forms/templates" component={FormTemplates} />
             
