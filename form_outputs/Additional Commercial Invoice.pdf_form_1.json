@@ -1,0 +1,13 @@
+{
+  "formType": "commercial_invoice",
+  "extractionDate": "2025-06-17T14:59:22.212Z",
+  "fields": {
+    "Buyer": "'s Ordér No. & Date",
+    "Date": "2025-06-17",
+    "Reference": "erence"
+  },
+  "metadata": {
+    "textLength": 8717,
+    "extractionMethod": "rule_based"
+  }
+}

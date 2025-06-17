@@ -4560,17 +4560,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   async function performFieldExtraction(filePath: string, documentType: string, textContent: string, ingestionId: string): Promise<any> {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       // Create a temporary text file for the content
       const textFileName = `temp_text_${Date.now()}.txt`;
       const textFilePath = `uploads/${textFileName}`;
       
-      require('fs').writeFileSync(textFilePath, textContent, 'utf-8');
-      
-      console.log(`Starting field extraction for ${documentType} document...`);
-      
-      const { spawn } = require('child_process');
-      const pythonProcess = spawn('python', [
+      try {
+        const fs = await import('fs');
+        fs.writeFileSync(textFilePath, textContent, 'utf-8');
+        
+        console.log(`Starting field extraction for ${documentType} document...`);
+        
+        const { spawn } = await import('child_process');
+        const pythonProcess = spawn('python', [
         'server/fieldExtractionService.py',
         filePath,
         documentType,
@@ -4600,7 +4602,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Clean up temporary text file
         try {
-          require('fs').unlinkSync(textFilePath);
+          fs.unlinkSync(textFilePath);
         } catch (cleanupError) {
           console.warn('Failed to clean up temporary text file:', cleanupError);
         }

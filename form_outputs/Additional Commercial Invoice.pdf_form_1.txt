@@ -1,0 +1,240 @@
+FORM TYPE: COMMERCIAL_INVOICE
+PAGE RANGE: 1-1
+CONFIDENCE: 0.85
+
+EXTRACTED TEXT FROM: Additional Commercial Invoice.pdf
+==================================================
+
+OCR PROCESSING RESULTS:
+- Method: tesseract_images
+- Status: Successful
+- Characters extracted: 8259
+- Processing date: 2025-06-17T14:59:18.766Z
+
+ACTUAL DOCUMENT CONTENT:
+COMMERCIAL INVOICE
+
+orter . Manufacturer
+
+ifM/s MAYUR INDUSTRIES
+
+¥1 F-205, SEC-5, DSIIDC INDUSTRIAL AREA
+BAWANA, DELHI - 110039 (INDIA)
+
+Ph. : 0091-11-40527660
+
+E-Mail : mayurind@gmail.com
+
+GSTIN : O7ABEFM1006D1ZY
+
+Invoice No. & date Exporter Ref.
+
+148/21-22 DT 23-02-2022
+
+Buyer's Ordér No. & Date
+2021-22/172 : 13-01-2022
+
+Other reference (s)
+
+I.E.C. N0.:0516526332
+
+Consignee,
+ABU DHABI ISLAMIC BANK
+P.O. BOX 313, ABU DHABI, UAE.
+TEL: +9712-6100000, FAX : +9712-6673259
+Notify
+AL SAMAH A/C UNITS IND LLC
+P.0. BOX 3669, NEW IND AREA, PLOT NO. 0837,
+BLOCK NO.1, UMMUL ZAHOON AREA,
+UMM AL QUWAIN, UAE.
+
+Buyer (if other than consignee)
+
+Country of QOrigin of Goods
+INDIA
+
+Country of Final Destination
+U.A.E.
+
+Tel. + 06-7672473 Terms of Delivery & Payment
+Fax 1 06-5422761 -
+L/C NO. ILCAE06122000021 DT 01-FEB-2022
+Pre-Carriage By Place of Receipt by pre-carrie
+SEA NEW DELHI CIF JEBEL ALI, DUBAI, UAE BY SEA
+Vessel/Flight No. Port of Loading
+MUNDRA/MUMBAI PAYMENT AT SIGHT
+Port of Discharge Final Destination
+JEBEL ALI JEBEL ALI (UAE)
+Mark & Numbers. No. & Kind of Pkgs. Description of goods Quantity  Unit Price Amount
+Container No. usD Usp
+TOTAL PKGS : 55 HS CODE
+CONCEALED CLIP 73269099 152,000 Pcs. 0.02100 3,192.00
+DAMPER BLACK CLIP 73269099 345,000 Pcs. 0.01300 4,485.00
+DIFFUSER LONG PIN 76161000 320,000 Pcs. 0.03400 " 10,880.00
+DIFFUSER SHORT PIN 76161000 320,000 Pcs. 0.02600 8,320.00
+DIFFUSER SPRING 73201019 350,000 Pcs.| . 0.00400 1,400.00
+RIGHT ANGLE CLIP (GRILL CLIP) 73269099 100,000 Pcs. 0.02100 2,100.00
+STAINLESS STEEL BUSH, ID-12MM, OD.-16MM 73269099 2,290 Pcs. 0.28000 641.20
+ALU CAMLOCK - NEW 76161000 84,000 Pcs. 0.02200 1,848.00
+T CLIP - NEW 73269099 84,000 Pcs. 0.02400 2,016.00
+DAMPER SCREW - NEW 73269099 84,000 Pcs. 0.05300 4,452.00
+VCD HANDLE 73269099 12,000 Pcs. 0.44500 5,340.00
+PLASTIC STRIP BUSHES (1000 PCS/PKT) “. 39269099 800,000 Pcs. 0.00800 6,400.00
+G CLAMP S 73269099 21,600 Pcs. 0.06800 1,468.80
+DUCT MATE FLANGE CORNER 20MM 73269099 10,000 Pcs. 0.06500 650.00
+DUCT MATE FLANGE CORNER 30MM e re e e m 13269099 11,800 Pcs. 0.09000 1,062.00
+DUCT MATE FLANGE CORNER 40MM -~ [+ 72" ~73269099 25,090 Pcs.|  0.18700 4,691.83
+e
+o Al
+" '"x'\«‘;"{;\
+€J@ o ) e e
+e Sub Total RN T J7'58,946.83
+Discount [@  2.000 %~ fxs= =7 1,178.94
+Nett Weight : 15411.000 KG &
+Gr. Weight  : 16094.000 KG
+Amount chargeble (In words) Totai USD 57,767.89
+
+USD Fifty Seven Thousand Seven Hundred Sixty Seven and Cents Eighty Nine Only
+
+This is - certify that all other details related to goods are as per our Proforma Invoice No. 131/21-22 dt 13.01.2022
+
+Declaration :
+We declare that invoice shows the actual price of goods
+Described and that all particulars are true & correct.
+
+R INDUSTRI ¥$
+Fér%\W&é
+P — 7 :
+) 03 B
+
+' COMMERCIAL INVOICE
+
+sorter Manufacturer TInvoice No. & date Exporter Ref.
+
+‘/s MAYUR INDUSTRIES 148/21-22 DT 23-02-2022
+
+'F-205, SEC-5, DSIIDC INDUSTRIAL AREA
+
+, ‘ BAWANA, DELHI - 110039 (INDIA) Buyer's Order No. & Date
+"~ { Ph. : 0091-11-40527660 2021-22/172 : 13-01-2022
+E- Mall . mayurind@gmail.com
+GSTIN : 07ABEFM1006D1ZY Other reference (s)
+LE.C. N0.:0516526332
+Consignee, Buyer (if other than consignee)
+ABU DHABI ISLAMIC BANK
+P.0. BOX 313, ABU DHABI, UAE.
+TEL: +9712-6100000, FAX : +9712-6673259
+Notify
+AL SAMAH A/C UNITS IND LLC '
+P.O. BOX 3669, NEW IND AREA, PLOT NO. 0837, Country of Origin of Goods Country of Final Destination
+BLOCK NO.1, UMMUL ZAHOON AREA, INDIA U.A.E.
+UMM AL QUWAIN, UAE.
+Tel. + 06-7672473 Terms of Defivery & Payment
+Fax : 06-5422761 '
+, L/C NO. ILCAE06122000021 DT 01-FEB-2022
+Pre-Carriage By Piace of Receipt by pre-cartie
+SEA NEW DELHI CIF JEBEL ALI, DUBAI, UAE BY SEA
+Vessel/Flight No. - {Port of Loading
+: MUNDRA/MUMBAI PAYMENT AT SIGHT |
+Port of Discharge Final Destination .
+JEBEL ALI JEBEL ALI (UAE)
+Mark & Numbers. No. & Kind of Pkgs. Description of goods Quantity  Unit Price Amount
+Container No. UsD usbD
+TOTALPKGS : 55 . HS CODE
+CONCEALED CLIP 73269099 | 152,000 Pcs. 0.02100 3,192.00
+DAMPER BLACK CLIP 73269099 |. 345,000 Pcs. 0.01300 4,485.00
+DIFFUSER LONG PIN 76161000 - 320,000 Pcs. 0.03400 10,880.00
+DIFFUSER SHORT PIN 76161000 320,000 Pcs. 0.02600 8,320.00
+DIFFUSER SPRING 73201019 350,000 Pcs. 0.00400 1,400.00
+RIGHT ANGLE CLIP (GRILL CLIP) 73269099 100,000 Pcs. 0.02100 2,100.00
+STAINLESS STEEL BUSH, ID-12MM, OD -16MM 73269099 2,290 Pcs. 0.28000 641.20
+ALU CAMLOCK - NEW 76161000 84,000 Pcs. 0.02200 1,848.00
+T CLIP - NEW 73269099 84,000 Pcs. 0.02400 2,016.00
+DAMPER SCREW - NEW 73269099 84,000 Pcs. 0.05300 4,452.00
+VCD HANDLE - 73269099 12,000 Pcs. 0.44500 5,340.00
+PLASTIC STRIP BUSHES (1000 PCS/PKT) g ) 39269099 800,000 Pcs. 0.00800 6,400.00
+G CLAMP : 73269099 21,600 Pcs.| - 0.06800 1,468.80
+DUCT MATE FLANGE CORNER 20MM ;- / 73269099 10,000 Pcs. 0.06500 650.00
+DUCT MATE FLANGE CORNER 30MM ' = a1+ 31y ?3i§9099 11,800 Pcs. 0.09000 1,062.00
+DUCT MATE FLANGE CORNER 40MM 73269099 25,090 PC‘S/.JH . 9}8700 4,691.83
+v : \ A‘:‘; \ D ﬁ R Of e
+5,( T :\‘:4;‘“‘
+VTR gy | ”
+N T ~; 4‘
+N S R Uy 2
+Sub Total Te (SWIDELEL T 58,946.83
+Discount @  2.000 % [ 1,178.94
+Nett Weight : 15411000KG
+Gr. Weight  : 16094.000 KG
+Amount chargeble (In words) Total USD 57,767.89
+USD Fifty Seven Thousand Seven Hundred Sixty Seven and Cents Eighty Nine Only ]
+This s t certify that all other details related to goods are as per our Proforma Invoice No. 1312122 dt 13.01.2022 FOR ‘\,IASJ_‘_R INDUSTRI
+Decleration : For MAYUR NDusf)ues
+We declare that invoice shows the actual price of goods
+Described and tha iculars are true & correct. : Si na(uje D VAT
+_.FS ibed and that all particulars ’ g Aiuuw 1,_‘*
+
+lerl
+wn
+
+COMMERCIAL INVOICE
+rter - Manufacturer ' Invoice No. & date | Exporter Ref.
+M/s MAYUR INDUSTRIES 148/21-22 DT 23-02-2022
+F-205, SEC-5, DSIIDC INDUSTRIAL AREA
+BAWANA, DELHI - 110039 (INDIA) Buyer's Order No. & Date
+Ph. : 0091-11-40527660 2021-22/172 : 13-01-2022
+E-Mail : mayurind@gmail.com '
+GSTIN : 07ABEFM1006D1ZY Other reference (s)
+. I.E.C. No.:0516526332
+Consignee, . Buyer (if other than consignee)
+ABU DHABI ISLAMIC BANK
+P.0. BOX 313, ABU DHABI, UAE.
+TEL: +9712-6100000, FAX : +9712-6673259
+Notify
+AL SAMAH A/C UNITS IND LLC
+P.O. BOX 3669, NEW IND AREA, PLOT NO. 0837, Country of Origin of Goods Country of Final Destination
+BLOCK NO.1, UMMUL ZAHOON AREA,’ INDIA U.A.E.
+UMM AL QUWAIN, UAE.
+Tel. . 06-7672473 Terms of Delivery & Payment
+Fax 1 06-5422761 : |
+L/C NO. ILCAE06122000021 DT 01-FEB-2022 |
+Pre-Carriage By Place of Receipt by pre-carrie
+SEA NEW DELHI CIF JEBEL ALI, DUBAI, UAE BY SEA
+Vessel/Flight No. Port of Loading
+MUNDRA/MUMBAI PAYMENT AT SIGHT
+Port of Discharge Final Destination
+JEBEL ALI JEBEL ALI (UAE)
+Mark & Numbers. No. & Kind of Pkgs. Description of goods Quantity Unit Price Amount
+Container No. usD usb
+TOTAL PKGS : 55 - HS CODE
+CONCEALED CLIP 73269099 152,000 Pcs. 0.02100 3,192.00
+DAMPER BLACK CLIP 73269099 345,000 Pcs. 0.01300 4,485.00
+DIFFUSER LONG PIN ‘ 76161000 320,000 Pcs. 0.03400 10,880.00
+DIFFUSER SHORT PIN 76161000 320,000 Pcs. 0.02600 8,320.00
+DIFFUSER SPRING 73201019 350,000 Pcs. 0.00400 1,400.00
+RIGHT ANGLE CLIP (GRILL CLIP) 73269099 100,000 Pcs. 0.02100 2,100.00
+STAINLESS STEEL BUSH, ID-12MM, OD -16MM 73269099 2,290 Pcs. 0.28000 641.20
+ALU CAMLOCK - NEW 76161000 84,000 Pcs. 0.02200 1,848.00
+T CLIP - NEW 73269099 84,000 Pcs. 0.02400 2,016.00
+DAMPER SCREW - NEW 73269099 84,000 Pcs. 0.05300 4,452.00
+VCD HANDLE 73269099 12,000 Pcs. 0.44500 5,340.00
+PLASTIC STRIP BUSHES (1000 PCS/PKT) i 39269099 800,000 Pcs. 0.00800 6,400.00
+G CLAMP . 73269099 21,600 Pcs. 0.06800]. 1,468.80
+DUCT MATE FLANGE CORNER ZOMM/ - ) < 73269099 10,000 Pcs. 0.06500 650.00
+DUCT MATE FLANGE CORNER 30MM "73269099 11,800 Pcs. 0.09000 1,062.00
+DUCT MATE FLANGE CORNER 40M,M} nresTIy ;;'73269099 25, 090 PCS.::’_‘J‘__Q:. {8?00 4,691.83
+i ‘; - e
+MAR 9
+Sl RN 58,946.83
+@ 2.000 % 1,178.94
+Nett Weight : 15411.000.KG AR
+Gr. Weight : 16094.000 KG
+Amount chargeble (In words) Total USD 57,767.89
+USD Fifty Seven Thousand Seven Hundred Sixty Seven and Cents Eighty Nine Only
+This is to certify that all other details related to goods are as per our Proforma Invoice No. 131/21-22 dt 13.01.2022 FOR MAYUR INDUSTRIES
+Declaration : For MA!,UR‘-,WEESPKIES
+We deciare that invoice shows the actual price of goods e .
+Described and that all particulars are true & correct,
+
+==================================================
+End of extracted content from Additional Commercial Invoice.pdf
