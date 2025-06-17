@@ -94,26 +94,45 @@ export default function FormTemplates() {
     queryFn: () => fetch("/api/forms/txt-records").then(res => res.json()),
   });
 
+  // Create sample data mutation
+  const createSampleMutation = useMutation({
+    mutationFn: () => apiRequest("/api/forms/create-sample-ingestion", {
+      method: "POST",
+    }),
+    onSuccess: (data: any) => {
+      setPopulationResult(data.message || "Sample data created successfully");
+    },
+    onError: (error: any) => {
+      setPopulationResult(`Error creating sample data: ${error.message}`);
+    },
+  });
+
   // Populate processing tables mutation
   const populateMutation = useMutation({
     mutationFn: () => apiRequest("/api/forms/populate-processing-tables", {
       method: "POST",
     }),
-    onSuccess: (data) => {
-      setPopulationResult(data.message);
+    onSuccess: (data: any) => {
+      setPopulationResult(data.message || "Processing tables populated successfully");
       queryClient.invalidateQueries({ queryKey: ["/api/forms/pdf-records"] });
       queryClient.invalidateQueries({ queryKey: ["/api/forms/txt-records"] });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       setPopulationResult(`Error: ${error.message}`);
     },
   });
+
+  const handleCreateSampleData = () => {
+    setPopulationResult("");
+    createSampleMutation.mutate();
+  };
 
   const handlePopulateProcessingTables = () => {
     setPopulationResult("");
     populateMutation.mutate();
   };
 
+  const isCreatingSample = createSampleMutation.isPending;
   const isPopulating = populateMutation.isPending;
 
   // Filter forms based on search and status
@@ -342,7 +361,7 @@ export default function FormTemplates() {
         </TabsContent>
 
         <TabsContent value="processing" className="space-y-6">
-          {/* Populate Processing Tables Button */}
+          {/* Data Migration Section */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
@@ -350,27 +369,49 @@ export default function FormTemplates() {
                 <span>Data Migration</span>
               </CardTitle>
               <CardDescription>
-                Populate TF_ingestion_Pdf and TF_ingestion_TXT tables from main TF_ingestion table
+                Create sample data and populate processing tables for testing
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <Button 
-                onClick={handlePopulateProcessingTables}
-                disabled={isPopulating}
-                className="w-full"
-              >
-                {isPopulating ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Populating Tables...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="mr-2 h-4 w-4" />
-                    Populate Processing Tables
-                  </>
-                )}
-              </Button>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <Button 
+                  onClick={handleCreateSampleData}
+                  disabled={isCreatingSample}
+                  variant="outline"
+                  className="w-full"
+                >
+                  {isCreatingSample ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creating Sample Data...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="mr-2 h-4 w-4" />
+                      Create Sample Data
+                    </>
+                  )}
+                </Button>
+                
+                <Button 
+                  onClick={handlePopulateProcessingTables}
+                  disabled={isPopulating}
+                  className="w-full"
+                >
+                  {isPopulating ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Populating Tables...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="mr-2 h-4 w-4" />
+                      Populate Processing Tables
+                    </>
+                  )}
+                </Button>
+              </div>
+              
               {populationResult && (
                 <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded">
                   <p className="text-sm text-green-700">{populationResult}</p>
