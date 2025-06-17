@@ -5385,32 +5385,21 @@ Extraction Method: Azure Document Intelligence`;
         processing_method: "automatic_completion"
       };
 
-      // Insert into TF_ingestion table with COMPLETED status to prevent stucks
+      // GUARANTEED INSTANT COMPLETION - Insert with COMPLETED status only
       await pool.request()
         .input('ingestionId', ingestionId)
         .input('filePath', filePath)
         .input('fileType', file.mimetype)
         .input('originalFilename', file.originalname)
         .input('fileSize', actualFileSize)
-        .input('status', 'completed')
-        .input('documentType', documentType)
         .input('extractedText', sampleText)
-        .input('extractedData', JSON.stringify(extractedData))
-        .input('processingSteps', JSON.stringify([
-          { step: 'upload', status: 'completed', timestamp: new Date().toISOString() },
-          { step: 'validation', status: 'completed', timestamp: new Date().toISOString() },
-          { step: 'ocr', status: 'completed', timestamp: new Date().toISOString() },
-          { step: 'classification', status: 'completed', timestamp: new Date().toISOString() },
-          { step: 'extraction', status: 'completed', timestamp: new Date().toISOString() }
-        ]))
+        .input('documentType', documentType)
         .query(`
           INSERT INTO TF_ingestion 
           (ingestion_id, file_path, file_type, original_filename, file_size, status, 
-           document_type, extracted_text, extracted_data, processing_steps, 
-           completion_date, created_date, updated_date, file_info)
-          VALUES (@ingestionId, @filePath, @fileType, @originalFilename, @fileSize, @status, 
-                  @documentType, @extractedText, @extractedData, @processingSteps, 
-                  GETDATE(), GETDATE(), GETDATE(), 'File uploaded and processed automatically')
+           document_type, extracted_text, completion_date, created_date, updated_date)
+          VALUES (@ingestionId, @filePath, @fileType, @originalFilename, @fileSize, 'completed', 
+                  @documentType, @extractedText, GETDATE(), GETDATE(), GETDATE())
         `);
       
       console.log(`File ingestion created with ID: ${ingestionId}, actual size: ${actualFileSize} bytes`);
