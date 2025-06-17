@@ -296,6 +296,11 @@ const navigationItems = [
         description: "Upload and process documents with Azure AI",
       },
       {
+        name: "Enhanced Processing",
+        href: "/forms/enhanced",
+        description: "Multi-form PDF analysis with Python backend",
+      },
+      {
         name: "Processing Dashboard",
         href: "/forms/ingestion",
         description: "Monitor document processing status",
