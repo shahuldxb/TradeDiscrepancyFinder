@@ -286,6 +286,33 @@ const navigationItems = [
     ],
   },
   {
+    name: "I am tired",
+    icon: Upload,
+    description: "Forms Recognition & Processing",
+    subItems: [
+      {
+        name: "File Upload",
+        href: "/forms/upload",
+        description: "Upload and process forms (PDF, PNG, JPEG)",
+      },
+      {
+        name: "Ingestion Management",
+        href: "/forms/ingestion",
+        description: "Manage form processing ingestions",
+      },
+      {
+        name: "Form Approval",
+        href: "/forms/approval",
+        description: "Approve new form templates",
+      },
+      {
+        name: "Form Templates",
+        href: "/forms/templates",
+        description: "Manage form templates and fields",
+      },
+    ],
+  },
+  {
     name: "Lifecycle Management",
     icon: GitBranch,
     description: "tf_genie Database Dashboard",
