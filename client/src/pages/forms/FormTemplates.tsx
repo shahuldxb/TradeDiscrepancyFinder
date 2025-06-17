@@ -94,6 +94,28 @@ export default function FormTemplates() {
     queryFn: () => fetch("/api/forms/txt-records").then(res => res.json()),
   });
 
+  // Populate processing tables mutation
+  const populateMutation = useMutation({
+    mutationFn: () => apiRequest("/api/forms/populate-processing-tables", {
+      method: "POST",
+    }),
+    onSuccess: (data) => {
+      setPopulationResult(data.message);
+      queryClient.invalidateQueries({ queryKey: ["/api/forms/pdf-records"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/forms/txt-records"] });
+    },
+    onError: (error) => {
+      setPopulationResult(`Error: ${error.message}`);
+    },
+  });
+
+  const handlePopulateProcessingTables = () => {
+    setPopulationResult("");
+    populateMutation.mutate();
+  };
+
+  const isPopulating = populateMutation.isPending;
+
   // Filter forms based on search and status
   const filteredForms = allForms.filter((form: FormDefinition) => {
     const matchesSearch = form.form_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
