@@ -46,6 +46,7 @@ import MasterDocuments from "@/pages/lifecycle/MasterDocuments";
 import SubDocuments from "@/pages/lifecycle/SubDocuments";
 import LifecycleStates from "@/pages/lifecycle/LifecycleStates";
 import FileUpload from "@/pages/forms/FileUpload";
+import IngestionManagement from "@/pages/forms/IngestionManagement";
 
 import NotFound from "@/pages/not-found";
 
@@ -159,7 +160,7 @@ function Router() {
             
             {/* Forms Recognition Routes */}
             <Route path="/forms/upload" component={FileUpload} />
-            <Route path="/forms/ingestion" component={FileUpload} />
+            <Route path="/forms/ingestion" component={IngestionManagement} />
             <Route path="/forms/approval" component={FileUpload} />
             <Route path="/forms/templates" component={FileUpload} />
             
