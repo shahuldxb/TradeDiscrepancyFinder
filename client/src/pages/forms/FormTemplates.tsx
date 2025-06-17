@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
-import { CheckCircle, FileText, Settings, Eye, Search, Filter, Database, Download } from "lucide-react";
+import { CheckCircle, FileText, Settings, Eye, Search, Filter, Database, Download, Upload, Loader2 } from "lucide-react";
 
 interface FormDefinition {
   form_id: string;
@@ -64,6 +65,9 @@ export default function FormTemplates() {
   const [selectedForm, setSelectedForm] = useState<FormDefinition | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [populationResult, setPopulationResult] = useState<string>("");
+  
+  const queryClient = useQueryClient();
 
   // Fetch all forms
   const { data: allForms = [], isLoading: loadingForms } = useQuery({
@@ -316,6 +320,43 @@ export default function FormTemplates() {
         </TabsContent>
 
         <TabsContent value="processing" className="space-y-6">
+          {/* Populate Processing Tables Button */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Database className="h-5 w-5 text-blue-500" />
+                <span>Data Migration</span>
+              </CardTitle>
+              <CardDescription>
+                Populate TF_ingestion_Pdf and TF_ingestion_TXT tables from main TF_ingestion table
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button 
+                onClick={handlePopulateProcessingTables}
+                disabled={isPopulating}
+                className="w-full"
+              >
+                {isPopulating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Populating Tables...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Populate Processing Tables
+                  </>
+                )}
+              </Button>
+              {populationResult && (
+                <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded">
+                  <p className="text-sm text-green-700">{populationResult}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Processing Records */}
           <div className="grid gap-6 md:grid-cols-2">
             <Card>
