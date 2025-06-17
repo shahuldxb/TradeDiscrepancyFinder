@@ -263,6 +263,48 @@ export default function MainUpload() {
     }
   };
 
+  // Load extracted forms with real data from Azure SQL
+  const loadExtractedForms = async (ingestionId: string) => {
+    try {
+      setIsLoadingForms(true);
+      addLog('Info', 'Loading Forms', 'Fetching extracted forms from Azure SQL database...');
+      
+      const response = await fetch(`/api/forms/extracted-forms/${ingestionId}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.forms && data.forms.length > 0) {
+          setExtractedForms(data.forms);
+          addLog('Info', 'Forms Loaded', `Successfully loaded ${data.forms.length} forms with real OCR data`);
+          
+          // Log details about each loaded form
+          data.forms.forEach((form: any, index: number) => {
+            addLog('Info', `Form ${index + 1}`, `${form.formType} (${form.textLength || 0} chars, ${form.fieldCount || 0} fields)`);
+          });
+        } else {
+          addLog('Warning', 'No Forms', 'No extracted forms found for this document');
+          setExtractedForms([]);
+        }
+      } else {
+        addLog('Error', 'Load Failed', 'Failed to fetch extracted forms from server');
+        setExtractedForms([]);
+      }
+    } catch (error) {
+      addLog('Error', 'Load Error', error instanceof Error ? error.message : 'Unknown error loading forms');
+      setExtractedForms([]);
+    } finally {
+      setIsLoadingForms(false);
+    }
+  };
+
+  // Check for completion and load extracted forms
+  useEffect(() => {
+    if (status.completed && currentIngestionId) {
+      setTimeout(() => {
+        loadExtractedForms(currentIngestionId);
+      }, 1000);
+    }
+  }, [status.completed, currentIngestionId]);
+
   useEffect(() => {
     return () => {
       if (intervalRef.current) {
@@ -405,9 +447,36 @@ export default function MainUpload() {
         </TabsContent>
 
         <TabsContent value="forms" className="space-y-4">
-          <div className="grid gap-4">
-            {extractedForms.map((form, index) => (
-              <Card key={form.id}>
+          {isLoadingForms ? (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <div className="flex items-center justify-center gap-2">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                  <span>Loading extracted forms from Azure SQL database...</span>
+                </div>
+              </CardContent>
+            </Card>
+          ) : extractedForms.length === 0 ? (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <FileText className="h-16 w-16 mx-auto mb-4 text-gray-400" />
+                <h3 className="font-medium mb-2">No Extracted Forms</h3>
+                <p className="text-gray-600 mb-4">
+                  Upload and process a document to see extracted forms here
+                </p>
+                <Button 
+                  onClick={() => currentIngestionId && loadExtractedForms(currentIngestionId)}
+                  variant="outline"
+                  size="sm"
+                >
+                  Refresh Forms
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4">
+              {extractedForms.map((form, index) => (
+                <Card key={form.id}>
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <span className="flex items-center gap-2">
