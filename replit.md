@@ -14,12 +14,16 @@ This is a sophisticated Trade Finance Discrepancy Resolution Platform that lever
 - **React Hook Form** with Zod validation for form handling
 
 ### Backend Architecture
-- **Node.js + Express** server with TypeScript
+- **Hybrid Node.js + Python** architecture with seamless integration
+- **Node.js + Express** server with TypeScript for frontend API
+- **FastAPI Python Backend** for Azure services and document processing
 - **CrewAI Microservices** for autonomous agent orchestration
 - **Azure SQL Server** as primary database (tf_genie database)
+- **Azure Blob Storage** for document management via Python SDK
+- **Azure Document Intelligence** for OCR and field extraction
 - **Drizzle ORM** configuration (though primarily using raw SQL for Azure)
 - **Replit Authentication** for user management
-- **OpenAI/Gemini AI** integration for document intelligence
+- **Python Backend Proxy** for Node.js/Python communication
 
 ### Database Strategy
 - **Primary Database**: Azure SQL Server (tf_genie) hosted on shahulmi.database.windows.net
