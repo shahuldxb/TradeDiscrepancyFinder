@@ -4445,7 +4445,7 @@ and is ready for field extraction and classification.`;
       
       // Get all processing records (including error status to retry)
       const result = await pool.request()
-        .query(`SELECT * FROM TF_ingestion WHERE status IN ('processing', 'error')`);
+        .query(`SELECT * FROM TF_ingestion WHERE status IN ('processing', 'error', 'pending')`);
       
       console.log(`Found ${result.recordset.length} records to complete processing`);
       
