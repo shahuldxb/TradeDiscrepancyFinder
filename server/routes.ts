@@ -4573,39 +4573,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         const { spawn } = await import('child_process');
         const pythonProcess = spawn('python', [
-        'server/fieldExtractionService.py',
-        filePath,
-        documentType,
-        textFilePath,
-        ingestionId
-      ], {
-        stdio: ['pipe', 'pipe', 'pipe']
-      });
+          'server/fieldExtractionService.py',
+          filePath,
+          documentType,
+          textFilePath,
+          ingestionId
+        ], {
+          stdio: ['pipe', 'pipe', 'pipe']
+        });
 
-      let output = '';
-      let errorOutput = '';
+        let output = '';
+        let errorOutput = '';
 
-      pythonProcess.stdout.on('data', (data: Buffer) => {
-        const dataStr = data.toString();
-        output += dataStr;
-        console.log('Field extraction stdout:', dataStr);
-      });
+        pythonProcess.stdout.on('data', (data: Buffer) => {
+          const dataStr = data.toString();
+          output += dataStr;
+          console.log('Field extraction stdout:', dataStr);
+        });
 
-      pythonProcess.stderr.on('data', (data: Buffer) => {
-        const errorStr = data.toString();
-        errorOutput += errorStr;
-        console.error('Field extraction stderr:', errorStr);
-      });
+        pythonProcess.stderr.on('data', (data: Buffer) => {
+          const errorStr = data.toString();
+          errorOutput += errorStr;
+          console.error('Field extraction stderr:', errorStr);
+        });
 
-      pythonProcess.on('close', (code) => {
-        console.log(`Field extraction process exited with code ${code}`);
-        
-        // Clean up temporary text file
-        try {
-          fs.unlinkSync(textFilePath);
-        } catch (cleanupError) {
-          console.warn('Failed to clean up temporary text file:', cleanupError);
-        }
+        pythonProcess.on('close', (code) => {
+          console.log(`Field extraction process exited with code ${code}`);
+          
+          // Clean up temporary text file
+          try {
+            fs.unlinkSync(textFilePath);
+          } catch (cleanupError) {
+            console.warn('Failed to clean up temporary text file:', cleanupError);
+          }
         
         if (code === 0) {
           try {
@@ -4660,12 +4660,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           reject(new Error(`Field extraction failed with code ${code}: ${errorOutput}`));
         }
-      });
+        });
 
-      pythonProcess.on('error', (error) => {
-        console.error('Failed to start field extraction process:', error);
+        pythonProcess.on('error', (error) => {
+          console.error('Failed to start field extraction process:', error);
+          reject(error);
+        });
+      } catch (error) {
+        console.error('Field extraction setup error:', error);
         reject(error);
-      });
+      }
     });
   }
 
