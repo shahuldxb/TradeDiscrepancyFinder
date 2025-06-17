@@ -78,10 +78,21 @@ export default function IngestionRecords() {
           throw new Error('Text content not found');
         }
       } else {
-        // Get data from ingestion records
-        const ingestionRecord = ingestionRecords?.find((r: any) => r.ingestion_id === ingestionId);
-        if (ingestionRecord) {
-          content = JSON.stringify(ingestionRecord, null, 2);
+        // Try to get data from ingestion records first
+        let record = ingestionRecords?.find((r: any) => r.ingestion_id === ingestionId);
+        
+        // If not found in main records, try PDF records
+        if (!record) {
+          record = pdfRecords?.find((r: any) => r.ingestion_id === ingestionId);
+        }
+        
+        // If still not found, try TXT records
+        if (!record) {
+          record = txtRecords?.find((r: any) => r.ingestion_id === ingestionId);
+        }
+        
+        if (record) {
+          content = JSON.stringify(record, null, 2);
           title = `Processing Data - ${ingestionId}`;
         } else {
           throw new Error('Processing data not found');
