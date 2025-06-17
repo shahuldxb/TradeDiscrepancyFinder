@@ -1,4 +1,20 @@
-import { connectToAzureSQL } from './azureSqlConnection.js';
+const mssql = require('mssql');
+
+async function connectToAzureSQL() {
+  const config = {
+    server: 'shahulmi.database.windows.net',
+    database: 'tf_genie',
+    authentication: {
+      type: 'default'
+    },
+    options: {
+      encrypt: true,
+      trustServerCertificate: false
+    }
+  };
+  
+  return await mssql.connect(config);
+}
 
 async function createFormsTables() {
   try {

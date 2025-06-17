@@ -4104,6 +4104,192 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Forms Recognition API Routes
+  
+  // Setup Forms Database Tables
+  app.post('/api/forms/setup-database', async (req, res) => {
+    try {
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+      
+      console.log('Creating Forms Recognition database tables...');
+      
+      // Create TF_ingestion table
+      await pool.request().query(`
+        IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='TF_ingestion' AND xtype='U')
+        CREATE TABLE TF_ingestion (
+          id INT IDENTITY(1,1) PRIMARY KEY,
+          ingestion_id NVARCHAR(100) UNIQUE NOT NULL,
+          file_path NVARCHAR(500) NOT NULL,
+          file_type NVARCHAR(50) NOT NULL,
+          original_filename NVARCHAR(255),
+          file_size BIGINT,
+          status NVARCHAR(50) DEFAULT 'pending',
+          created_date DATETIME2 DEFAULT GETDATE(),
+          updated_date DATETIME2 DEFAULT GETDATE(),
+          processing_steps NTEXT,
+          file_info NTEXT,
+          error_message NTEXT
+        )
+      `);
+      
+      // Create other tables
+      await pool.request().query(`
+        IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='TF_ingestion_Pdf' AND xtype='U')
+        CREATE TABLE TF_ingestion_Pdf (
+          id INT IDENTITY(1,1) PRIMARY KEY,
+          ingestion_id NVARCHAR(100) NOT NULL,
+          form_id NVARCHAR(100) NOT NULL,
+          file_path NVARCHAR(500) NOT NULL,
+          document_type NVARCHAR(100),
+          page_range NTEXT,
+          created_date DATETIME2 DEFAULT GETDATE()
+        )
+      `);
+      
+      await pool.request().query(`
+        IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='TF_ingestion_TXT' AND xtype='U')
+        CREATE TABLE TF_ingestion_TXT (
+          id INT IDENTITY(1,1) PRIMARY KEY,
+          ingestion_id NVARCHAR(100) NOT NULL,
+          content NTEXT NOT NULL,
+          confidence DECIMAL(5,4),
+          language NVARCHAR(10) DEFAULT 'en',
+          created_date DATETIME2 DEFAULT GETDATE()
+        )
+      `);
+      
+      await pool.request().query(`
+        IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='TF_ingestion_fields' AND xtype='U')
+        CREATE TABLE TF_ingestion_fields (
+          id INT IDENTITY(1,1) PRIMARY KEY,
+          ingestion_id NVARCHAR(100) NOT NULL,
+          form_id NVARCHAR(100) NOT NULL,
+          field_name NVARCHAR(255) NOT NULL,
+          field_value NTEXT,
+          confidence DECIMAL(5,4),
+          created_date DATETIME2 DEFAULT GETDATE()
+        )
+      `);
+      
+      await pool.request().query(`
+        IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='TF_forms' AND xtype='U')
+        CREATE TABLE TF_forms (
+          id INT IDENTITY(1,1) PRIMARY KEY,
+          form_id NVARCHAR(100) UNIQUE NOT NULL,
+          form_name NVARCHAR(255) NOT NULL,
+          form_type NVARCHAR(100),
+          description NTEXT,
+          approval_status NVARCHAR(50) DEFAULT 'pending',
+          created_date DATETIME2 DEFAULT GETDATE(),
+          is_active BIT DEFAULT 1
+        )
+      `);
+      
+      await pool.request().query(`
+        IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='TF_Fields' AND xtype='U')
+        CREATE TABLE TF_Fields (
+          id INT IDENTITY(1,1) PRIMARY KEY,
+          form_id NVARCHAR(100) NOT NULL,
+          field_name NVARCHAR(255) NOT NULL,
+          field_type NVARCHAR(50) NOT NULL,
+          is_required BIT DEFAULT 0,
+          created_date DATETIME2 DEFAULT GETDATE()
+        )
+      `);
+      
+      console.log('Forms Recognition tables created successfully');
+      res.json({ success: true, message: 'Database tables created successfully' });
+      
+    } catch (error) {
+      console.error('Error creating forms database:', error);
+      res.status(500).json({ error: 'Failed to create database tables' });
+    }
+  });
+  
+  // File Upload Processing
+  app.post('/api/forms/upload', async (req, res) => {
+    try {
+      const { filename, fileType } = req.body;
+      const ingestionId = `ing_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      console.log(`Starting file upload processing: ${filename}, type: ${fileType}`);
+      
+      res.json({
+        success: true,
+        ingestion_id: ingestionId,
+        message: 'File upload initiated',
+        processing_steps: [
+          { step: 'upload', status: 'completed' },
+          { step: 'validation', status: 'pending' },
+          { step: 'ocr', status: 'pending' },
+          { step: 'classification', status: 'pending' },
+          { step: 'extraction', status: 'pending' }
+        ]
+      });
+      
+    } catch (error) {
+      console.error('Error processing file upload:', error);
+      res.status(500).json({ error: 'Failed to process file upload' });
+    }
+  });
+  
+  // Get Ingestion Status
+  app.get('/api/forms/ingestion/:id', async (req, res) => {
+    try {
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+      
+      const result = await pool.request()
+        .input('ingestionId', req.params.id)
+        .query('SELECT * FROM TF_ingestion WHERE ingestion_id = @ingestionId');
+      
+      if (result.recordset.length === 0) {
+        return res.status(404).json({ error: 'Ingestion not found' });
+      }
+      
+      res.json(result.recordset[0]);
+      
+    } catch (error) {
+      console.error('Error fetching ingestion:', error);
+      res.status(500).json({ error: 'Failed to fetch ingestion data' });
+    }
+  });
+  
+  // Get All Ingestions
+  app.get('/api/forms/ingestions', async (req, res) => {
+    try {
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+      
+      const result = await pool.request()
+        .query('SELECT TOP 100 * FROM TF_ingestion ORDER BY created_date DESC');
+      
+      res.json(result.recordset);
+      
+    } catch (error) {
+      console.error('Error fetching ingestions:', error);
+      res.status(500).json({ error: 'Failed to fetch ingestions' });
+    }
+  });
+  
+  // Get Forms for Approval
+  app.get('/api/forms/approval', async (req, res) => {
+    try {
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+      
+      const result = await pool.request()
+        .query('SELECT * FROM TF_forms WHERE approval_status = \'pending\' ORDER BY created_date DESC');
+      
+      res.json(result.recordset);
+      
+    } catch (error) {
+      console.error('Error fetching forms for approval:', error);
+      res.status(500).json({ error: 'Failed to fetch forms for approval' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

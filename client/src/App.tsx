@@ -45,6 +45,7 @@ import LifecycleDashboard from "@/pages/lifecycle/LifecycleDashboard";
 import MasterDocuments from "@/pages/lifecycle/MasterDocuments";
 import SubDocuments from "@/pages/lifecycle/SubDocuments";
 import LifecycleStates from "@/pages/lifecycle/LifecycleStates";
+import FileUpload from "@/pages/forms/FileUpload";
 
 import NotFound from "@/pages/not-found";
 
