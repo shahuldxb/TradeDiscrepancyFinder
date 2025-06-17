@@ -157,6 +157,12 @@ function Router() {
             <Route path="/lifecycle/mt7-dependencies" component={LifecycleDashboard} />
             <Route path="/lifecycle/analytics" component={LifecycleDashboard} />
             
+            {/* Forms Recognition Routes */}
+            <Route path="/forms/upload" component={FileUpload} />
+            <Route path="/forms/ingestion" component={FileUpload} />
+            <Route path="/forms/approval" component={FileUpload} />
+            <Route path="/forms/templates" component={FileUpload} />
+            
             {/* System Admin Routes */}
             <Route path="/admin/users" component={AgentMonitor} />
             <Route path="/admin/settings" component={AgentMonitor} />
