@@ -4,9 +4,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { CheckCircle, XCircle, Clock, Eye, FileText, AlertCircle, Database } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Eye, FileText, AlertCircle, Database, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -45,6 +46,13 @@ export default function FormApproval() {
   const [approvalNotes, setApprovalNotes] = useState("");
   const [showApprovalDialog, setShowApprovalDialog] = useState(false);
   const [approvalAction, setApprovalAction] = useState<"approve" | "reject">("approve");
+  
+  // New form submission states
+  const [showNewFormDialog, setShowNewFormDialog] = useState(false);
+  const [newFormName, setNewFormName] = useState("");
+  const [newFormDescription, setNewFormDescription] = useState("");
+  const [newFormCategory, setNewFormCategory] = useState("");
+  
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -122,6 +130,35 @@ export default function FormApproval() {
     },
   });
 
+  // New form submission mutation
+  const newFormMutation = useMutation({
+    mutationFn: async (formData: { form_name: string; form_description: string; form_category: string; submitted_by: string }) => {
+      return await apiRequest('/api/forms/submit-for-approval', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/forms/definitions"] });
+      setShowNewFormDialog(false);
+      setNewFormName("");
+      setNewFormDescription("");
+      setNewFormCategory("");
+      toast({
+        title: "Form Submitted",
+        description: "New form type has been submitted for Back Office approval.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Submission Failed",
+        description: "Failed to submit form for approval. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleApproval = (form: FormDefinition, action: "approve" | "reject") => {
     setSelectedForm(form);
     setApprovalAction(action);
@@ -134,6 +171,17 @@ export default function FormApproval() {
         formId: selectedForm.form_id,
         action: approvalAction,
         notes: approvalNotes,
+      });
+    }
+  };
+
+  const handleNewFormSubmission = () => {
+    if (newFormName.trim()) {
+      newFormMutation.mutate({
+        form_name: newFormName.trim(),
+        form_description: newFormDescription.trim() || `${newFormName.trim()} processing and validation`,
+        form_category: newFormCategory.trim() || 'Trade Finance',
+        submitted_by: 'system_user'
       });
     }
   };
