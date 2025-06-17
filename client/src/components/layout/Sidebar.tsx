@@ -286,9 +286,9 @@ const navigationItems = [
     ],
   },
   {
-    name: "Forms Recognition",
+    name: "I am tired",
     icon: Upload,
-    description: "Azure Document Intelligence Processing",
+    description: "Forms Recognition & Processing",
     subItems: [
       {
         name: "Document Processing",
