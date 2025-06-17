@@ -6615,14 +6615,50 @@ The original PDF file and extracted text content are not available for download.
   // Forms Recognizer - Upload file
   app.post('/api/forms/python-upload', upload.single('file'), async (req, res) => {
     try {
+      console.log('Upload request received:', {
+        hasFile: !!req.file,
+        headers: req.headers['content-type'],
+        bodyKeys: Object.keys(req.body || {})
+      });
+      
       if (!req.file) {
-        return res.status(400).json({ success: false, message: 'No file uploaded' });
+        console.error('No file in upload request');
+        return res.status(400).json({ 
+          success: false, 
+          message: 'No file uploaded. Please select a file and try again.' 
+        });
+      }
+
+      // Validate file type
+      const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg', 'text/plain'];
+      if (!allowedTypes.includes(req.file.mimetype)) {
+        console.error('Invalid file type:', req.file.mimetype);
+        return res.status(400).json({ 
+          success: false, 
+          message: `Unsupported file type: ${req.file.mimetype}. Please upload PDF, PNG, JPEG, or TXT files.` 
+        });
+      }
+
+      // Validate file size (max 50MB)
+      if (req.file.size > 50 * 1024 * 1024) {
+        console.error('File too large:', req.file.size);
+        return res.status(400).json({ 
+          success: false, 
+          message: 'File size too large. Maximum size is 50MB.' 
+        });
       }
 
       // Generate ingestion ID
       const ingestionId = Date.now().toString();
       const { connectToAzureSQL } = await import('./azureSqlConnection');
       const pool = await connectToAzureSQL();
+      
+      console.log('Creating ingestion record:', {
+        ingestionId,
+        filename: req.file.originalname,
+        size: req.file.size,
+        type: req.file.mimetype
+      });
       
       // Insert into TF_ingestion table
       await pool.request()
@@ -6643,6 +6679,8 @@ The original PDF file and extracted text content are not available for download.
           )
         `);
       
+      console.log('Upload successful:', ingestionId);
+      
       res.json({
         success: true,
         ingestion_id: ingestionId,
@@ -6653,7 +6691,10 @@ The original PDF file and extracted text content are not available for download.
       
     } catch (error) {
       console.error('Error uploading file:', error);
-      res.status(500).json({ success: false, message: 'Upload failed' });
+      res.status(500).json({ 
+        success: false, 
+        message: `Upload failed: ${(error as Error).message}` 
+      });
     }
   });
 

@@ -99,6 +99,11 @@ export default function MainUpload() {
         method: 'POST',
         body: formData,
       });
+      
+      if (!uploadResponse.ok) {
+        throw new Error(`Upload failed with status: ${uploadResponse.status}`);
+      }
+      
       const uploadResult = await uploadResponse.json();
 
       if (uploadResult.success) {
