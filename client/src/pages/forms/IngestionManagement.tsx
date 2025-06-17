@@ -96,15 +96,39 @@ export default function IngestionManagement() {
     }
   };
 
-  const formatFileSize = (bytes: number) => {
-    if (!bytes) return 'Unknown';
+  const formatFileSize = (bytes: number | string) => {
+    if (!bytes || bytes === '0' || bytes === 0) return 'Unknown';
+    const numBytes = typeof bytes === 'string' ? parseInt(bytes) : bytes;
+    if (isNaN(numBytes) || numBytes === 0) return 'Unknown';
     const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(1024));
-    return `${(bytes / Math.pow(1024, i)).toFixed(2)} ${sizes[i]}`;
+    const i = Math.floor(Math.log(numBytes) / Math.log(1024));
+    return `${(numBytes / Math.pow(1024, i)).toFixed(2)} ${sizes[i]}`;
   };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString();
+  };
+
+  const handleDownload = async (ingestion: Ingestion) => {
+    try {
+      const response = await fetch(`/api/forms/download/${ingestion.ingestion_id}`);
+      if (!response.ok) {
+        throw new Error('Download failed');
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = ingestion.original_filename || 'document';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Download error:', error);
+      alert('Failed to download file');
+    }
   };
 
   const uniqueStatuses = Array.from(new Set(ingestions.map(i => i.status).filter(Boolean)));
@@ -343,7 +367,7 @@ export default function IngestionManagement() {
                                 </ScrollArea>
                               </DialogContent>
                             </Dialog>
-                            <Button variant="ghost" size="sm">
+                            <Button variant="ghost" size="sm" onClick={() => handleDownload(ingestion)}>
                               <Download className="h-4 w-4" />
                             </Button>
                           </div>

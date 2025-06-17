@@ -4652,6 +4652,51 @@ DOCUMENTS REQUIRED:
       res.status(500).json({ error: 'Failed to fetch ingestions' });
     }
   });
+
+  // Download uploaded file
+  app.get('/api/forms/download/:id', async (req, res) => {
+    try {
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+      
+      const ingestionId = req.params.id;
+      
+      const result = await pool.request()
+        .input('ingestionId', ingestionId)
+        .query(`SELECT file_path, original_filename, file_type FROM TF_ingestion WHERE ingestion_id = @ingestionId`);
+      
+      if (result.recordset.length === 0) {
+        return res.status(404).json({ error: 'File not found' });
+      }
+      
+      const record = result.recordset[0];
+      const filePath = record.file_path;
+      const fileName = record.original_filename || 'document';
+      const mimeType = record.file_type || 'application/octet-stream';
+      
+      // Check if file exists
+      const fs = await import('fs');
+      const path = await import('path');
+      
+      const fullPath = path.resolve(filePath);
+      
+      if (!fs.existsSync(fullPath)) {
+        return res.status(404).json({ error: 'Physical file not found' });
+      }
+      
+      // Set appropriate headers
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+      res.setHeader('Content-Type', mimeType);
+      
+      // Stream the file
+      const fileStream = fs.createReadStream(fullPath);
+      fileStream.pipe(res);
+      
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      res.status(500).json({ error: 'Failed to download file: ' + (error as Error).message });
+    }
+  });
   
   // Get Forms for Approval
   app.get('/api/forms/approval', async (req, res) => {
