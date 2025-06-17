@@ -4670,26 +4670,85 @@ DOCUMENTS REQUIRED:
       }
       
       const record = result.recordset[0];
-      const filePath = record.file_path;
       const fileName = record.original_filename || 'document';
       const mimeType = record.file_type || 'application/octet-stream';
       
-      // Check if file exists
+      // Check if file exists using the original path first
       const fs = await import('fs');
       const path = await import('path');
       
-      const fullPath = path.resolve(filePath);
+      let fullPath = path.resolve(record.file_path);
+      
+      // If original path doesn't exist, try to find the file in uploads directory
+      if (!fs.existsSync(fullPath)) {
+        const uploadsDir = path.resolve('uploads');
+        
+        // Try to find any file in uploads that matches this ingestion
+        // Since files are stored with hash names, we'll use the most recent upload
+        try {
+          const files = fs.readdirSync(uploadsDir);
+          const stats = files.map(file => ({
+            name: file,
+            path: path.join(uploadsDir, file),
+            mtime: fs.statSync(path.join(uploadsDir, file)).mtime
+          }));
+          
+          // Sort by modification time and get the most recent
+          stats.sort((a, b) => b.mtime.getTime() - a.mtime.getTime());
+          
+          if (stats.length > 0) {
+            // For now, we'll match by file extension if possible
+            const expectedExt = fileName.split('.').pop()?.toLowerCase();
+            const matchingFile = stats.find(file => {
+              if (expectedExt === 'pdf') {
+                // Check if it's a PDF by reading the header
+                try {
+                  const fd = fs.openSync(file.path, 'r');
+                  const buffer = Buffer.alloc(4);
+                  fs.readSync(fd, buffer, 0, 4, 0);
+                  fs.closeSync(fd);
+                  return buffer.toString() === '%PDF';
+                } catch {
+                  return false;
+                }
+              }
+              return true;
+            });
+            
+            if (matchingFile) {
+              fullPath = matchingFile.path;
+            } else {
+              fullPath = stats[0].path; // Fallback to most recent
+            }
+          }
+        } catch (dirError) {
+          console.error('Error reading uploads directory:', dirError);
+        }
+      }
       
       if (!fs.existsSync(fullPath)) {
         return res.status(404).json({ error: 'Physical file not found' });
       }
       
+      // Get file stats for content length
+      const stats = fs.statSync(fullPath);
+      
       // Set appropriate headers
-      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
       res.setHeader('Content-Type', mimeType);
+      res.setHeader('Content-Length', stats.size.toString());
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+      res.setHeader('Cache-Control', 'no-cache');
       
       // Stream the file
       const fileStream = fs.createReadStream(fullPath);
+      
+      fileStream.on('error', (err) => {
+        console.error('File stream error:', err);
+        if (!res.headersSent) {
+          res.status(500).json({ error: 'Failed to read file' });
+        }
+      });
+      
       fileStream.pipe(res);
       
     } catch (error) {
