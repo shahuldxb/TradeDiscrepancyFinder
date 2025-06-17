@@ -6394,6 +6394,130 @@ Extraction Date: ${new Date().toISOString()}
     }
   });
 
+  // Apply multi-form analysis to current upload
+  app.post('/api/forms/apply-multiforms/:ingestionId', async (req, res) => {
+    try {
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+      
+      const { ingestionId } = req.params;
+      
+      // Get the uploaded file data
+      const result = await pool.request()
+        .input('ingestionId', ingestionId)
+        .query("SELECT * FROM TF_ingestion WHERE ingestion_id = @ingestionId");
+      
+      if (result.recordset.length === 0) {
+        return res.status(404).json({ success: false, message: 'Upload record not found' });
+      }
+      
+      const record = result.recordset[0];
+      
+      // Clear existing processing records
+      await pool.request()
+        .input('ingestionId', record.ingestion_id)
+        .query('DELETE FROM TF_ingestion_Pdf WHERE ingestion_id = @ingestionId');
+      
+      await pool.request()
+        .input('ingestionId', record.ingestion_id)
+        .query('DELETE FROM TF_ingestion_TXT WHERE ingestion_id = @ingestionId');
+      
+      await pool.request()
+        .input('ingestionId', record.ingestion_id)
+        .query('DELETE FROM TF_ingestion_fields WHERE ingestion_id = @ingestionId');
+      
+      // Perform multi-form analysis
+      const { multiFormProcessor } = await import('./multiFormProcessor');
+      const extractedText = record.extracted_text || '';
+      const filename = record.original_filename || 'uploaded_document.pdf';
+      
+      console.log(`Processing multi-form analysis on ${filename}...`);
+      const multiFormResult = await multiFormProcessor.analyzeMultiFormDocument(filename, extractedText);
+      
+      // Store individual forms directly
+      for (let i = 0; i < multiFormResult.forms.length; i++) {
+        const form = multiFormResult.forms[i];
+        
+        // Store in PDF table
+        await pool.request()
+          .input('ingestionId', ingestionId)
+          .input('formId', form.formType.replace(/\s+/g, '_').toLowerCase() + '_v1')
+          .input('filePath', `${ingestionId}_form_${i + 1}.pdf`)
+          .input('documentType', form.formType)
+          .input('pageRange', `${form.startPage || 1}-${form.endPage || 1}`)
+          .query(`
+            INSERT INTO TF_ingestion_Pdf (ingestion_id, form_id, file_path, document_type, page_range, created_date)
+            VALUES (@ingestionId, @formId, @filePath, @documentType, @pageRange, GETDATE())
+          `);
+        
+        // Store in TXT table
+        await pool.request()
+          .input('ingestionId', ingestionId)
+          .input('content', form.extractedText)
+          .input('language', 'en')
+          .query(`
+            INSERT INTO TF_ingestion_TXT (ingestion_id, content, language, created_date)
+            VALUES (@ingestionId, @content, @language, GETDATE())
+          `);
+        
+        // Store extracted fields
+        await pool.request()
+          .input('ingestionId', ingestionId)
+          .input('formType', form.formType)
+          .input('confidence', form.confidence)
+          .input('extractedFields', JSON.stringify(form.extractedFields))
+          .query(`
+            INSERT INTO TF_ingestion_fields (ingestion_id, form_type, confidence, extracted_fields, created_date)
+            VALUES (@ingestionId, @formType, @confidence, @extractedFields, GETDATE())
+          `);
+      }
+      
+      // Update main record
+      await pool.request()
+        .input('ingestionId', ingestionId)
+        .input('documentType', `Multi-Form Document (${multiFormResult.totalForms} forms)`)
+        .input('status', 'completed')
+        .input('extractedData', JSON.stringify({
+          totalForms: multiFormResult.totalForms,
+          forms: multiFormResult.forms.map(f => ({
+            type: f.formType,
+            confidence: f.confidence,
+            textLength: f.extractedText.length
+          }))
+        }))
+        .query(`
+          UPDATE TF_ingestion 
+          SET document_type = @documentType,
+              status = @status,
+              extracted_data = @extractedData,
+              completion_date = GETDATE(),
+              updated_date = GETDATE()
+          WHERE ingestion_id = @ingestionId
+        `);
+      
+      res.json({ 
+        success: true, 
+        message: 'Multi-form analysis completed',
+        filename: filename,
+        totalForms: multiFormResult.totalForms,
+        forms: multiFormResult.forms.map((f, index) => ({
+          index: index,
+          type: f.formType,
+          confidence: f.confidence,
+          textLength: f.extractedText.length,
+          extractedFields: Object.keys(f.extractedFields).length,
+          viewUrl: `/api/forms/view-form/${ingestionId}/${index}`,
+          downloadTextUrl: `/api/forms/download-form-text/${ingestionId}/${index}`,
+          downloadPdfUrl: `/api/forms/download-form-pdf/${ingestionId}/${index}`
+        }))
+      });
+      
+    } catch (error) {
+      console.error('Multi-form processing error:', error);
+      res.status(500).json({ success: false, message: 'Failed to process multi-forms', error: (error as Error).message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
