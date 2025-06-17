@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from '@/hooks/use-toast';
+import { FormProgressDisplay } from '@/components/FormProgressDisplay';
 
 interface LogEntry {
   timestamp: string;
@@ -447,6 +448,14 @@ export default function MainUpload() {
         </TabsContent>
 
         <TabsContent value="forms" className="space-y-4">
+          {/* Individual Form Progress Display - Step 3 */}
+          {currentIngestionId && (
+            <FormProgressDisplay 
+              processingSteps={statusResponse?.processing_steps ? JSON.parse(statusResponse.processing_steps) : []}
+              totalForms={extractedForms.length || 1}
+            />
+          )}
+
           {isLoadingForms ? (
             <Card>
               <CardContent className="p-8 text-center">
