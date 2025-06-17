@@ -175,6 +175,16 @@ export default function FormApproval() {
           </p>
         </div>
         <div className="flex items-center space-x-2">
+          <Button 
+            onClick={() => populateDataMutation.mutate()}
+            disabled={populateDataMutation.isPending}
+            variant="outline"
+            size="sm"
+            className="gap-2"
+          >
+            <Database className="h-4 w-4" />
+            {populateDataMutation.isPending ? "Creating..." : "Create Sample Data"}
+          </Button>
           <Badge variant="outline" className="px-3 py-1">
             {pendingForms.length} Pending Approval
           </Badge>
