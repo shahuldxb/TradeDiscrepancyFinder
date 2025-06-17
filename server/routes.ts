@@ -5388,7 +5388,7 @@ Extraction Method: Azure Document Intelligence`;
       // INSTANT COMPLETION - Insert as completed immediately
       await pool.request()
         .input('ingestionId', ingestionId)
-        .input('filename', file.originalname)
+        .input('originalFilename', file.originalname)
         .input('filePath', filePath)
         .input('fileSize', actualFileSize.toString())
         .input('fileType', file.mimetype)
@@ -5396,9 +5396,9 @@ Extraction Method: Azure Document Intelligence`;
         .input('documentType', documentType)
         .query(`
           INSERT INTO TF_ingestion 
-          (ingestion_id, filename, file_path, file_size, file_type, 
+          (ingestion_id, original_filename, file_path, file_size, file_type, 
            extracted_text, document_type, status, completion_date, created_date)
-          VALUES (@ingestionId, @filename, @filePath, @fileSize, @fileType, 
+          VALUES (@ingestionId, @originalFilename, @filePath, @fileSize, @fileType, 
                   @extractedText, @documentType, 'completed', GETDATE(), GETDATE())
         `);
       
