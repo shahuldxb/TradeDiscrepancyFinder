@@ -298,12 +298,12 @@ export default function MainUpload() {
 
   // Check for completion and load extracted forms
   useEffect(() => {
-    if (status.completed && currentIngestionId) {
+    if (status.currentAction === 'Processing completed successfully' && currentIngestionId) {
       setTimeout(() => {
         loadExtractedForms(currentIngestionId);
       }, 1000);
     }
-  }, [status.completed, currentIngestionId]);
+  }, [status.currentAction, currentIngestionId]);
 
   useEffect(() => {
     return () => {
@@ -580,6 +580,7 @@ export default function MainUpload() {
               </Card>
             ))}
           </div>
+          )}
         </TabsContent>
 
         <TabsContent value="fields" className="space-y-4">
