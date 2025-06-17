@@ -4216,19 +4216,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const extractedFields = await extractFields(ocrText, documentType);
       await updateProcessingStep(pool, ingestionId, 'extraction', 'completed');
       
-      // Update final status
+      // Update final status with completed processing steps
+      const finalSteps = [
+        { step: 'upload', status: 'completed', timestamp: new Date().toISOString() },
+        { step: 'validation', status: 'completed', timestamp: new Date().toISOString() },
+        { step: 'ocr', status: 'completed', timestamp: new Date().toISOString() },
+        { step: 'classification', status: 'completed', timestamp: new Date().toISOString() },
+        { step: 'extraction', status: 'completed', timestamp: new Date().toISOString() }
+      ];
+      
       await pool.request()
         .input('ingestionId', ingestionId)
         .input('status', 'completed')
         .input('extractedText', ocrText)
         .input('documentType', documentType)
         .input('extractedData', JSON.stringify(extractedFields))
+        .input('processingSteps', JSON.stringify(finalSteps))
         .query(`
           UPDATE TF_ingestion 
           SET status = @status, 
               extracted_text = @extractedText,
               document_type = @documentType,
               extracted_data = @extractedData,
+              processing_steps = @processingSteps,
               completion_date = GETDATE(),
               updated_date = GETDATE()
           WHERE ingestion_id = @ingestionId

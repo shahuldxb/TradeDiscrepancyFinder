@@ -449,64 +449,93 @@ export default function IngestionManagement() {
                         </Badge>
                       </div>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="space-y-2">
-                          <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300">File Processing</h5>
-                          <div className="text-sm space-y-1">
-                            <div className="flex justify-between">
-                              <span>Size:</span>
-                              <span>{formatFileSize(ingestion.file_size)}</span>
+                      <div className="space-y-4">
+                        {(() => {
+                          // Parse processing steps from database
+                          let processingSteps = [];
+                          try {
+                            processingSteps = ingestion.processing_steps ? JSON.parse(ingestion.processing_steps) : [];
+                          } catch {
+                            // Fallback to basic steps if parsing fails
+                            processingSteps = [
+                              { step: 'upload', status: 'completed' },
+                              { step: 'validation', status: ingestion.status === 'completed' ? 'completed' : 'processing' },
+                              { step: 'ocr', status: ingestion.extracted_text ? 'completed' : 'pending' },
+                              { step: 'classification', status: ingestion.document_type ? 'completed' : 'pending' },
+                              { step: 'extraction', status: ingestion.status === 'completed' ? 'completed' : 'pending' }
+                            ];
+                          }
+                          
+                          const stepLabels = {
+                            upload: 'File Upload',
+                            validation: 'File Validation', 
+                            ocr: 'Text Extraction',
+                            classification: 'Document Classification',
+                            extraction: 'Field Extraction'
+                          };
+                          
+                          const getStatusIcon = (status: string) => {
+                            switch (status) {
+                              case 'completed': return <span className="text-green-600">✓</span>;
+                              case 'processing': return <span className="text-blue-600">⟳</span>;
+                              case 'error': return <span className="text-red-600">✗</span>;
+                              default: return <span className="text-gray-400">○</span>;
+                            }
+                          };
+                          
+                          const getStatusColor = (status: string) => {
+                            switch (status) {
+                              case 'completed': return 'text-green-600';
+                              case 'processing': return 'text-blue-600';
+                              case 'error': return 'text-red-600';
+                              default: return 'text-gray-500';
+                            }
+                          };
+                          
+                          return (
+                            <div className="space-y-3">
+                              <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300">Processing Pipeline Status</h5>
+                              <div className="space-y-2">
+                                {processingSteps.map((step: any, index: number) => (
+                                  <div key={step.step} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded">
+                                    <div className="flex items-center space-x-3">
+                                      {getStatusIcon(step.status)}
+                                      <span className="text-sm font-medium">
+                                        {stepLabels[step.step as keyof typeof stepLabels] || step.step}
+                                      </span>
+                                    </div>
+                                    <div className="text-right">
+                                      <div className={`text-sm font-medium ${getStatusColor(step.status)}`}>
+                                        {step.status.charAt(0).toUpperCase() + step.status.slice(1)}
+                                      </div>
+                                      {step.timestamp && (
+                                        <div className="text-xs text-gray-500">
+                                          {new Date(step.timestamp).toLocaleTimeString()}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                              
+                              <div className="grid grid-cols-2 gap-4 pt-2 border-t">
+                                <div className="text-sm">
+                                  <span className="text-gray-600">Overall Status:</span>
+                                  <span className={`ml-2 font-medium ${
+                                    ingestion.status === 'completed' ? 'text-green-600' : 
+                                    ingestion.status === 'error' ? 'text-red-600' : 'text-blue-600'
+                                  }`}>
+                                    {ingestion.status.charAt(0).toUpperCase() + ingestion.status.slice(1)}
+                                  </span>
+                                </div>
+                                <div className="text-sm">
+                                  <span className="text-gray-600">Characters Extracted:</span>
+                                  <span className="ml-2 font-medium">{ingestion.extracted_text?.length || 0}</span>
+                                </div>
+                              </div>
                             </div>
-                            <div className="flex justify-between">
-                              <span>Type:</span>
-                              <span>{ingestion.file_type?.toUpperCase()}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span>Upload:</span>
-                              <span className="text-green-600">✓ Complete</span>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300">OCR Processing</h5>
-                          <div className="text-sm space-y-1">
-                            <div className="flex justify-between">
-                              <span>Text Extraction:</span>
-                              <span className={ingestion.extracted_text ? "text-green-600" : "text-gray-500"}>
-                                {ingestion.extracted_text ? "✓ Success" : "○ Pending"}
-                              </span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span>Characters:</span>
-                              <span>{ingestion.extracted_text?.length || 0}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span>Method:</span>
-                              <span>Tesseract OCR</span>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300">Classification</h5>
-                          <div className="text-sm space-y-1">
-                            <div className="flex justify-between">
-                              <span>Document Type:</span>
-                              <span className={ingestion.document_type ? "text-green-600" : "text-gray-500"}>
-                                {ingestion.document_type ? "✓ Identified" : "○ Pending"}
-                              </span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span>Category:</span>
-                              <span>{ingestion.document_type || "Unknown"}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span>Confidence:</span>
-                              <span>High</span>
-                            </div>
-                          </div>
-                        </div>
+                          );
+                        })()}
                       </div>
                       
                       <div className="pt-2 border-t">
