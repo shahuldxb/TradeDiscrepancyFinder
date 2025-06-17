@@ -56,6 +56,7 @@ import SplitDocuments from "@/pages/forms/SplitDocuments";
 import ComprehensiveCRUD from "@/pages/forms/ComprehensiveCRUD";
 import FormsApprovalSystem from "@/pages/forms/FormsApprovalSystem";
 import ComprehensiveFormsUI from "@/pages/forms/ComprehensiveFormsUI";
+import InstantUpload from "@/pages/forms/InstantUpload";
 
 import NotFound from "@/pages/not-found";
 

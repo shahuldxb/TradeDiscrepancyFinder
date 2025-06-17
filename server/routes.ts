@@ -5402,7 +5402,7 @@ Extraction Method: Azure Document Intelligence`;
                   @extractedText, @documentType, 'completed', GETDATE(), GETDATE())
         `);
       
-      console.log(`File ingestion created with ID: ${ingestionId}, actual size: ${actualFileSize} bytes`);
+      console.log(`INSTANT UPLOAD COMPLETED: ${ingestionId} - ${file.originalname}`);
       
       // Create supporting processing records automatically to prevent stucks
       try {
@@ -5471,27 +5471,10 @@ Extraction Method: Azure Document Intelligence`;
       res.json({
         success: true,
         ingestion_id: ingestionId,
-        message: 'File uploaded and processed successfully',
+        message: 'Upload completed instantly',
         status: 'completed',
         document_type: documentType,
-        file_info: {
-          originalName: file.originalname,
-          size: actualFileSize,
-          type: file.mimetype,
-          path: file.path
-        },
-        processing_steps: [
-          { step: 'upload', status: 'completed', timestamp: new Date().toISOString() },
-          { step: 'validation', status: 'completed', timestamp: new Date().toISOString() },
-          { step: 'ocr', status: 'completed', timestamp: new Date().toISOString() },
-          { step: 'classification', status: 'completed', timestamp: new Date().toISOString() },
-          { step: 'extraction', status: 'completed', timestamp: new Date().toISOString() }
-        ],
-        extracted_data: {
-          character_count: sampleText.length,
-          word_count: sampleText.split(/\s+/).filter(word => word.length > 0).length,
-          processing_method: 'automatic_completion'
-        }
+        filename: file.originalname
       });
       
     } catch (error) {

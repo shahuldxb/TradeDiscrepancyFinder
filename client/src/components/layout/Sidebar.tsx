@@ -24,7 +24,9 @@ import {
   Beaker,
   Globe,
   GitBranch,
-  BarChart3
+  BarChart3,
+  CheckCircle,
+  Folder
 } from "lucide-react";
 
 const navigationItems = [
