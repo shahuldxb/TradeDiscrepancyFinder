@@ -4444,22 +4444,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       await azureFormsClassifier.storeProcessingResults(pool, ingestionId, processingResults);
 
-      // Store PDF processing record - single consolidated record
+      // Store PDF processing record with new columns
       await pool.request()
         .input('ingestionId', ingestionId)
         .input('formId', classificationResult.formId || 'F001')
         .input('filePath', `uploads/${filename}`)
         .input('documentType', classificationResult.documentType)
         .input('pageRange', '1-1')
+        .input('formsDetected', formDetectionResults?.detected_forms?.length || 1)
+        .input('classification', classificationResult.documentType)
+        .input('confidenceScore', classificationResult.confidence || 0.89)
         .query(`
           INSERT INTO TF_ingestion_Pdf (
-            ingestion_id, form_id, file_path, document_type, page_range, created_date
+            ingestion_id, form_id, file_path, document_type, page_range, 
+            forms_detected, classification, confidence_score, created_date
           ) VALUES (
-            @ingestionId, @formId, @filePath, @documentType, @pageRange, GETDATE()
+            @ingestionId, @formId, @filePath, @documentType, @pageRange, 
+            @formsDetected, @classification, @confidenceScore, GETDATE()
           )
         `);
 
-      // Store TXT processing record - single consolidated text file
+      // Store TXT processing record with new columns
       const characterCount = ocrText.length;
       const wordCount = ocrText.split(/\s+/).filter(word => word.length > 0).length;
       
@@ -4468,20 +4473,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .input('content', ocrText)
         .input('confidence', classificationResult.confidence || 0.85)
         .input('language', 'en')
+        .input('formId', classificationResult.formId || 'F001')
+        .input('characterCount', characterCount)
+        .input('wordCount', wordCount)
         .query(`
           INSERT INTO TF_ingestion_TXT (
-            ingestion_id, content, confidence, language, created_date
+            ingestion_id, content, confidence, language, form_id, 
+            character_count, word_count, created_date
           ) VALUES (
-            @ingestionId, @content, @confidence, @language, GETDATE()
+            @ingestionId, @content, @confidence, @language, @formId, 
+            @characterCount, @wordCount, GETDATE()
           )
         `);
         
-      console.log(`✅ Stored single PDF and TXT processing records (${characterCount} chars, ${wordCount} words)`);
-
-      // Store form detection results for reference only
-      if (formDetectionResults && formDetectionResults.detected_forms) {
-        console.log(`📋 Detected ${formDetectionResults.detected_forms.length} forms (consolidated into single record)`);
-      }
+      console.log(`✅ Stored PDF and TXT records: ${formDetectionResults?.detected_forms?.length || 1} forms, ${characterCount} chars, ${wordCount} words`);
 
       // Update final status with completed processing steps including individual form processing
       const finalSteps = [
@@ -7693,7 +7698,7 @@ The original PDF file and extracted text content are not available for download.
 
   // Forms Recognizer API endpoints for the backend system
   
-  // Get records for ingestion tables
+  // Get records for ingestion tables with new columns
   app.get('/api/forms/records/:table', async (req, res) => {
     try {
       const { table } = req.params;
@@ -7706,13 +7711,35 @@ The original PDF file and extracted text content are not available for download.
           query = 'SELECT * FROM TF_ingestion ORDER BY created_date DESC';
           break;
         case 'pdf':
-          query = 'SELECT * FROM TF_ingestion_Pdf ORDER BY created_date DESC';
+          query = `
+            SELECT 
+              id, ingestion_id, form_id, file_path, document_type, page_range, created_date,
+              COALESCE(forms_detected, 1) as forms_detected,
+              COALESCE(classification, document_type) as classification,
+              COALESCE(confidence_score, 0.89) as confidence
+            FROM TF_ingestion_Pdf 
+            ORDER BY created_date DESC
+          `;
           break;
         case 'txt':
-          query = 'SELECT * FROM TF_ingestion_TXT ORDER BY created_date DESC';
+          query = `
+            SELECT 
+              id, ingestion_id, content, confidence, language, created_date,
+              COALESCE(form_id, 'F001') as form_id,
+              COALESCE(character_count, LEN(ISNULL(content, ''))) as character_count,
+              COALESCE(word_count, (LEN(ISNULL(content, '')) - LEN(REPLACE(ISNULL(content, ''), ' ', '')) + 1)) as word_count
+            FROM TF_ingestion_TXT 
+            ORDER BY created_date DESC
+          `;
           break;
         case 'fields':
-          query = 'SELECT * FROM TF_ingestion_fields ORDER BY created_date DESC';
+          query = `
+            SELECT 
+              id, ingestion_id, form_id, field_name, field_value, confidence, created_date,
+              COALESCE(extraction_method, 'Azure Document Intelligence') as extraction_method
+            FROM TF_ingestion_fields 
+            ORDER BY created_date DESC
+          `;
           break;
         default:
           return res.status(400).json({ error: 'Invalid table name' });
