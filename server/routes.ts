@@ -4277,11 +4277,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       await updateProcessingStep(pool, ingestionId, 'classification', 'completed');
       
-      // Step 3: Field Extraction Enhancement
-      await updateProcessingStep(pool, ingestionId, 'extraction', 'processing');
+      // Step 5: AI-Assisted Field Extraction 
+      await updateProcessingStep(pool, ingestionId, 'field_extraction', 'processing');
       
+      console.log('Starting Step 5: AI-Assisted Field Extraction...');
+      const fieldExtractionResults = await performFieldExtraction(
+        `uploads/${filename}`, 
+        classificationResult.documentType, 
+        ocrText, 
+        ingestionId
+      );
+      
+      // Legacy field extraction for backward compatibility
       const enhancedFields = await azureFormsClassifier.enhanceFieldExtraction(ocrText, classificationResult);
-      await updateProcessingStep(pool, ingestionId, 'extraction', 'completed');
+      await updateProcessingStep(pool, ingestionId, 'field_extraction', 'completed');
       
       // Store classification and extraction results
       const processingResults = {
@@ -4410,6 +4419,113 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return fields;
   }
 
+  async function performFieldExtraction(filePath: string, documentType: string, textContent: string, ingestionId: string): Promise<any> {
+    return new Promise((resolve, reject) => {
+      // Create a temporary text file for the content
+      const textFileName = `temp_text_${Date.now()}.txt`;
+      const textFilePath = `uploads/${textFileName}`;
+      
+      require('fs').writeFileSync(textFilePath, textContent, 'utf-8');
+      
+      console.log(`Starting field extraction for ${documentType} document...`);
+      
+      const pythonProcess = spawn('python', [
+        'server/fieldExtractionService.py',
+        filePath,
+        documentType,
+        textFilePath,
+        ingestionId
+      ], {
+        stdio: ['pipe', 'pipe', 'pipe']
+      });
+
+      let output = '';
+      let errorOutput = '';
+
+      pythonProcess.stdout.on('data', (data: Buffer) => {
+        const dataStr = data.toString();
+        output += dataStr;
+        console.log('Field extraction stdout:', dataStr);
+      });
+
+      pythonProcess.stderr.on('data', (data: Buffer) => {
+        const errorStr = data.toString();
+        errorOutput += errorStr;
+        console.error('Field extraction stderr:', errorStr);
+      });
+
+      pythonProcess.on('close', (code) => {
+        console.log(`Field extraction process exited with code ${code}`);
+        
+        // Clean up temporary text file
+        try {
+          require('fs').unlinkSync(textFilePath);
+        } catch (cleanupError) {
+          console.warn('Failed to clean up temporary text file:', cleanupError);
+        }
+        
+        if (code === 0) {
+          try {
+            // Parse the output to extract the JSON result
+            const lines = output.split('\n');
+            let resultLine = '';
+            
+            for (const line of lines) {
+              if (line.startsWith('FIELD_EXTRACTION_RESULT:')) {
+                resultLine = line.substring(24).trim();
+                break;
+              }
+            }
+            
+            if (resultLine) {
+              const result = JSON.parse(resultLine);
+              console.log(`Field extraction completed: ${result.extracted_fields_count} fields extracted`);
+              resolve(result);
+            } else {
+              console.log('No FIELD_EXTRACTION_RESULT line found');
+              resolve({
+                success: false,
+                extracted_fields_count: 0,
+                error: 'No extraction result found'
+              });
+            }
+          } catch (parseError) {
+            console.error('Error parsing field extraction output:', parseError);
+            resolve({
+              success: false,
+              extracted_fields_count: 0,
+              error: 'Failed to parse extraction output'
+            });
+          }
+        } else {
+          console.error('Field extraction process failed with code:', code);
+          console.error('Error output:', errorOutput);
+          
+          // Try to parse error result
+          try {
+            const lines = output.split('\n');
+            for (const line of lines) {
+              if (line.startsWith('FIELD_EXTRACTION_ERROR:')) {
+                const errorResult = JSON.parse(line.substring(23).trim());
+                resolve(errorResult);
+                return;
+              }
+            }
+          } catch (errorParseError) {
+            console.error('Failed to parse error result:', errorParseError);
+          }
+          
+          reject(new Error(`Field extraction failed with code ${code}: ${errorOutput}`));
+        }
+      });
+
+      pythonProcess.on('error', (error) => {
+        console.error('Failed to start field extraction process:', error);
+        reject(error);
+      });
+    });
+  }
+
   async function updateProcessingStep(pool: any, ingestionId: string, step: string, status: string) {
     // Get current steps or create default ones
     let currentSteps = [
@@ -4417,11 +4533,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       { step: 'validation', status: 'completed', timestamp: new Date().toISOString() },
       { step: 'ocr', status: 'pending', timestamp: null },
       { step: 'classification', status: 'pending', timestamp: null },
+      { step: 'field_extraction', status: 'pending', timestamp: null },
       { step: 'extraction', status: 'pending', timestamp: null }
     ];
     
     // Update the specific step and mark previous steps as completed
-    const stepOrder = ['upload', 'validation', 'ocr', 'classification', 'extraction'];
+    const stepOrder = ['upload', 'validation', 'ocr', 'classification', 'field_extraction', 'extraction'];
     const currentStepIndex = stepOrder.indexOf(step);
     
     for (let i = 0; i < currentSteps.length; i++) {

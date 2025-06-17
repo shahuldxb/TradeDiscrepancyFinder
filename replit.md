@@ -131,8 +131,26 @@ This is a sophisticated Trade Finance Discrepancy Resolution Platform that lever
 - Complete processing pipeline: form_ocr_processing step integrated with database storage
 - Status: Complete with visual progress bars and structured data output
 
-### Step 4: [AWAITING USER PROMPT]
-### Step 5: [AWAITING USER PROMPT]
+### Step 4: New Form Detection & Approval Workflow ✅ COMPLETED
+- Automatic detection of unknown form types with confidence scoring below 0.8 threshold
+- AI-powered JSON template generation for unrecognized forms using Azure Document Intelligence
+- Complete approval workflow system with pending/approved/rejected status management
+- Backend API endpoints for form submission, approval, and statistics tracking
+- Frontend interface (NewFormDetection.tsx) with real-time statistics and approval management
+- Integration with existing processing pipeline for seamless new form handling
+- Status: Complete with full workflow automation and user interface integration
+
+### Step 5: AI-Assisted Field Extraction ✅ COMPLETED
+- Enhanced Python field extraction service with rule-based and Azure AI logic
+- Comprehensive pattern matching for 5 form types: Commercial Invoice, Bill of Lading, Certificate of Origin, LC Document, Packing List
+- Azure Document Intelligence integration for advanced field detection and key-value pair extraction
+- Combined extraction methodology merging rule-based patterns with AI-detected fields
+- Confidence scoring system for extracted field values with quality assessment
+- Automatic data type detection (integer, decimal, date, reference, text) for structured storage
+- Direct integration with TF_ingestion_fields table for real-time field storage
+- Node.js wrapper function with Python process spawning and result parsing
+- Enhanced processing pipeline with field_extraction step tracking and status monitoring
+- Status: Complete with comprehensive field extraction capabilities and database integration
 
 ## Changelog
 
