@@ -52,6 +52,8 @@ export default function IngestionManagement() {
 
   const { data: ingestions = [], isLoading, refetch } = useQuery<Ingestion[]>({
     queryKey: ["/api/forms/ingestions"],
+    refetchInterval: 2000, // Refresh every 2 seconds for real-time status updates
+    refetchIntervalInBackground: true, // Continue refreshing when tab is not active
   });
 
   const filteredIngestions = ingestions.filter((ingestion) => {

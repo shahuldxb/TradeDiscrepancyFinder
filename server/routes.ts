@@ -4261,17 +4261,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
   
   async function updateProcessingStep(pool: any, ingestionId: string, step: string, status: string) {
-    const steps = [
+    // Get current steps or create default ones
+    let currentSteps = [
       { step: 'upload', status: 'completed', timestamp: new Date().toISOString() },
       { step: 'validation', status: 'completed', timestamp: new Date().toISOString() },
-      { step: 'ocr', status: step === 'ocr' ? status : (step === 'classification' || step === 'extraction') ? 'completed' : 'pending', timestamp: step === 'ocr' ? new Date().toISOString() : undefined },
-      { step: 'classification', status: step === 'classification' ? status : step === 'extraction' ? 'completed' : 'pending', timestamp: step === 'classification' ? new Date().toISOString() : undefined },
-      { step: 'extraction', status: step === 'extraction' ? status : 'pending', timestamp: step === 'extraction' ? new Date().toISOString() : undefined }
+      { step: 'ocr', status: 'pending', timestamp: null },
+      { step: 'classification', status: 'pending', timestamp: null },
+      { step: 'extraction', status: 'pending', timestamp: null }
     ];
+    
+    // Update the specific step and mark previous steps as completed
+    const stepOrder = ['upload', 'validation', 'ocr', 'classification', 'extraction'];
+    const currentStepIndex = stepOrder.indexOf(step);
+    
+    for (let i = 0; i < currentSteps.length; i++) {
+      const currentStep = currentSteps[i];
+      const stepIndex = stepOrder.indexOf(currentStep.step);
+      
+      if (stepIndex < currentStepIndex) {
+        // Mark previous steps as completed
+        currentStep.status = 'completed';
+        if (!currentStep.timestamp) {
+          currentStep.timestamp = new Date().toISOString();
+        }
+      } else if (stepIndex === currentStepIndex) {
+        // Update current step
+        currentStep.status = status;
+        currentStep.timestamp = new Date().toISOString();
+      } else {
+        // Keep future steps as pending
+        currentStep.status = 'pending';
+        currentStep.timestamp = null;
+      }
+    }
     
     await pool.request()
       .input('ingestionId', ingestionId)
-      .input('processingSteps', JSON.stringify(steps))
+      .input('processingSteps', JSON.stringify(currentSteps))
       .query(`
         UPDATE TF_ingestion 
         SET processing_steps = @processingSteps, updated_date = GETDATE()
