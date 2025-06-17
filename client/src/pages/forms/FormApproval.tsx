@@ -6,8 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { CheckCircle, XCircle, Clock, Eye, FileText, AlertCircle } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Eye, FileText, AlertCircle, Database } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 interface FormDefinition {
   form_id: string;
@@ -46,6 +47,31 @@ export default function FormApproval() {
   const [approvalAction, setApprovalAction] = useState<"approve" | "reject">("approve");
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Populate sample data mutation
+  const populateDataMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest('/api/forms/populate-sample-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Sample Data Created",
+        description: "Form definitions and processing records have been populated successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/forms/definitions'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Population Failed",
+        description: "Failed to populate sample data. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
 
   // Fetch pending forms
   const { data: pendingForms = [], isLoading: loadingForms } = useQuery({
