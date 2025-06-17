@@ -4204,24 +4204,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Step 2: Azure Document Intelligence Classification
       await updateProcessingStep(pool, ingestionId, 'classification', 'processing');
       
-      const classificationResult = await performAzureClassification(filename);
+      const { azureFormsClassifier } = await import('./azureFormsClassifier');
+      const classificationResult = await azureFormsClassifier.performAzureClassification(filename);
       await updateProcessingStep(pool, ingestionId, 'classification', 'completed');
       
       // Step 3: Field Extraction Enhancement
       await updateProcessingStep(pool, ingestionId, 'extraction', 'processing');
       
-      const enhancedFields = await enhanceFieldExtraction(ocrText, classificationResult);
+      const enhancedFields = await azureFormsClassifier.enhanceFieldExtraction(ocrText, classificationResult);
       await updateProcessingStep(pool, ingestionId, 'extraction', 'completed');
       
       // Store classification and extraction results
-      await storeProcessingResults(pool, ingestionId, {
+      const processingResults = {
         ocrText,
         classificationResult,
         enhancedFields,
         documentType: classificationResult.documentType,
         confidence: classificationResult.confidence,
         processingMethod: classificationResult.modelUsed
-      });
+      };
+      
+      await azureFormsClassifier.storeProcessingResults(pool, ingestionId, processingResults);
 
       // Update final status with completed processing steps
       const finalSteps = [
