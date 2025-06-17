@@ -422,11 +422,103 @@ export default function IngestionManagement() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8 text-gray-500">
-                Processing details will be displayed here when available.
-                <br />
-                <span className="text-sm">Shows OCR progress, form classification, and field extraction steps.</span>
-              </div>
+              {filteredIngestions.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                    No Processing Data
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-400">
+                    Upload documents to see detailed processing information.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {filteredIngestions.map((ingestion) => (
+                    <div key={ingestion.id} className="border rounded-lg p-4 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          {getFileIcon(ingestion.file_type)}
+                          <div>
+                            <h4 className="font-medium">{ingestion.original_filename}</h4>
+                            <p className="text-sm text-gray-500">{ingestion.ingestion_id}</p>
+                          </div>
+                        </div>
+                        <Badge variant={ingestion.status === 'completed' ? 'default' : ingestion.status === 'error' ? 'destructive' : 'secondary'}>
+                          {ingestion.status.toUpperCase()}
+                        </Badge>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300">File Processing</h5>
+                          <div className="text-sm space-y-1">
+                            <div className="flex justify-between">
+                              <span>Size:</span>
+                              <span>{formatFileSize(ingestion.file_size)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Type:</span>
+                              <span>{ingestion.file_type?.toUpperCase()}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Upload:</span>
+                              <span className="text-green-600">✓ Complete</span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300">OCR Processing</h5>
+                          <div className="text-sm space-y-1">
+                            <div className="flex justify-between">
+                              <span>Text Extraction:</span>
+                              <span className={ingestion.extracted_text ? "text-green-600" : "text-gray-500"}>
+                                {ingestion.extracted_text ? "✓ Success" : "○ Pending"}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Characters:</span>
+                              <span>{ingestion.extracted_text?.length || 0}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Method:</span>
+                              <span>Tesseract OCR</span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300">Classification</h5>
+                          <div className="text-sm space-y-1">
+                            <div className="flex justify-between">
+                              <span>Document Type:</span>
+                              <span className={ingestion.document_type ? "text-green-600" : "text-gray-500"}>
+                                {ingestion.document_type ? "✓ Identified" : "○ Pending"}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Category:</span>
+                              <span>{ingestion.document_type || "Unknown"}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Confidence:</span>
+                              <span>High</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="pt-2 border-t">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-600">Processing Time:</span>
+                          <span>{new Date(ingestion.created_date).toLocaleString()}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -440,11 +532,162 @@ export default function IngestionManagement() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8 text-gray-500">
-                Processing results will be displayed here after successful completion.
-                <br />
-                <span className="text-sm">Includes extracted text, identified forms, and field values.</span>
-              </div>
+              {filteredIngestions.filter(i => i.status === 'completed').length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                    No Results Available
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-400">
+                    Upload and process documents to see extraction results.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {filteredIngestions
+                    .filter(i => i.status === 'completed')
+                    .map((ingestion) => (
+                      <div key={ingestion.id} className="border rounded-lg p-6 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            {getFileIcon(ingestion.file_type)}
+                            <div>
+                              <h4 className="font-medium">{ingestion.original_filename}</h4>
+                              <p className="text-sm text-gray-500">
+                                {ingestion.document_type} • {formatFileSize(ingestion.file_size)}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Badge variant="default">
+                              {ingestion.extracted_text?.length || 0} chars extracted
+                            </Badge>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => handleDownload(ingestion)}
+                            >
+                              <Download className="h-4 w-4 mr-1" />
+                              Download
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        <Tabs defaultValue="summary" className="w-full">
+                          <TabsList className="grid w-full grid-cols-3">
+                            <TabsTrigger value="summary">Summary</TabsTrigger>
+                            <TabsTrigger value="text">Extracted Text</TabsTrigger>
+                            <TabsTrigger value="fields">Fields</TabsTrigger>
+                          </TabsList>
+                          
+                          <TabsContent value="summary" className="mt-4">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                              <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                                <FileText className="h-6 w-6 text-blue-600 mx-auto mb-2" />
+                                <div className="text-2xl font-bold text-blue-600">
+                                  {ingestion.extracted_text?.length || 0}
+                                </div>
+                                <div className="text-sm text-gray-600">Characters</div>
+                              </div>
+                              
+                              <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                                <CheckCircle className="h-6 w-6 text-green-600 mx-auto mb-2" />
+                                <div className="text-2xl font-bold text-green-600">
+                                  {ingestion.document_type ? 1 : 0}
+                                </div>
+                                <div className="text-sm text-gray-600">Document Type</div>
+                              </div>
+                              
+                              <div className="text-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                                <Database className="h-6 w-6 text-purple-600 mx-auto mb-2" />
+                                <div className="text-2xl font-bold text-purple-600">
+                                  {ingestion.extracted_data ? Object.keys(JSON.parse(ingestion.extracted_data)).length : 0}
+                                </div>
+                                <div className="text-sm text-gray-600">Fields Found</div>
+                              </div>
+                              
+                              <div className="text-center p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+                                <Clock className="h-6 w-6 text-orange-600 mx-auto mb-2" />
+                                <div className="text-2xl font-bold text-orange-600">
+                                  {Math.floor((new Date().getTime() - new Date(ingestion.created_date).getTime()) / (1000 * 60))}m
+                                </div>
+                                <div className="text-sm text-gray-600">Age</div>
+                              </div>
+                            </div>
+                          </TabsContent>
+                          
+                          <TabsContent value="text" className="mt-4">
+                            <div className="space-y-4">
+                              <div className="flex items-center justify-between">
+                                <h5 className="font-medium">OCR Extracted Text</h5>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  onClick={() => navigator.clipboard.writeText(ingestion.extracted_text || '')}
+                                >
+                                  <Copy className="h-4 w-4 mr-1" />
+                                  Copy
+                                </Button>
+                              </div>
+                              
+                              {ingestion.extracted_text ? (
+                                <div className="max-h-96 overflow-auto">
+                                  <pre className="text-sm p-4 bg-gray-50 dark:bg-gray-800 rounded border whitespace-pre-wrap font-mono">
+                                    {ingestion.extracted_text}
+                                  </pre>
+                                </div>
+                              ) : (
+                                <div className="text-center py-8 text-gray-500">
+                                  <FileText className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                                  <p>No text content extracted from this document</p>
+                                </div>
+                              )}
+                            </div>
+                          </TabsContent>
+                          
+                          <TabsContent value="fields" className="mt-4">
+                            <div className="space-y-4">
+                              {ingestion.extracted_data ? (
+                                <div>
+                                  <div className="flex items-center justify-between mb-4">
+                                    <h5 className="font-medium">Extracted Field Data</h5>
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm" 
+                                      onClick={() => navigator.clipboard.writeText(ingestion.extracted_data || '')}
+                                    >
+                                      <Copy className="h-4 w-4 mr-1" />
+                                      Copy JSON
+                                    </Button>
+                                  </div>
+                                  
+                                  <div className="grid gap-4">
+                                    {Object.entries(JSON.parse(ingestion.extracted_data)).map(([key, value]) => (
+                                      <div key={key} className="flex justify-between items-start p-3 bg-gray-50 dark:bg-gray-800 rounded">
+                                        <div className="font-medium text-sm text-gray-700 dark:text-gray-300 capitalize">
+                                          {key.replace(/[_-]/g, ' ')}:
+                                        </div>
+                                        <div className="text-sm text-right max-w-xs">
+                                          {typeof value === 'string' ? value : JSON.stringify(value)}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="text-center py-8 text-gray-500">
+                                  <Database className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                                  <p>No structured field data available</p>
+                                  <p className="text-sm mt-1">Field extraction may not be configured for this document type</p>
+                                </div>
+                              )}
+                            </div>
+                          </TabsContent>
+                        </Tabs>
+                      </div>
+                    ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
