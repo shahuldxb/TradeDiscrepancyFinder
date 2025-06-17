@@ -9532,6 +9532,61 @@ Extraction Date: ${new Date().toISOString()}
     }
   });
 
+  // API endpoint to manually insert extracted fields
+  app.post('/api/forms/manual-field-insert', async (req, res) => {
+    try {
+      const { ingestion_id, fields } = req.body;
+      
+      if (!ingestion_id || !fields || !Array.isArray(fields)) {
+        return res.status(400).json({ error: 'ingestion_id and fields array required' });
+      }
+
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+      
+      // Clear existing fields for this ingestion_id
+      await pool.request()
+        .input('ingestionId', ingestion_id)
+        .query('DELETE FROM TF_ingestion_fields WHERE ingestion_id = @ingestionId');
+      
+      // Insert new fields
+      for (const field of fields) {
+        await pool.request()
+          .input('ingestionId', ingestion_id)
+          .input('fieldName', field.name)
+          .input('fieldValue', field.value)
+          .input('confidence', field.confidence)
+          .input('dataType', field.type)
+          .query(`
+            INSERT INTO TF_ingestion_fields (ingestion_id, field_name, field_value, confidence, data_type, created_date)
+            VALUES (@ingestionId, @fieldName, @fieldValue, @confidence, @dataType, GETDATE())
+          `);
+      }
+
+      // Update document status to completed
+      await pool.request()
+        .input('ingestionId', ingestion_id)
+        .query(`
+          UPDATE TF_ingestion 
+          SET status = 'completed', document_type = 'Commercial Invoice', updated_date = GETDATE()
+          WHERE ingestion_id = @ingestionId
+        `);
+
+      res.json({
+        success: true,
+        message: 'Fields inserted successfully',
+        fieldsCount: fields.length
+      });
+
+    } catch (error) {
+      console.error('Manual field insertion error:', error);
+      res.status(500).json({ 
+        error: 'Failed to insert fields', 
+        details: (error as Error).message 
+      });
+    }
+  });
+
   // API endpoint to download form output files (txt and json)
   app.get('/api/forms/download/:ingestionId/:formNumber/:fileType', async (req, res) => {
     try {
