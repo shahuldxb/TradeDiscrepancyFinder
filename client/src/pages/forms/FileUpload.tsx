@@ -64,15 +64,12 @@ export default function FileUpload() {
 
   const processFile = useMutation({
     mutationFn: async ({ file, fileType }: { file: File; fileType: string }) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      
       const response = await fetch('/api/forms/upload', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          filename: file.name,
-          fileType: fileType
-        })
+        body: formData
       });
       
       if (!response.ok) {

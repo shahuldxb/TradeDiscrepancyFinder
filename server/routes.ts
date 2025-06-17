@@ -4347,29 +4347,29 @@ and is ready for field extraction and classification.`;
     return fields;
   }
 
-  // File Upload Processing - Simplified for Forms Recognition
-  app.post('/api/forms/upload', async (req, res) => {
+  // File Upload Processing - Proper multer implementation for Forms Recognition
+  app.post('/api/forms/upload', upload.single('file'), async (req: any, res) => {
     try {
-      const { filename, fileType } = req.body;
-      
-      if (!filename) {
-        return res.status(400).json({ error: 'No filename provided' });
+      if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
       }
       
       const { connectToAzureSQL } = await import('./azureSqlConnection');
       const pool = await connectToAzureSQL();
       
       const ingestionId = `ing_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const file = req.file;
+      const actualFileSize = file.size; // Get the real file size from multer
       
-      console.log(`Processing file upload: ${filename}, type: ${fileType}`);
+      console.log(`Processing file upload: ${file.originalname}, size: ${actualFileSize} bytes, type: ${file.mimetype}`);
       
-      // Insert into TF_ingestion table
+      // Insert into TF_ingestion table with actual file size
       await pool.request()
         .input('ingestionId', ingestionId)
-        .input('filePath', `uploads/${filename}`)
-        .input('fileType', fileType || 'application/pdf')
-        .input('originalFilename', filename)
-        .input('fileSize', 0)
+        .input('filePath', file.path)
+        .input('fileType', file.mimetype)
+        .input('originalFilename', file.originalname)
+        .input('fileSize', actualFileSize)
         .input('status', 'processing')
         .input('processingSteps', JSON.stringify([
           { step: 'upload', status: 'completed', timestamp: new Date().toISOString() },
@@ -4384,20 +4384,20 @@ and is ready for field extraction and classification.`;
           VALUES (@ingestionId, @filePath, @fileType, @originalFilename, @fileSize, @status, @processingSteps, 'File uploaded successfully')
         `);
       
-      console.log(`File ingestion created with ID: ${ingestionId}`);
+      console.log(`File ingestion created with ID: ${ingestionId}, actual size: ${actualFileSize} bytes`);
       
       // Start complete processing pipeline
-      processDocumentPipeline(ingestionId, filename, pool).catch(console.error);
+      processDocumentPipeline(ingestionId, file.originalname, pool).catch(console.error);
       
       res.json({
         success: true,
         ingestion_id: ingestionId,
         message: 'File uploaded and processing initiated',
         file_info: {
-          originalName: filename,
-          size: 0,
-          type: fileType || 'application/pdf',
-          path: `uploads/${filename}`
+          originalName: file.originalname,
+          size: actualFileSize,
+          type: file.mimetype,
+          path: file.path
         },
         processing_steps: [
           { step: 'upload', status: 'completed', timestamp: new Date().toISOString() },
