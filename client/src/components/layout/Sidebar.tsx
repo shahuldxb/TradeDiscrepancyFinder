@@ -293,6 +293,11 @@ const navigationItems = [
     description: "Forms Recognition & Processing",
     subItems: [
       {
+        name: "Instant Document Upload",
+        href: "/forms/instant",
+        description: "Quick drag-and-drop upload with instant processing",
+      },
+      {
         name: "File Upload & OCR",
         href: "/forms/main",
         description: "Upload and process multi-form PDFs",
