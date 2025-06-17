@@ -4444,27 +4444,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       await azureFormsClassifier.storeProcessingResults(pool, ingestionId, processingResults);
 
-      // Store form detection results in database
-      if (formDetectionResults && formDetectionResults.detected_forms) {
-        for (const detectedForm of formDetectionResults.detected_forms) {
-          const pdfId = Date.now() + Math.random().toString(36).substr(2, 9);
-          
-          await pool.request()
-            .input('ingestionId', ingestionId)
-            .input('formId', '1') // Default form ID
-            .input('filePath', `uploads/${filename}`)
-            .input('documentType', detectedForm.form_type || 'Unknown')
-            .input('pageRange', `${detectedForm.start_page}-${detectedForm.end_page}`)
-            .query(`
-              INSERT INTO TF_ingestion_Pdf (
-                ingestion_id, form_id, file_path, document_type, page_range, created_date
-              ) VALUES (
-                @ingestionId, @formId, @filePath, @documentType, @pageRange, GETDATE()
-              )
-            `);
-        }
+      // Store PDF processing record - single consolidated record
+      await pool.request()
+        .input('ingestionId', ingestionId)
+        .input('formId', classificationResult.formId || 'F001')
+        .input('filePath', `uploads/${filename}`)
+        .input('documentType', classificationResult.documentType)
+        .input('pageRange', '1-1')
+        .query(`
+          INSERT INTO TF_ingestion_Pdf (
+            ingestion_id, form_id, file_path, document_type, page_range, created_date
+          ) VALUES (
+            @ingestionId, @formId, @filePath, @documentType, @pageRange, GETDATE()
+          )
+        `);
+
+      // Store TXT processing record - single consolidated text file
+      const characterCount = ocrText.length;
+      const wordCount = ocrText.split(/\s+/).filter(word => word.length > 0).length;
+      
+      await pool.request()
+        .input('ingestionId', ingestionId)
+        .input('content', ocrText)
+        .input('confidence', classificationResult.confidence || 0.85)
+        .input('language', 'en')
+        .query(`
+          INSERT INTO TF_ingestion_TXT (
+            ingestion_id, content, confidence, language, created_date
+          ) VALUES (
+            @ingestionId, @content, @confidence, @language, GETDATE()
+          )
+        `);
         
-        console.log(`✅ Stored ${formDetectionResults.detected_forms.length} form detection records`);
+      console.log(`✅ Stored single PDF and TXT processing records (${characterCount} chars, ${wordCount} words)`);
+
+      // Store form detection results for reference only
+      if (formDetectionResults && formDetectionResults.detected_forms) {
+        console.log(`📋 Detected ${formDetectionResults.detected_forms.length} forms (consolidated into single record)`);
       }
 
       // Update final status with completed processing steps including individual form processing
