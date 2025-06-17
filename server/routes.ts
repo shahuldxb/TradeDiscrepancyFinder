@@ -9445,6 +9445,93 @@ Extraction Date: ${new Date().toISOString()}
     }
   });
 
+  // API endpoint to extract fields from document
+  app.post('/api/forms/extract-fields', async (req, res) => {
+    try {
+      const { ingestion_id, document_type, force_extract } = req.body;
+      
+      if (!ingestion_id) {
+        return res.status(400).json({ error: 'ingestion_id is required' });
+      }
+
+      const pool = await azureConnection.getConnection();
+      
+      // Get the document content from TF_ingestion_TXT table
+      const txtResult = await pool.request()
+        .input('ingestionId', ingestion_id)
+        .query('SELECT content FROM TF_ingestion_TXT WHERE ingestion_id = @ingestionId');
+
+      if (txtResult.recordset.length === 0) {
+        return res.status(404).json({ error: 'No extracted text found for this document' });
+      }
+
+      const textContent = txtResult.recordset[0].content;
+      
+      // Extract fields using pattern matching for Commercial Invoice
+      const extractedFields = {};
+      
+      if (document_type === 'Commercial Invoice' || textContent.toLowerCase().includes('invoice')) {
+        // Extract Invoice Number
+        const invoiceNumberMatch = textContent.match(/(?:invoice\s*(?:no|number|#)?[:\s]*|inv[:\s]*#?)([A-Z0-9\-]+)/i);
+        if (invoiceNumberMatch) extractedFields['Invoice Number'] = invoiceNumberMatch[1].trim();
+        
+        // Extract Date
+        const dateMatch = textContent.match(/(?:date[:\s]*|invoice\s*date[:\s]*)(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}|\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2})/i);
+        if (dateMatch) extractedFields['Date'] = dateMatch[1].trim();
+        
+        // Extract Amount/Total
+        const amountMatch = textContent.match(/(?:total[:\s]*|amount[:\s]*|grand\s*total[:\s]*)[\$]?([0-9,]+\.?\d*)/i);
+        if (amountMatch) extractedFields['Amount'] = amountMatch[1].trim();
+        
+        // Extract Seller/From
+        const sellerMatch = textContent.match(/(?:from[:\s]*|seller[:\s]*|bill\s*from[:\s]*)([^\n]+)/i);
+        if (sellerMatch) extractedFields['Seller'] = sellerMatch[1].trim();
+        
+        // Extract Buyer/To
+        const buyerMatch = textContent.match(/(?:to[:\s]*|buyer[:\s]*|bill\s*to[:\s]*)([^\n]+)/i);
+        if (buyerMatch) extractedFields['Buyer'] = buyerMatch[1].trim();
+      }
+
+      // Insert extracted fields into TF_ingestion_fields table
+      for (const [fieldName, fieldValue] of Object.entries(extractedFields)) {
+        await pool.request()
+          .input('ingestionId', ingestion_id)
+          .input('fieldName', fieldName)
+          .input('fieldValue', fieldValue)
+          .input('confidence', 0.85)
+          .input('dataType', 'text')
+          .query(`
+            INSERT INTO TF_ingestion_fields (ingestion_id, field_name, field_value, confidence, data_type, created_date)
+            VALUES (@ingestionId, @fieldName, @fieldValue, @confidence, @dataType, GETDATE())
+          `);
+      }
+
+      // Update document status to completed
+      await pool.request()
+        .input('ingestionId', ingestion_id)
+        .input('docType', document_type || 'Commercial Invoice')
+        .query(`
+          UPDATE TF_ingestion 
+          SET status = 'completed', document_type = @docType, updated_date = GETDATE()
+          WHERE ingestion_id = @ingestionId
+        `);
+
+      res.json({
+        success: true,
+        message: 'Fields extracted successfully',
+        fieldsCount: Object.keys(extractedFields).length,
+        extractedFields: extractedFields
+      });
+
+    } catch (error) {
+      console.error('Field extraction error:', error);
+      res.status(500).json({ 
+        error: 'Failed to extract fields', 
+        details: (error as Error).message 
+      });
+    }
+  });
+
   // API endpoint to download form output files (txt and json)
   app.get('/api/forms/download/:ingestionId/:formNumber/:fileType', async (req, res) => {
     try {
