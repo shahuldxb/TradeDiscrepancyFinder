@@ -9454,7 +9454,7 @@ Extraction Date: ${new Date().toISOString()}
         return res.status(400).json({ error: 'ingestion_id is required' });
       }
 
-      const pool = await azureConnection.getConnection();
+      const pool = await sql.connect(azureConfig);
       
       // Get the document content from TF_ingestion_TXT table
       const txtResult = await pool.request()
