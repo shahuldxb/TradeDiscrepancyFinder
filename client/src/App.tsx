@@ -51,6 +51,8 @@ import BackOfficeApproval from "@/pages/forms/BackOfficeApproval";
 import FormApproval from "@/pages/forms/FormApproval";
 import FormTemplates from "@/pages/forms/FormTemplates";
 import GroupedDocuments from "@/pages/forms/GroupedDocuments";
+import ComprehensiveCRUD from "@/pages/forms/ComprehensiveCRUD";
+import FormsApprovalSystem from "@/pages/forms/FormsApprovalSystem";
 
 import NotFound from "@/pages/not-found";
 
@@ -166,6 +168,11 @@ function Router() {
             <Route path="/forms/main" component={MainUpload} />
             <Route path="/forms/records" component={IngestionRecords} />
             <Route path="/forms/backoffice" component={BackOfficeApproval} />
+            <Route path="/forms/approval" component={FormApproval} />
+            <Route path="/forms/templates" component={FormTemplates} />
+            <Route path="/forms/grouped" component={GroupedDocuments} />
+            <Route path="/forms/crud" component={ComprehensiveCRUD} />
+            <Route path="/forms/system" component={FormsApprovalSystem} />
             
             {/* System Admin Routes */}
             <Route path="/admin/users" component={AgentMonitor} />
