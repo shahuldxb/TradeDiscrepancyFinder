@@ -63,15 +63,27 @@ export default function FileUpload() {
   });
 
   const processFile = useMutation({
-    mutationFn: async (fileData: { filename: string; fileType: string; fileContent?: string }) => {
-      return apiRequest('/api/forms/upload', {
+    mutationFn: async ({ file, fileType }: { file: File; fileType: string }) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('fileType', fileType);
+      formData.append('filename', file.name);
+      
+      const response = await fetch('/api/forms/upload', {
         method: 'POST',
-        body: fileData
+        body: formData
       });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Upload failed: ${errorText}`);
+      }
+      
+      return await response.json();
     },
     onSuccess: (data, variables) => {
       setUploadedFiles(prev => prev.map(file => 
-        file.file.name === variables.filename 
+        file.file.name === variables.file.name 
           ? { 
               ...file, 
               status: 'processing', 
@@ -83,19 +95,19 @@ export default function FileUpload() {
       
       toast({
         title: "File Processing Started",
-        description: `Processing ${variables.filename} with ID: ${data.ingestion_id}`,
+        description: `Processing ${variables.file.name} with ID: ${data.ingestion_id}`,
       });
     },
     onError: (error, variables) => {
       setUploadedFiles(prev => prev.map(file => 
-        file.file.name === variables.filename 
+        file.file.name === variables.file.name 
           ? { ...file, status: 'error', error: error.message }
           : file
       ));
       
       toast({
         title: "Processing Failed",
-        description: `Failed to process ${variables.filename}`,
+        description: `Failed to process ${variables.file.name}`,
         variant: "destructive",
       });
     }
@@ -196,7 +208,7 @@ export default function FileUpload() {
 
           // Start server-side processing
           processFile.mutate({
-            filename: file.name,
+            file: file,
             fileType: fileType
           });
         } else {
