@@ -10005,6 +10005,160 @@ Extraction Date: ${new Date().toISOString()}
     }
   });
 
+  // Download endpoints for grouped documents
+  app.get('/api/forms/download/pdf/:ingestionId', async (req, res) => {
+    try {
+      const { ingestionId } = req.params;
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+      
+      // Get file information from database
+      const result = await pool.request()
+        .input('ingestionId', ingestionId)
+        .query(`
+          SELECT 
+            original_filename,
+            file_path,
+            file_type,
+            file_size
+          FROM TF_ingestion 
+          WHERE ingestion_id = @ingestionId
+        `);
+      
+      if (result.recordset.length === 0) {
+        return res.status(404).json({ error: 'Document not found' });
+      }
+      
+      const document = result.recordset[0];
+      const fs = require('fs');
+      const path = require('path');
+      
+      // Try to find the actual PDF file
+      const possiblePaths = [
+        document.file_path,
+        `uploads/${ingestionId}_${document.original_filename}`,
+        `uploads/${document.original_filename}`,
+        `form_outputs/${ingestionId}.pdf`
+      ];
+      
+      let filePath = null;
+      for (const testPath of possiblePaths) {
+        if (fs.existsSync(testPath)) {
+          filePath = testPath;
+          break;
+        }
+      }
+      
+      if (filePath) {
+        // Serve the actual PDF file
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `inline; filename="${document.original_filename}"`);
+        res.sendFile(path.resolve(filePath));
+      } else {
+        // Return error if file not found
+        res.status(404).json({ 
+          error: 'PDF file not found on disk',
+          message: 'The original PDF file is not available for download',
+          available_options: ['text content via /api/forms/download/txt/' + ingestionId]
+        });
+      }
+      
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      res.status(500).json({ error: 'Failed to download PDF file' });
+    }
+  });
+
+  app.get('/api/forms/download/txt/:ingestionId', async (req, res) => {
+    try {
+      const { ingestionId } = req.params;
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+      
+      // Get extracted text from database
+      const result = await pool.request()
+        .input('ingestionId', ingestionId)
+        .query(`
+          SELECT 
+            original_filename,
+            extracted_text,
+            document_type,
+            created_date,
+            file_size
+          FROM TF_ingestion 
+          WHERE ingestion_id = @ingestionId
+        `);
+      
+      if (result.recordset.length === 0) {
+        return res.status(404).json({ error: 'Document not found' });
+      }
+      
+      const document = result.recordset[0];
+      let textContent = document.extracted_text || '';
+      
+      // If no extracted text in main table, check TXT processing table
+      if (!textContent) {
+        const txtResult = await pool.request()
+          .input('ingestionId', ingestionId)
+          .query(`
+            SELECT content 
+            FROM TF_ingestion_TXT 
+            WHERE ingestion_id = @ingestionId
+          `);
+        
+        if (txtResult.recordset.length > 0) {
+          textContent = txtResult.recordset[0].content;
+        }
+      }
+      
+      // If still no text, check for .txt files on disk
+      if (!textContent) {
+        const fs = require('fs');
+        const possibleTxtPaths = [
+          `form_outputs/${ingestionId}.txt`,
+          `form_outputs/${ingestionId}_extracted.txt`,
+          `uploads/${ingestionId}.txt`
+        ];
+        
+        for (const txtPath of possibleTxtPaths) {
+          if (fs.existsSync(txtPath)) {
+            textContent = fs.readFileSync(txtPath, 'utf8');
+            break;
+          }
+        }
+      }
+      
+      // Generate fallback content if still no text
+      if (!textContent) {
+        textContent = `EXTRACTED TEXT CONTENT
+        
+Document: ${document.original_filename}
+Type: ${document.document_type || 'Not classified'}
+Processing Date: ${new Date(document.created_date).toLocaleDateString()}
+File Size: ${document.file_size} bytes
+
+[OCR TEXT EXTRACTION NOT AVAILABLE]
+
+This document was processed through the Forms Recognition system but the extracted text content is not available for download. The document may have been:
+- Processed before text extraction was implemented
+- Contains non-text content (images, complex layouts)
+- Encountered processing errors during OCR
+
+For technical support, please reference Document ID: ${ingestionId}`;
+      }
+      
+      // Return as downloadable text file
+      const filename = document.original_filename.replace('.pdf', '.txt');
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.send(textContent);
+      
+    } catch (error) {
+      console.error('Error downloading TXT:', error);
+      res.status(500).json({ error: 'Failed to download text content' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

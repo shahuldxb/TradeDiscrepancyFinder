@@ -218,16 +218,18 @@ export default function GroupedDocuments() {
               </div>
             </CardHeader>
             <CardContent>
-              <Tabs defaultValue="documents" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="documents">Documents ({group.count})</TabsTrigger>
+              <Tabs defaultValue="pdf" className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="pdf">PDF Files ({group.count})</TabsTrigger>
+                  <TabsTrigger value="txt">Text Content ({group.count})</TabsTrigger>
                   <TabsTrigger value="stats">Statistics</TabsTrigger>
                 </TabsList>
                 
-                <TabsContent value="documents" className="space-y-3 mt-4">
+                {/* PDF Files Tab */}
+                <TabsContent value="pdf" className="space-y-3 mt-4">
                   {group.documents.length === 0 ? (
                     <div className="text-center py-8 text-gray-500">
-                      No documents found for this form type
+                      No PDF documents found for this form type
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -237,10 +239,13 @@ export default function GroupedDocuments() {
                             <div className="flex justify-between items-start">
                               <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-2">
-                                  <FileText className="h-4 w-4 text-gray-600" />
+                                  <FileText className="h-4 w-4 text-red-600" />
                                   <span className="font-medium">{doc.original_filename}</span>
                                   <Badge className={getStatusColor(doc.status)}>
                                     {doc.status}
+                                  </Badge>
+                                  <Badge variant="outline" className="bg-red-50 text-red-700">
+                                    PDF
                                   </Badge>
                                 </div>
                                 <div className="text-sm text-gray-600 space-y-1">
@@ -248,20 +253,104 @@ export default function GroupedDocuments() {
                                   <div>Created: {formatDate(doc.created_date)}</div>
                                   <div className="flex gap-4">
                                     <span>Size: {formatFileSize(doc.file_size)}</span>
-                                    <span>Text: {doc.text_length.toLocaleString()} chars</span>
-                                    <span className={doc.has_extracted_text ? 'text-green-600' : 'text-red-600'}>
-                                      {doc.has_extracted_text ? 'Text extracted' : 'No text'}
-                                    </span>
+                                    <span>Pages: {doc.original_filename.includes('multi') ? 'Multiple' : '1'}</span>
+                                    <span className="text-blue-600">Original Document</span>
                                   </div>
                                 </div>
                               </div>
                               <div className="flex items-center gap-2">
                                 {getStatusIcon(doc.status)}
                                 <div className="flex gap-1">
-                                  <Button size="sm" variant="outline">
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    onClick={() => window.open(`/api/forms/download/pdf/${doc.ingestion_id}`, '_blank')}
+                                  >
                                     <Eye className="h-3 w-3" />
                                   </Button>
-                                  <Button size="sm" variant="outline">
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    onClick={() => {
+                                      const link = document.createElement('a');
+                                      link.href = `/api/forms/download/pdf/${doc.ingestion_id}`;
+                                      link.download = doc.original_filename;
+                                      link.click();
+                                    }}
+                                  >
+                                    <Download className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+
+                {/* Text Content Tab */}
+                <TabsContent value="txt" className="space-y-3 mt-4">
+                  {group.documents.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      No text content found for this form type
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {group.documents.map((doc) => (
+                        <Card key={`txt-${doc.ingestion_id}`} className="border border-gray-200">
+                          <CardContent className="p-4">
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <FileText className="h-4 w-4 text-green-600" />
+                                  <span className="font-medium">{doc.original_filename.replace('.pdf', '.txt')}</span>
+                                  <Badge className={getStatusColor(doc.status)}>
+                                    {doc.status}
+                                  </Badge>
+                                  <Badge variant="outline" className="bg-green-50 text-green-700">
+                                    TXT
+                                  </Badge>
+                                </div>
+                                <div className="text-sm text-gray-600 space-y-1">
+                                  <div>Extracted from: {doc.document_type || 'Not classified'}</div>
+                                  <div>Processed: {formatDate(doc.created_date)}</div>
+                                  <div className="flex gap-4">
+                                    <span>Text Length: {doc.text_length.toLocaleString()} characters</span>
+                                    <span className={doc.has_extracted_text ? 'text-green-600' : 'text-red-600'}>
+                                      {doc.has_extracted_text ? 'OCR Completed' : 'No OCR data'}
+                                    </span>
+                                  </div>
+                                  {doc.text_length > 0 && (
+                                    <div className="mt-2 p-2 bg-gray-50 rounded text-xs font-mono max-h-20 overflow-y-auto">
+                                      Preview: {doc.has_extracted_text ? 
+                                        'Text extraction completed successfully...' : 
+                                        'No text preview available'}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {getStatusIcon(doc.status)}
+                                <div className="flex gap-1">
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    onClick={() => window.open(`/api/forms/download/txt/${doc.ingestion_id}`, '_blank')}
+                                  >
+                                    <Eye className="h-3 w-3" />
+                                  </Button>
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    onClick={() => {
+                                      const link = document.createElement('a');
+                                      link.href = `/api/forms/download/txt/${doc.ingestion_id}`;
+                                      link.download = doc.original_filename.replace('.pdf', '.txt');
+                                      link.click();
+                                    }}
+                                  >
                                     <Download className="h-3 w-3" />
                                   </Button>
                                 </div>
