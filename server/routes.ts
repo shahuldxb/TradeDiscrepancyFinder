@@ -4197,25 +4197,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Step 1: OCR Processing
       await updateProcessingStep(pool, ingestionId, 'ocr', 'processing');
-      await new Promise(resolve => setTimeout(resolve, 3000)); // Simulate OCR processing
       
       const ocrText = await performOCR(filename);
       await updateProcessingStep(pool, ingestionId, 'ocr', 'completed');
       
-      // Step 2: Document Classification
+      // Step 2: Azure Document Intelligence Classification
       await updateProcessingStep(pool, ingestionId, 'classification', 'processing');
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate classification
       
-      const documentType = await classifyDocument(ocrText, filename);
+      const classificationResult = await performAzureClassification(filename);
       await updateProcessingStep(pool, ingestionId, 'classification', 'completed');
       
-      // Step 3: Field Extraction
+      // Step 3: Field Extraction Enhancement
       await updateProcessingStep(pool, ingestionId, 'extraction', 'processing');
-      await new Promise(resolve => setTimeout(resolve, 4000)); // Simulate extraction
       
-      const extractedFields = await extractFields(ocrText, documentType);
+      const enhancedFields = await enhanceFieldExtraction(ocrText, classificationResult);
       await updateProcessingStep(pool, ingestionId, 'extraction', 'completed');
       
+      // Store classification and extraction results
+      await storeProcessingResults(pool, ingestionId, {
+        ocrText,
+        classificationResult,
+        enhancedFields,
+        documentType: classificationResult.documentType,
+        confidence: classificationResult.confidence,
+        processingMethod: classificationResult.modelUsed
+      });
+
       // Update final status with completed processing steps
       const finalSteps = [
         { step: 'upload', status: 'completed', timestamp: new Date().toISOString() },
