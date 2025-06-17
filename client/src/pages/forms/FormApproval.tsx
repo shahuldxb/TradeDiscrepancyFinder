@@ -223,6 +223,67 @@ export default function FormApproval() {
           </p>
         </div>
         <div className="flex items-center space-x-2">
+          <Dialog open={showNewFormDialog} onOpenChange={setShowNewFormDialog}>
+            <DialogTrigger asChild>
+              <Button 
+                size="sm"
+                className="gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Submit New Form
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Submit New Form Type for Approval</DialogTitle>
+                <DialogDescription>
+                  Submit a new form type to be reviewed and approved by the Back Office team.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="form-name">Form Name *</Label>
+                  <Input
+                    id="form-name"
+                    placeholder="e.g., Insurance Certificate"
+                    value={newFormName}
+                    onChange={(e) => setNewFormName(e.target.value)}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="form-category">Category</Label>
+                  <Input
+                    id="form-category"
+                    placeholder="e.g., Insurance, Logistics"
+                    value={newFormCategory}
+                    onChange={(e) => setNewFormCategory(e.target.value)}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="form-description">Description</Label>
+                  <Textarea
+                    id="form-description"
+                    placeholder="Brief description of the form and its purpose..."
+                    value={newFormDescription}
+                    onChange={(e) => setNewFormDescription(e.target.value)}
+                    rows={3}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowNewFormDialog(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleNewFormSubmission}
+                  disabled={!newFormName.trim() || newFormMutation.isPending}
+                >
+                  {newFormMutation.isPending ? "Submitting..." : "Submit for Approval"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+          
           <Button 
             onClick={() => populateDataMutation.mutate()}
             disabled={populateDataMutation.isPending}
