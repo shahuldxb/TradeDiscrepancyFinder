@@ -54,6 +54,7 @@ import FormTemplates from "@/pages/forms/FormTemplates";
 import GroupedDocuments from "@/pages/forms/GroupedDocuments";
 import ComprehensiveCRUD from "@/pages/forms/ComprehensiveCRUD";
 import FormsApprovalSystem from "@/pages/forms/FormsApprovalSystem";
+import ComprehensiveFormsUI from "@/pages/forms/ComprehensiveFormsUI";
 
 import NotFound from "@/pages/not-found";
 
@@ -166,6 +167,7 @@ function Router() {
             <Route path="/lifecycle/analytics" component={LifecycleDashboard} />
             
             {/* Forms Recognizer Routes */}
+            <Route path="/forms" component={ComprehensiveFormsUI} />
             <Route path="/forms/main" component={MainUpload} />
             <Route path="/forms/records" component={IngestionRecords} />
             <Route path="/forms/backoffice" component={BackOfficeApproval} />
