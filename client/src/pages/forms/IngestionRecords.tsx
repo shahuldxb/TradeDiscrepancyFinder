@@ -65,32 +65,41 @@ export default function IngestionRecords() {
 
   const handleView = async (ingestionId: string, type: 'text' | 'data') => {
     try {
-      const endpoint = type === 'text' 
-        ? `/api/forms/extracted-forms/${ingestionId}`
-        : `/api/forms/processing-status/${ingestionId}`;
+      let content = '';
+      let title = '';
       
-      const response = await fetch(endpoint);
-      if (response.ok) {
-        const data = await response.json();
-        
-        // Create a modal or alert to show the content
-        const content = type === 'text' 
-          ? JSON.stringify(data, null, 2)
-          : JSON.stringify(data, null, 2);
-          
-        // Open in new window for better viewing
-        const newWindow = window.open('', '_blank');
-        if (newWindow) {
-          newWindow.document.write(`
-            <html>
-              <head><title>View ${type.toUpperCase()} - ${ingestionId}</title></head>
-              <body style="font-family: monospace; padding: 20px; background: #f5f5f5;">
-                <h2>View ${type.toUpperCase()} - ${ingestionId}</h2>
-                <pre style="background: white; padding: 15px; border-radius: 5px; overflow: auto;">${content}</pre>
-              </body>
-            </html>
-          `);
+      if (type === 'text') {
+        // Get text content directly from TXT records
+        const txtRecord = txtRecords?.find((r: any) => r.ingestion_id === ingestionId);
+        if (txtRecord) {
+          content = txtRecord.content || 'No text content available';
+          title = `Extracted Text - ${ingestionId}`;
+        } else {
+          throw new Error('Text content not found');
         }
+      } else {
+        // Get data from ingestion records
+        const ingestionRecord = ingestionRecords?.find((r: any) => r.ingestion_id === ingestionId);
+        if (ingestionRecord) {
+          content = JSON.stringify(ingestionRecord, null, 2);
+          title = `Processing Data - ${ingestionId}`;
+        } else {
+          throw new Error('Processing data not found');
+        }
+      }
+      
+      // Open in new window for better viewing
+      const newWindow = window.open('', '_blank');
+      if (newWindow) {
+        newWindow.document.write(`
+          <html>
+            <head><title>${title}</title></head>
+            <body style="font-family: monospace; padding: 20px; background: #f5f5f5;">
+              <h2>${title}</h2>
+              <pre style="background: white; padding: 15px; border-radius: 5px; overflow: auto; white-space: pre-wrap;">${content}</pre>
+            </body>
+          </html>
+        `);
       }
     } catch (error) {
       toast({
