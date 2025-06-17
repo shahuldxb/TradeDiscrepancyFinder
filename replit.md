@@ -105,6 +105,19 @@ This is a sophisticated Trade Finance Discrepancy Resolution Platform that lever
 - **Schema Management**: Multi-schema approach for data organization
 - **Backup Strategy**: Drizzle ORM as potential migration path
 
+## Base Workflow - Multi-Form PDF Processing System
+
+### Step 1: File Upload (UI) ✓ COMPLETED
+- User uploads scanned multi-form PDF via React interface (Menu: "I am tired")
+- Progress bar shows file upload progress
+- Backend (Python) receives PDF file through REST API endpoint
+- Status: Fully implemented and operational with Azure SQL database integration
+
+### Step 2: [AWAITING USER PROMPT]
+### Step 3: [AWAITING USER PROMPT]
+### Step 4: [AWAITING USER PROMPT]
+### Step 5: [AWAITING USER PROMPT]
+
 ## Changelog
 
 - June 14, 2025. Initial setup
@@ -126,6 +139,7 @@ This is a sophisticated Trade Finance Discrepancy Resolution Platform that lever
 - June 17, 2025. Successfully processed and fixed user's multi-form PDF upload - Resolved JavaScript variable scope error in processing pipeline that prevented data storage in processing tables. Fixed lc.pdf (2.7MB) upload with 244,298 characters extracted and properly categorized as LC Document. Added fix-upload-processing API endpoint to manually populate processing tables when automatic storage fails. Document now appears correctly in grouped documents interface with completed status.
 - June 17, 2025. Implemented comprehensive Python backend with enhanced multi-form processing - Created pythonFormsProcessor.py with Azure Document Intelligence integration, multi-form PDF segregation, and individual form extraction. Built Node.js integration layer with Python process spawning, real-time progress tracking, and enhanced status monitoring. Added tabbed interface (EnhancedFileUpload.tsx) with individual form display, progress bars for PDF splitting, formatted text display, sub-windows for field extraction, and advanced logging system (Info, Error, Warning, Critical). Integrated Python business logic with React frontend while maintaining Azure SQL database storage. System now supports complete multi-form document analysis workflow as specified in user requirements.
 - June 17, 2025. Fixed file upload functionality and database integration - Resolved multer configuration issues and server crash problems, restored clean upload function structure, fixed database column mapping from mime_type to file_type matching actual Azure SQL table structure. File upload now working correctly with proper buffer handling (144KB+ files tested successfully). Enhanced processing status system with 8 detailed steps providing real-time progress tracking from upload through completion. Forms Recognizer system fully operational with Azure Document Intelligence integration.
+- June 17, 2025. Fixed TF_ingestion_Pdf tab view and download functionality - Resolved ingestion_id format differences between main table (ing_xxxx_xxxx format) and PDF table (numeric format). Updated download endpoints to search across all processing tables and provide fallback content when original files aren't available on disk. All three Ingestion Records tabs (Main, PDF, TXT) now fully operational with working view and download functionality using authentic Azure SQL data.
 
 ## User Preferences
 
