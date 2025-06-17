@@ -49,6 +49,7 @@ import FileUpload from "@/pages/forms/FileUpload";
 import IngestionManagement from "@/pages/forms/IngestionManagement";
 import FormApproval from "@/pages/forms/FormApproval";
 import FormTemplates from "@/pages/forms/FormTemplates";
+import GroupedDocuments from "@/pages/forms/GroupedDocuments";
 
 import NotFound from "@/pages/not-found";
 

@@ -301,6 +301,11 @@ const navigationItems = [
         description: "Monitor document processing status",
       },
       {
+        name: "Grouped Documents",
+        href: "/forms/grouped",
+        description: "Documents organized by form type classification",
+      },
+      {
         name: "Back Office Approval",
         href: "/forms/approval",
         description: "Approve new form types for processing",
