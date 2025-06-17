@@ -82,37 +82,39 @@ export default function EnhancedFileUpload() {
       formData.append('file', file);
 
       addLog('Info', 'Uploading file to server...');
-      const uploadResponse = await apiRequest('/api/forms/upload', {
+      const uploadResponse = await fetch('/api/forms/upload', {
         method: 'POST',
         body: formData,
       });
+      const uploadResult = await uploadResponse.json();
 
-      if (uploadResponse.success) {
-        const ingestionId = uploadResponse.ingestionId;
+      if (uploadResult.success) {
+        const ingestionId = uploadResult.ingestion_id;
         setCurrentIngestionId(ingestionId);
         addLog('Info', 'File uploaded successfully', `Ingestion ID: ${ingestionId}`);
+        
+        // Start status monitoring immediately
+        startStatusMonitoring(ingestionId);
         
         // Start Python processing
         addLog('Info', 'Starting Python multi-form processing...');
         try {
-          const pythonResponse = await apiRequest(`/api/forms/process-with-python/${ingestionId}`, {
+          const pythonResponse = await fetch(`/api/forms/process-with-python/${ingestionId}`, {
             method: 'POST',
           });
+          const pythonResult = await pythonResponse.json();
           
-          if (pythonResponse.success) {
+          if (pythonResult.success) {
             addLog('Info', 'Python processing completed successfully');
             setActiveTab('forms');
           } else {
-            addLog('Warning', 'Python processing completed with warnings', pythonResponse.message);
+            addLog('Warning', 'Python processing completed with warnings', pythonResult.message);
           }
         } catch (pythonError) {
           addLog('Error', 'Python processing failed', (pythonError as Error).message);
         }
-
-        // Start status monitoring
-        startStatusMonitoring(ingestionId);
       } else {
-        addLog('Error', 'File upload failed', uploadResponse.message);
+        addLog('Error', 'File upload failed', uploadResult.message);
         setIsProcessing(false);
       }
     } catch (error) {
@@ -129,11 +131,34 @@ export default function EnhancedFileUpload() {
   const startStatusMonitoring = (ingestionId: string) => {
     const checkStatus = async () => {
       try {
-        const statusResponse = await apiRequest(`/api/forms/processing-status/${ingestionId}`);
-        if (statusResponse.success) {
-          setProcessingStatus(statusResponse);
+        const statusResponse = await fetch(`/api/forms/ingestion/${ingestionId}`);
+        const statusData = await statusResponse.json();
+        
+        if (statusData) {
+          // Convert database status to processing status format
+          const processingStatus: ProcessingStatus = {
+            success: true,
+            status: statusData.status || 'processing',
+            progress: statusData.status === 'completed' ? 100 : 
+                     statusData.status === 'processing' ? 75 : 
+                     statusData.status === 'validated' ? 50 : 25,
+            currentStep: statusData.status === 'completed' ? 'Processing Complete' :
+                        statusData.status === 'processing' ? 'Extracting Text and Fields' :
+                        statusData.status === 'validated' ? 'Validating Document' : 'Uploading File',
+            formsDetected: 1,
+            details: {
+              pdfFormsExtracted: statusData.status === 'completed' ? 1 : 0,
+              textFormsExtracted: statusData.extracted_text ? 1 : 0,
+              fieldsExtracted: statusData.extracted_data ? Object.keys(JSON.parse(statusData.extracted_data || '{}')).length : 0,
+              totalCharacters: statusData.extracted_text ? statusData.extracted_text.length : 0,
+              documentType: statusData.document_type || 'Unknown',
+              processingMethod: 'Azure Document Intelligence + Python Backend'
+            }
+          };
           
-          if (statusResponse.status === 'completed') {
+          setProcessingStatus(processingStatus);
+          
+          if (statusData.status === 'completed') {
             addLog('Info', 'Processing completed successfully');
             setIsProcessing(false);
             loadFormDetails(ingestionId);
@@ -157,10 +182,12 @@ export default function EnhancedFileUpload() {
   const loadFormDetails = async (ingestionId: string) => {
     try {
       addLog('Info', 'Loading individual form details...');
-      const formsResponse = await apiRequest(`/api/forms/form-details/${ingestionId}`);
-      if (formsResponse.success) {
-        setForms(formsResponse.forms);
-        addLog('Info', `Loaded ${formsResponse.totalForms} individual forms`);
+      const formsResponse = await fetch(`/api/forms/form-details/${ingestionId}`);
+      const formsData = await formsResponse.json();
+      
+      if (formsData.success) {
+        setForms(formsData.forms);
+        addLog('Info', `Loaded ${formsData.totalForms} individual forms`);
       }
     } catch (error) {
       addLog('Error', 'Failed to load form details', (error as Error).message);
