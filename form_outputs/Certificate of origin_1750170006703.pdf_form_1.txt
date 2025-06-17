@@ -1,0 +1,140 @@
+FORM TYPE: COMMERCIAL_INVOICE
+PAGE RANGE: 1-1
+CONFIDENCE: 0.85
+
+EXTRACTED TEXT FROM: Certificate of origin_1750170006703.pdf
+==================================================
+
+OCR PROCESSING RESULTS:
+- Method: tesseract_images
+- Status: Successful
+- Characters extracted: 2934
+- Processing date: 2025-06-17T14:23:57.411Z
+
+ACTUAL DOCUMENT CONTENT:
+ORIGINAL
+
+1. Goods consigned from {Exporter's business name, address,
+country}:
+
+MAYUR INDUSTRIES
+F205, SECTOR 5,DSIIDC INDUSTRIAL A REA BAWANA DELHI
+INDIA
+
+2. Goods consigned to (Consignee's name, address, country):
+
+AL SAMAH A/C UNITS IND LLC
+
+P.O. BOX 3669, NEW IND AREA, PLOT. NO. 0837, BLOCK NO.1,
+UMMUL ZAHOON AREA, UMM AL QUWAIN, UAE. Te!. : 06-7672473 Fax
+06-5422761 ---- Bank Name and Address ABU DHABI ISLAMIC BANK P.O.
+BOX 313, ABU DHABI, UAE. L/C NO. ILCAE06122000021 DT
+01-FEB-2022
+
+UAE
+
+Reference No: DC/2022/016/0142508A/00144051
+
+CERTIFICATE OF ORIGIN
+
+(NON PREFERENTIA.)
+
+(Combined declaration and certificate)
+
+Issued in India
+DELHI CHAMBER OF
+COMMERCE
+
+Delhi-110055, INDIA
+
+49, Rani Jhansi Road, Opp.
+Jhandewalan Mata Mandir, New
+
+Telephone : 011-23616421
+
+E-mail
+com
+
+: info@delhichamber.
+
+3. Means of transport and route (as far as known)
+
+4. For Office use
+
+By Sea
+DELHI- MUNDRA - JEBEL ALI (UAE)
+€. lem 6. Mar::s and numbers 7. Number and kind of Packages, 8. Origin criteria | 9. Gross weight or |10. Number and date
+number of packages description of goods - other quantity of Invoices
+A 01 TO 58 CONCEALED CLIP, DAMPER BLACK CLIP, 73269099 “INDIAN ORIGIN" | 497,000 pcs 148/21-22, DT:
+_ 23/02/2022
+2 01 TO S5 DIFFUSER LONG PIN, DIFFUSER SHORT PIN. 76161000 | “INDIAN ORIGIN" | 640,000 pcs
+3 017055 DIFFUSER SPRING, 73201019 “INDIAN ORIGIN" | 3,50,000 pcs
+4 01 TO 55 RIGHT ANGLE CLIP (GRILL CLIP). STAINLESS STEEL “INDIAN ORIGIN" | 1,04,290 pcs
+BUSH, 1D-12MM, OD -16MM, 73269099
+5 01 TO 55 ALU CAMLOCK - NEW, 76161000 “INDIAN ORIGIN" | 84,000 pcs
+[3 01 TO 55 T CLIP - NEW, DAMPER S‘CREW-NEW, 73269099 “INDIAN ORIGIN" | 168,000 pcs
+7 01 7O 55 VCD HANDLE, 73269099 "INDIAN ORIGIN™ | 12,000 pcs
+8 01 TO 55 PLASTIC STRIP BUSHES (1000 PCS/PKT), 39263099 "INDIAN ORIGIN" | 8,00,000 pcs
+9 01 TO 55 G CLAMP, 73269099 “INDIAN ORIGIN" | 21,600 pcs
+10 0170 55 DUCT MATE FLANGE CORNER 20MM. 30MM, 40MM, “INDIAN ORIGIN" | 46,890 pcs
+73263099
+
+11. Certification
+it is hereby certified, on the basi
+declaration by the exporter is cof{étt g
+To verify this certificate, you
+(oS
+
+~ JASBIRENDRA §. SODHBANS
+Secretary Generai
+
+JASBIRENDRA SINGH SODHBANS, New Delhi, 02/03/2022
+
+12. Declaration by the exporter:
+
+The undersigned hereby declare that the above details and
+statements are correct that all the good(s) were produced in
+India and that they comply with the origin requirements for
+
+export to UAE (Importing Country)
+
+FORNAYURINU USTRIES
+
+Place & Date
+
+R N ARt L\t
+Foemet T . : e B
+................................. : ki}ﬂl(lrl}ﬁﬂswﬁz}ﬁ
+
+Signatui &8 Stamp of authokzed signatory
+
+yah)
+
+Piace and date, signature and Stamp of Certifying authority
+
+3 azendl :L_u).dl &J‘ LA}'
+UNITED ARAB E_MIRATES
+
+Ministry of faregn Alfaiey
+and nteenational Conperation
+
+OR032022 1200 o M
+
+22010033654 A,
+
+.J._.)M\t\-\id,wk‘;l‘l&uu,.\
+
+R LTI
+
+14425255 ;
+- HO TSRO D OB T O rlllllllmliliillll"l' . “ \%
+
+e ()"'\
+DoganT G
+
+ot C g ashett
+
+AT
+
+==================================================
+End of extracted content from Certificate of origin_1750170006703.pdf

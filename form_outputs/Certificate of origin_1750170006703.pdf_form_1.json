@@ -1,0 +1,12 @@
+{
+  "formType": "commercial_invoice",
+  "extractionDate": "2025-06-17T14:24:00.848Z",
+  "fields": {
+    "Date": "2025-06-17",
+    "Reference": "No"
+  },
+  "metadata": {
+    "textLength": 3404,
+    "extractionMethod": "rule_based"
+  }
+}
