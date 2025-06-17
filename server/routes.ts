@@ -6518,6 +6518,265 @@ Extraction Date: ${new Date().toISOString()}
     }
   });
 
+  // Python Forms Processor Integration
+  app.post('/api/forms/process-with-python/:ingestionId', async (req, res) => {
+    try {
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+      
+      const { ingestionId } = req.params;
+      
+      // Get the upload record
+      const result = await pool.request()
+        .input('ingestionId', ingestionId)
+        .query('SELECT * FROM TF_ingestion WHERE ingestion_id = @ingestionId');
+      
+      if (result.recordset.length === 0) {
+        return res.status(404).json({ success: false, message: 'Upload record not found' });
+      }
+      
+      const record = result.recordset[0];
+      const filePath = record.file_path;
+      
+      if (!filePath) {
+        return res.status(400).json({ success: false, message: 'File path not found' });
+      }
+      
+      // Update status to processing
+      await pool.request()
+        .input('ingestionId', ingestionId)
+        .query(`
+          UPDATE TF_ingestion 
+          SET status = 'processing_python',
+              updated_date = GETDATE()
+          WHERE ingestion_id = @ingestionId
+        `);
+      
+      // Call Python processor
+      const { spawn } = require('child_process');
+      const pythonProcess = spawn('python3', [
+        'server/pythonFormsProcessor.py',
+        filePath,
+        ingestionId
+      ]);
+      
+      let pythonOutput = '';
+      let pythonError = '';
+      
+      pythonProcess.stdout.on('data', (data: Buffer) => {
+        pythonOutput += data.toString();
+      });
+      
+      pythonProcess.stderr.on('data', (data: Buffer) => {
+        pythonError += data.toString();
+      });
+      
+      pythonProcess.on('close', async (code: number) => {
+        if (code === 0) {
+          try {
+            const result = JSON.parse(pythonOutput);
+            res.json({
+              success: true,
+              message: 'Python processing completed',
+              result: result
+            });
+          } catch (parseError) {
+            console.error('Python output parse error:', parseError);
+            res.status(500).json({
+              success: false,
+              message: 'Failed to parse Python output',
+              output: pythonOutput
+            });
+          }
+        } else {
+          console.error('Python process error:', pythonError);
+          res.status(500).json({
+            success: false,
+            message: 'Python processing failed',
+            error: pythonError
+          });
+        }
+      });
+      
+    } catch (error) {
+      console.error('Python integration error:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Failed to integrate with Python processor', 
+        error: (error as Error).message 
+      });
+    }
+  });
+
+  // Real-time processing status with detailed progress
+  app.get('/api/forms/processing-status/:ingestionId', async (req, res) => {
+    try {
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+      
+      const { ingestionId } = req.params;
+      
+      // Get main record
+      const mainResult = await pool.request()
+        .input('ingestionId', ingestionId)
+        .query('SELECT * FROM TF_ingestion WHERE ingestion_id = @ingestionId');
+      
+      if (mainResult.recordset.length === 0) {
+        return res.status(404).json({ success: false, message: 'Record not found' });
+      }
+      
+      const mainRecord = mainResult.recordset[0];
+      
+      // Get PDF records count
+      const pdfResult = await pool.request()
+        .input('ingestionId', ingestionId)
+        .query('SELECT COUNT(*) as count FROM TF_ingestion_Pdf WHERE ingestion_id = @ingestionId');
+      
+      // Get TXT records count
+      const txtResult = await pool.request()
+        .input('ingestionId', ingestionId)
+        .query('SELECT COUNT(*) as count FROM TF_ingestion_TXT WHERE ingestion_id = @ingestionId');
+      
+      // Get fields records count
+      const fieldsResult = await pool.request()
+        .input('ingestionId', ingestionId)
+        .query('SELECT COUNT(*) as count FROM TF_ingestion_fields WHERE ingestion_id = @ingestionId');
+      
+      // Calculate progress
+      const pdfCount = pdfResult.recordset[0].count;
+      const txtCount = txtResult.recordset[0].count;
+      const fieldsCount = fieldsResult.recordset[0].count;
+      
+      let progress = 0;
+      let currentStep = 'upload';
+      
+      if (mainRecord.status === 'completed') {
+        progress = 100;
+        currentStep = 'completed';
+      } else if (pdfCount > 0 && txtCount > 0 && fieldsCount > 0) {
+        progress = 85;
+        currentStep = 'finalizing';
+      } else if (pdfCount > 0 || txtCount > 0) {
+        progress = 60;
+        currentStep = 'extracting';
+      } else if (mainRecord.extracted_text) {
+        progress = 40;
+        currentStep = 'analyzing';
+      } else {
+        progress = 20;
+        currentStep = 'processing';
+      }
+      
+      res.json({
+        success: true,
+        status: mainRecord.status,
+        progress: progress,
+        currentStep: currentStep,
+        formsDetected: Math.max(pdfCount, txtCount, fieldsCount),
+        details: {
+          pdfFormsExtracted: pdfCount,
+          textFormsExtracted: txtCount,
+          fieldsExtracted: fieldsCount,
+          totalCharacters: mainRecord.extracted_text ? mainRecord.extracted_text.length : 0,
+          documentType: mainRecord.document_type,
+          processingMethod: 'Azure Document Intelligence + Python'
+        }
+      });
+      
+    } catch (error) {
+      console.error('Processing status error:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Failed to get processing status', 
+        error: (error as Error).message 
+      });
+    }
+  });
+
+  // Get individual form details for tabbed interface
+  app.get('/api/forms/form-details/:ingestionId', async (req, res) => {
+    try {
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+      
+      const { ingestionId } = req.params;
+      
+      // Get PDF forms
+      const pdfResult = await pool.request()
+        .input('ingestionId', ingestionId)
+        .query(`
+          SELECT 
+            pdf.*,
+            ing.original_filename as main_filename
+          FROM TF_ingestion_Pdf pdf
+          LEFT JOIN TF_ingestion ing ON pdf.ingestion_id = ing.ingestion_id
+          WHERE pdf.ingestion_id = @ingestionId
+          ORDER BY pdf.created_date
+        `);
+      
+      // Get TXT forms
+      const txtResult = await pool.request()
+        .input('ingestionId', ingestionId)
+        .query(`
+          SELECT 
+            txt.*,
+            ing.original_filename as main_filename
+          FROM TF_ingestion_TXT txt
+          LEFT JOIN TF_ingestion ing ON txt.ingestion_id = ing.ingestion_id
+          WHERE txt.ingestion_id = @ingestionId
+          ORDER BY txt.created_date
+        `);
+      
+      // Get fields
+      const fieldsResult = await pool.request()
+        .input('ingestionId', ingestionId)
+        .query(`
+          SELECT * FROM TF_ingestion_fields 
+          WHERE ingestion_id = @ingestionId
+          ORDER BY created_date
+        `);
+      
+      // Combine data by form
+      const forms = [];
+      const pdfForms = pdfResult.recordset;
+      const txtForms = txtResult.recordset;
+      const fieldsForms = fieldsResult.recordset;
+      
+      for (let i = 0; i < Math.max(pdfForms.length, txtForms.length); i++) {
+        const pdfForm = pdfForms[i];
+        const txtForm = txtForms[i];
+        const fieldsForm = fieldsForms[i];
+        
+        forms.push({
+          index: i + 1,
+          pdfData: pdfForm || null,
+          textData: txtForm || null,
+          fieldsData: fieldsForm || null,
+          formType: pdfForm?.document_type || txtForm?.document_type || fieldsForm?.form_type || 'Unknown',
+          confidence: fieldsForm?.confidence || 0.85,
+          extractedFields: fieldsForm?.extracted_fields ? JSON.parse(fieldsForm.extracted_fields) : {},
+          hasText: !!txtForm,
+          hasPdf: !!pdfForm,
+          hasFields: !!fieldsForm
+        });
+      }
+      
+      res.json({
+        success: true,
+        totalForms: forms.length,
+        forms: forms
+      });
+      
+    } catch (error) {
+      console.error('Form details error:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Failed to get form details', 
+        error: (error as Error).message 
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

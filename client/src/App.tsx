@@ -46,6 +46,7 @@ import MasterDocuments from "@/pages/lifecycle/MasterDocuments";
 import SubDocuments from "@/pages/lifecycle/SubDocuments";
 import LifecycleStates from "@/pages/lifecycle/LifecycleStates";
 import FileUpload from "@/pages/forms/FileUpload";
+import EnhancedFileUpload from "@/pages/forms/EnhancedFileUpload";
 import IngestionManagement from "@/pages/forms/IngestionManagement";
 import FormApproval from "@/pages/forms/FormApproval";
 import FormTemplates from "@/pages/forms/FormTemplates";
@@ -163,6 +164,7 @@ function Router() {
             
             {/* Forms Recognition Routes */}
             <Route path="/forms/upload" component={FileUpload} />
+            <Route path="/forms/enhanced" component={EnhancedFileUpload} />
             <Route path="/forms/ingestion" component={IngestionManagement} />
             <Route path="/forms/grouped" component={GroupedDocuments} />
             <Route path="/forms/approval" component={FormApproval} />
