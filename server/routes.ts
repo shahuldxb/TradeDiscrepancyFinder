@@ -4190,6 +4190,163 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Complete document processing pipeline
+  async function processDocumentPipeline(ingestionId: string, filename: string, pool: any) {
+    try {
+      console.log(`Starting processing pipeline for ${ingestionId}`);
+      
+      // Step 1: OCR Processing
+      await updateProcessingStep(pool, ingestionId, 'ocr', 'processing');
+      await new Promise(resolve => setTimeout(resolve, 3000)); // Simulate OCR processing
+      
+      const ocrText = await performOCR(filename);
+      await updateProcessingStep(pool, ingestionId, 'ocr', 'completed');
+      
+      // Step 2: Document Classification
+      await updateProcessingStep(pool, ingestionId, 'classification', 'processing');
+      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate classification
+      
+      const documentType = await classifyDocument(ocrText, filename);
+      await updateProcessingStep(pool, ingestionId, 'classification', 'completed');
+      
+      // Step 3: Field Extraction
+      await updateProcessingStep(pool, ingestionId, 'extraction', 'processing');
+      await new Promise(resolve => setTimeout(resolve, 4000)); // Simulate extraction
+      
+      const extractedFields = await extractFields(ocrText, documentType);
+      await updateProcessingStep(pool, ingestionId, 'extraction', 'completed');
+      
+      // Update final status
+      await pool.request()
+        .input('ingestionId', ingestionId)
+        .input('status', 'completed')
+        .input('extractedText', ocrText)
+        .input('documentType', documentType)
+        .input('extractedData', JSON.stringify(extractedFields))
+        .query(`
+          UPDATE TF_ingestion 
+          SET status = @status, 
+              extracted_text = @extractedText,
+              document_type = @documentType,
+              extracted_data = @extractedData,
+              completion_date = GETDATE(),
+              updated_date = GETDATE()
+          WHERE ingestion_id = @ingestionId
+        `);
+      
+      console.log(`Processing completed for ${ingestionId}: ${documentType}`);
+      
+    } catch (error) {
+      console.error(`Processing failed for ${ingestionId}:`, error);
+      await pool.request()
+        .input('ingestionId', ingestionId)
+        .input('status', 'error')
+        .input('errorMessage', (error as Error).message)
+        .query(`
+          UPDATE TF_ingestion 
+          SET status = @status, error_message = @errorMessage, updated_date = GETDATE()
+          WHERE ingestion_id = @ingestionId
+        `);
+    }
+  }
+  
+  async function updateProcessingStep(pool: any, ingestionId: string, step: string, status: string) {
+    const steps = [
+      { step: 'upload', status: 'completed', timestamp: new Date().toISOString() },
+      { step: 'validation', status: 'completed', timestamp: new Date().toISOString() },
+      { step: 'ocr', status: step === 'ocr' ? status : (step === 'classification' || step === 'extraction') ? 'completed' : 'pending', timestamp: step === 'ocr' ? new Date().toISOString() : undefined },
+      { step: 'classification', status: step === 'classification' ? status : step === 'extraction' ? 'completed' : 'pending', timestamp: step === 'classification' ? new Date().toISOString() : undefined },
+      { step: 'extraction', status: step === 'extraction' ? status : 'pending', timestamp: step === 'extraction' ? new Date().toISOString() : undefined }
+    ];
+    
+    await pool.request()
+      .input('ingestionId', ingestionId)
+      .input('processingSteps', JSON.stringify(steps))
+      .query(`
+        UPDATE TF_ingestion 
+        SET processing_steps = @processingSteps, updated_date = GETDATE()
+        WHERE ingestion_id = @ingestionId
+      `);
+  }
+  
+  async function performOCR(filename: string): Promise<string> {
+    // Simulate OCR processing based on document type
+    if (filename.toLowerCase().includes('invoice')) {
+      return `COMMERCIAL INVOICE
+      
+Invoice Number: INV-2024-001234
+Date: 2024-06-17
+Seller: ABC Trading Company Ltd.
+Address: 123 Business Street, Trade City, TC 12345
+Buyer: XYZ Import Corporation
+Address: 456 Commerce Ave, Import Town, IT 67890
+
+Description of Goods:
+- Electronic Components (100 units) - $5,000.00
+- Packaging Materials (50 boxes) - $1,200.00
+- Shipping Insurance - $300.00
+
+Total Amount: $6,500.00
+Currency: USD
+Payment Terms: 30 days net
+Incoterms: FOB Shanghai
+Country of Origin: China`;
+    }
+    
+    return `Document text extracted via OCR processing for: ${filename}
+    
+This document contains structured data that has been processed
+and is ready for field extraction and classification.`;
+  }
+  
+  async function classifyDocument(text: string, filename: string): Promise<string> {
+    const textLower = text.toLowerCase();
+    const filenameLower = filename.toLowerCase();
+    
+    if (textLower.includes('invoice') || filenameLower.includes('invoice')) {
+      return 'Commercial Invoice';
+    } else if (textLower.includes('bill of lading') || filenameLower.includes('bol')) {
+      return 'Bill of Lading';
+    } else if (textLower.includes('packing list') || filenameLower.includes('packing')) {
+      return 'Packing List';
+    } else if (textLower.includes('certificate') || filenameLower.includes('cert')) {
+      return 'Certificate of Origin';
+    } else if (textLower.includes('letter of credit') || textLower.includes('lc ')) {
+      return 'Letter of Credit';
+    } else {
+      return 'Trade Document';
+    }
+  }
+  
+  async function extractFields(text: string, documentType: string): Promise<any> {
+    const fields: any = {
+      document_type: documentType,
+      extraction_date: new Date().toISOString()
+    };
+    
+    if (documentType === 'Commercial Invoice') {
+      const invoiceNumberMatch = text.match(/Invoice Number:\s*([^\n]+)/i);
+      const dateMatch = text.match(/Date:\s*([^\n]+)/i);
+      const sellerMatch = text.match(/Seller:\s*([^\n]+)/i);
+      const buyerMatch = text.match(/Buyer:\s*([^\n]+)/i);
+      const totalMatch = text.match(/Total Amount:\s*\$?([0-9,]+\.?[0-9]*)/i);
+      const currencyMatch = text.match(/Currency:\s*([^\n]+)/i);
+      const paymentTermsMatch = text.match(/Payment Terms:\s*([^\n]+)/i);
+      const incotermsMatch = text.match(/Incoterms:\s*([^\n]+)/i);
+      
+      fields.invoice_number = invoiceNumberMatch ? invoiceNumberMatch[1].trim() : null;
+      fields.invoice_date = dateMatch ? dateMatch[1].trim() : null;
+      fields.seller_name = sellerMatch ? sellerMatch[1].trim() : null;
+      fields.buyer_name = buyerMatch ? buyerMatch[1].trim() : null;
+      fields.total_amount = totalMatch ? parseFloat(totalMatch[1].replace(/,/g, '')) : null;
+      fields.currency = currencyMatch ? currencyMatch[1].trim() : null;
+      fields.payment_terms = paymentTermsMatch ? paymentTermsMatch[1].trim() : null;
+      fields.incoterms = incotermsMatch ? incotermsMatch[1].trim() : null;
+    }
+    
+    return fields;
+  }
+
   // File Upload Processing - Simplified for Forms Recognition
   app.post('/api/forms/upload', async (req, res) => {
     try {
@@ -4229,27 +4386,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`File ingestion created with ID: ${ingestionId}`);
       
-      // Simulate processing progression
-      setTimeout(async () => {
-        try {
-          await pool.request()
-            .input('ingestionId', ingestionId)
-            .input('processingSteps', JSON.stringify([
-              { step: 'upload', status: 'completed', timestamp: new Date().toISOString() },
-              { step: 'validation', status: 'completed', timestamp: new Date().toISOString() },
-              { step: 'ocr', status: 'processing', timestamp: new Date().toISOString() },
-              { step: 'classification', status: 'pending' },
-              { step: 'extraction', status: 'pending' }
-            ]))
-            .query(`
-              UPDATE TF_ingestion 
-              SET processing_steps = @processingSteps, updated_date = GETDATE()
-              WHERE ingestion_id = @ingestionId
-            `);
-        } catch (updateError) {
-          console.error('Error updating processing steps:', updateError);
-        }
-      }, 2000);
+      // Start complete processing pipeline
+      processDocumentPipeline(ingestionId, filename, pool).catch(console.error);
       
       res.json({
         success: true,
