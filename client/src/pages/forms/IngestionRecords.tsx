@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Database, FileText, Image, Hash, Trash2 } from 'lucide-react';
+import { Search, Database, FileText, Image, Hash, Trash2, Download, Eye } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from '@/hooks/use-toast';
 
@@ -32,6 +32,74 @@ export default function IngestionRecords() {
   const { data: fieldsRecords, refetch: refetchFields } = useQuery({
     queryKey: ['/api/forms/records/fields'],
   });
+
+  const handleDownload = async (ingestionId: string, type: 'text' | 'pdf' | 'json') => {
+    try {
+      const response = await fetch(`/api/forms/download/${ingestionId}/${type}`);
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${ingestionId}_${type}.${type === 'json' ? 'json' : 'txt'}`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        toast({
+          title: "Download started",
+          description: `${type.toUpperCase()} file download initiated`,
+        });
+      } else {
+        throw new Error('Download failed');
+      }
+    } catch (error) {
+      toast({
+        title: "Download failed",
+        description: "Unable to download file",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleView = async (ingestionId: string, type: 'text' | 'data') => {
+    try {
+      const endpoint = type === 'text' 
+        ? `/api/forms/extracted-forms/${ingestionId}`
+        : `/api/forms/processing-status/${ingestionId}`;
+      
+      const response = await fetch(endpoint);
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Create a modal or alert to show the content
+        const content = type === 'text' 
+          ? JSON.stringify(data, null, 2)
+          : JSON.stringify(data, null, 2);
+          
+        // Open in new window for better viewing
+        const newWindow = window.open('', '_blank');
+        if (newWindow) {
+          newWindow.document.write(`
+            <html>
+              <head><title>View ${type.toUpperCase()} - ${ingestionId}</title></head>
+              <body style="font-family: monospace; padding: 20px; background: #f5f5f5;">
+                <h2>View ${type.toUpperCase()} - ${ingestionId}</h2>
+                <pre style="background: white; padding: 15px; border-radius: 5px; overflow: auto;">${content}</pre>
+              </body>
+            </html>
+          `);
+        }
+      }
+    } catch (error) {
+      toast({
+        title: "View failed",
+        description: "Unable to view data",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleDelete = async (table: string, id: string) => {
     try {
@@ -164,13 +232,32 @@ export default function IngestionRecords() {
                         <TableCell>{record.total_forms_detected || 0}</TableCell>
                         <TableCell>{new Date(record.created_date).toLocaleDateString()}</TableCell>
                         <TableCell>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleDelete('ingestion', record.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <div className="flex gap-1">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleView(record.ingestion_id, 'data')}
+                              title="View Processing Data"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleDownload(record.ingestion_id, 'text')}
+                              title="Download Extracted Text"
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleDelete('ingestion', record.id)}
+                              title="Delete Record"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -216,13 +303,32 @@ export default function IngestionRecords() {
                         </TableCell>
                         <TableCell>{new Date(record.created_date).toLocaleDateString()}</TableCell>
                         <TableCell>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleDelete('pdf', record.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <div className="flex gap-1">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleView(record.ingestion_id, 'data')}
+                              title="View PDF Processing Data"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleDownload(record.ingestion_id, 'pdf')}
+                              title="Download PDF File"
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleDelete('pdf', record.id)}
+                              title="Delete Record"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -272,13 +378,32 @@ export default function IngestionRecords() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleDelete('txt', record.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <div className="flex gap-1">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleView(record.ingestion_id, 'text')}
+                              title="View Extracted Text"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleDownload(record.ingestion_id, 'text')}
+                              title="Download Text File"
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleDelete('txt', record.id)}
+                              title="Delete Record"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
