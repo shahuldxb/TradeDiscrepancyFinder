@@ -1,6 +1,9 @@
 // Fix TXT API endpoint by creating new simple endpoint that bypasses problematic queries
 
-const mssql = require('mssql');
+import mssql from 'mssql';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 async function connectToAzureSQL() {
   const config = {

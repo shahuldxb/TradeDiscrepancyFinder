@@ -7724,7 +7724,9 @@ The original PDF file and extracted text content are not available for download.
         case 'txt':
           query = `
             SELECT 
-              id, ingestion_id, content, confidence, language, created_date,
+              id, ingestion_id, 
+              CAST(content as VARCHAR(MAX)) as content, 
+              confidence, language, created_date,
               COALESCE(form_id, 'F001') as form_id,
               COALESCE(character_count, 0) as character_count,
               COALESCE(word_count, 0) as word_count
