@@ -352,40 +352,90 @@ export default function MainUpload() {
                       <FileText className="h-5 w-5" />
                       Form {index + 1}: {form.formType}
                     </span>
-                    <Badge>{form.confidence}% confidence</Badge>
+                    <Badge>{(form.confidence * 100).toFixed(1)}% confidence</Badge>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    <div>
-                      <h4 className="font-medium mb-2">Extracted Text Preview</h4>
-                      <ScrollArea className="h-32 border rounded p-2">
-                        <p className="text-sm whitespace-pre-wrap">
-                          {form.textContent.substring(0, 500)}
-                          {form.textContent.length > 500 && '...'}
-                        </p>
+                  <Tabs defaultValue="pdf" className="w-full">
+                    <TabsList className="grid w-full grid-cols-3">
+                      <TabsTrigger value="pdf">PDF View</TabsTrigger>
+                      <TabsTrigger value="text">Text Content</TabsTrigger>
+                      <TabsTrigger value="fields">Extracted Fields</TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsContent value="pdf" className="space-y-4">
+                      <div className="border rounded-lg h-64 flex items-center justify-center bg-gray-50">
+                        <div className="text-center">
+                          <FileText className="h-16 w-16 mx-auto mb-4 text-gray-400" />
+                          <h3 className="font-medium mb-2">{form.filename}</h3>
+                          <p className="text-sm text-gray-600 mb-4">{form.formType}</p>
+                          {form.pdfPath && (
+                            <p className="text-xs text-gray-500 mb-4">Page Range: {form.pageRange || '1-1'}</p>
+                          )}
+                          <div className="flex gap-2 justify-center">
+                            <Button size="sm" onClick={() => downloadFile(form.id, 'pdf')}>
+                              <Download className="h-4 w-4 mr-1" />
+                              View PDF
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => downloadFile(form.id, 'text')}>
+                              <FileText className="h-4 w-4 mr-1" />
+                              Get Text
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </TabsContent>
+                    
+                    <TabsContent value="text" className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <h4 className="font-medium">Extracted Text Content</h4>
+                        <div className="flex gap-2">
+                          <Badge variant="secondary">{form.textContent.length.toLocaleString()} characters</Badge>
+                          <Button size="sm" variant="outline" onClick={() => navigator.clipboard.writeText(form.textContent)}>
+                            Copy Text
+                          </Button>
+                        </div>
+                      </div>
+                      <ScrollArea className="h-64 border rounded p-4">
+                        <pre className="text-sm whitespace-pre-wrap font-mono text-gray-800">
+                          {form.textContent}
+                        </pre>
                       </ScrollArea>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button 
-                        size="sm" 
-                        onClick={() => downloadFile(form.id, 'pdf')}
-                        className="flex items-center gap-1"
-                      >
-                        <Download className="h-4 w-4" />
-                        Download PDF
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => downloadFile(form.id, 'text')}
-                        className="flex items-center gap-1"
-                      >
-                        <FileText className="h-4 w-4" />
-                        Download Text
-                      </Button>
-                    </div>
-                  </div>
+                    </TabsContent>
+                    
+                    <TabsContent value="fields" className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <h4 className="font-medium">Key-Value Field Extraction</h4>
+                        <Badge variant="outline">{Object.keys(form.extractedFields).length} fields extracted</Badge>
+                      </div>
+                      <div className="space-y-3 max-h-64 overflow-y-auto">
+                        {Object.keys(form.extractedFields).length > 0 ? (
+                          Object.entries(form.extractedFields).map(([key, value]) => (
+                            <div key={key} className="flex items-center justify-between p-3 border rounded-lg bg-gray-50">
+                              <div className="flex-1">
+                                <span className="font-medium text-blue-700">{key}</span>
+                                <p className="text-gray-800 mt-1 break-words">
+                                  {typeof value === 'object' && value && 'value' in value 
+                                    ? String(value.value) 
+                                    : String(value)}
+                                </p>
+                              </div>
+                              {typeof value === 'object' && value && 'confidence' in value && (
+                                <Badge variant="secondary" className="ml-2 shrink-0">
+                                  {(Number(value.confidence) * 100).toFixed(1)}%
+                                </Badge>
+                              )}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-center py-8 text-gray-500">
+                            <AlertCircle className="h-8 w-8 mx-auto mb-2" />
+                            <p>Field extraction in progress...</p>
+                          </div>
+                        )}
+                      </div>
+                    </TabsContent>
+                  </Tabs>
                 </CardContent>
               </Card>
             ))}
