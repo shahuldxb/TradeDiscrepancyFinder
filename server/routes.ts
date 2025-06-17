@@ -8890,6 +8890,111 @@ Extraction Date: ${new Date().toISOString()}
     }
   });
 
+  // API endpoint to download form output files (txt and json)
+  app.get('/api/forms/download/:ingestionId/:formNumber/:fileType', async (req, res) => {
+    try {
+      const { ingestionId, formNumber, fileType } = req.params;
+      
+      let filePath: string;
+      if (fileType === 'txt') {
+        filePath = path.join(process.cwd(), 'form_outputs', `${ingestionId}_form_${formNumber}.txt`);
+      } else if (fileType === 'json') {
+        filePath = path.join(process.cwd(), 'form_outputs', `${ingestionId}_form_${formNumber}.json`);
+      } else {
+        return res.status(400).json({ error: 'Invalid file type. Use txt or json.' });
+      }
+
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ error: 'File not found' });
+      }
+
+      const fileContent = fs.readFileSync(filePath, 'utf8');
+      const filename = path.basename(filePath);
+      
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Type', fileType === 'json' ? 'application/json' : 'text/plain');
+      res.send(fileContent);
+      
+    } catch (error) {
+      console.error('Error downloading form file:', error);
+      res.status(500).json({ error: 'Failed to download file' });
+    }
+  });
+
+  // API endpoint to get form processing steps for individual forms
+  app.get('/api/forms/progress/:ingestionId', async (req, res) => {
+    try {
+      const { ingestionId } = req.params;
+      const pool = await sql.connect(azureConfig);
+      
+      const result = await pool.request()
+        .input('ingestionId', ingestionId)
+        .query(`
+          SELECT 
+            processing_steps,
+            status,
+            created_date
+          FROM TF_ingestion 
+          WHERE ingestion_id = @ingestionId
+        `);
+
+      if (result.recordset.length === 0) {
+        return res.status(404).json({ error: 'Ingestion record not found' });
+      }
+
+      const record = result.recordset[0];
+      let processingSteps = [];
+      
+      if (record.processing_steps) {
+        try {
+          processingSteps = JSON.parse(record.processing_steps);
+        } catch (parseError) {
+          console.error('Error parsing processing steps:', parseError);
+        }
+      }
+
+      // Get individual form processing records
+      const pdfResult = await pool.request()
+        .input('ingestionId', ingestionId)
+        .query(`
+          SELECT 
+            id,
+            form_id,
+            page_range,
+            created_date
+          FROM TF_ingestion_Pdf 
+          WHERE ingestion_id = @ingestionId
+          ORDER BY id ASC
+        `);
+
+      const txtResult = await pool.request()
+        .input('ingestionId', ingestionId)
+        .query(`
+          SELECT 
+            id,
+            content,
+            confidence,
+            created_date
+          FROM TF_ingestion_TXT 
+          WHERE ingestion_id = @ingestionId
+          ORDER BY id ASC
+        `);
+
+      res.json({
+        ingestionId,
+        status: record.status,
+        processingSteps,
+        pdfForms: pdfResult.recordset,
+        textForms: txtResult.recordset,
+        createdDate: record.created_date
+      });
+
+    } catch (error) {
+      console.error('Error fetching form progress:', error);
+      res.status(500).json({ error: 'Failed to fetch form progress' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
