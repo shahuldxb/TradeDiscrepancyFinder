@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import fetch from 'node-fetch';
 
 interface AzureOcrResult {
   success: boolean;
@@ -36,7 +37,8 @@ export class AzureOcrService {
       const fileBuffer = fs.readFileSync(filePath);
       
       // Step 1: Submit document for analysis
-      const analyzeUrl = `${this.endpoint}/documentintelligence/documentModels/prebuilt-read:analyze?api-version=${this.apiVersion}`;
+      const cleanEndpoint = this.endpoint.endsWith('/') ? this.endpoint.slice(0, -1) : this.endpoint;
+      const analyzeUrl = `${cleanEndpoint}/documentintelligence/documentModels/prebuilt-read:analyze?api-version=${this.apiVersion}`;
       
       console.log('Submitting document to Azure Document Intelligence...');
       const submitResponse = await fetch(analyzeUrl, {
@@ -175,7 +177,8 @@ export class AzureOcrService {
         return false;
       }
 
-      const testUrl = `${this.endpoint}/documentintelligence/documentModels?api-version=${this.apiVersion}`;
+      const cleanEndpoint = this.endpoint.endsWith('/') ? this.endpoint.slice(0, -1) : this.endpoint;
+      const testUrl = `${cleanEndpoint}/documentintelligence/documentModels?api-version=${this.apiVersion}`;
       
       const response = await fetch(testUrl, {
         method: 'GET',

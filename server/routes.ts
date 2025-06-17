@@ -4302,34 +4302,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (filename.toLowerCase().endsWith('.pdf')) {
         console.log(`🔍 Attempting OCR extraction for PDF: ${filename}`);
         
-        // Try Azure Document Intelligence OCR first
-        if (azureOcrService.isConfigured()) {
-          console.log('Using Azure Document Intelligence for OCR...');
-          const ocrResult = await azureOcrService.extractTextFromPdf(actualFilePath);
+        // Try direct PDF text extraction for scanned documents
+        console.log('Attempting direct PDF text extraction...');
+        
+        try {
+          // Use pdf-parse with explicit configuration for scanned documents
+          const pdfParse = require('pdf-parse');
+          const dataBuffer = fs.readFileSync(actualFilePath);
           
-          if (ocrResult.success && ocrResult.extractedText.length > 10) {
-            console.log(`✅ Successfully extracted ${ocrResult.extractedText.length} characters via Azure OCR`);
-            const confidence = ocrResult.confidence ? ` (confidence: ${(ocrResult.confidence * 100).toFixed(1)}%)` : '';
+          // Try with options optimized for scanned documents
+          const pdfData = await pdfParse(dataBuffer, {
+            max: 0, // Parse all pages
+            normalizeWhitespace: true,
+            disableCombineTextItems: false
+          });
+          
+          if (pdfData.text && pdfData.text.trim().length > 10) {
+            console.log(`✅ Successfully extracted ${pdfData.text.length} characters from PDF`);
             
             return `EXTRACTED TEXT FROM: ${filename}
 ==================================================
 
-OCR PROCESSING RESULTS:
-- Method: Azure Document Intelligence
-- Status: Successful${confidence}
-- Characters extracted: ${ocrResult.extractedText.length}
+PDF TEXT EXTRACTION RESULTS:
+- Status: Successful
+- Characters extracted: ${pdfData.text.length}
+- Pages processed: ${pdfData.numpages}
 - Processing date: ${new Date().toISOString()}
 
 DOCUMENT CONTENT:
-${ocrResult.extractedText}
+${pdfData.text}
 
 ==================================================
 End of extracted content from ${filename}`;
           } else {
-            console.warn(`⚠️ Azure OCR failed or returned minimal text: ${ocrResult.error || 'Low content extraction'}`);
+            console.warn(`⚠️ Minimal text found in PDF: ${pdfData.text.length} characters`);
           }
-        } else {
-          console.warn('⚠️ Azure Document Intelligence not configured');
+        } catch (pdfError) {
+          console.error('PDF parsing error:', pdfError);
         }
         
         // Fallback for image-based PDFs when OCR is not available or fails
