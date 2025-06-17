@@ -3,7 +3,18 @@ const sql = require('mssql');
 async function completeMultipageLC() {
   try {
     console.log('Creating split forms from multi-page LC document...');
-    const pool = await connectToAzureSQL();
+    const config = {
+      server: process.env.AZURE_SQL_SERVER,
+      database: process.env.AZURE_SQL_DATABASE,
+      user: process.env.AZURE_SQL_USER,
+      password: process.env.AZURE_SQL_PASSWORD,
+      options: {
+        encrypt: true,
+        trustServerCertificate: false
+      }
+    };
+
+    const pool = await sql.connect(config);
     
     const ingestionId = 'ing_1750177249882_wzjkknui5';
     
