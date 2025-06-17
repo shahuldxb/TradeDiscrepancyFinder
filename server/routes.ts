@@ -4246,6 +4246,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const { azureFormsClassifier } = await import('./azureFormsClassifier');
       const classificationResult = await azureFormsClassifier.performAzureClassification(filename);
+      
+      // Step 4.1: New Form Detection for unknown/unclassified forms
+      if (classificationResult.documentType === 'Unclassified' || classificationResult.confidence < 0.7) {
+        console.log(`Running new form detection for ${ingestionId} - low confidence classification`);
+        
+        try {
+          const newFormDetectionService = new NewFormDetectionService();
+          const newFormTemplate = await newFormDetectionService.detectNewForm(ocrText, filename);
+          
+          if (newFormTemplate) {
+            console.log(`New form type detected: ${newFormTemplate.formName} (confidence: ${newFormTemplate.confidence})`);
+            
+            // Submit new form for approval
+            const formId = await newFormDetectionService.submitNewFormForApproval(newFormTemplate, ingestionId);
+            
+            // Update classification result to indicate new form submission
+            classificationResult.documentType = `New Form: ${newFormTemplate.formType}`;
+            classificationResult.confidence = newFormTemplate.confidence;
+            classificationResult.formId = formId;
+            classificationResult.status = 'Submitted for Approval';
+            
+            console.log(`✅ New form submitted for approval with ID: ${formId}`);
+          }
+        } catch (newFormError) {
+          console.error('Error in new form detection:', newFormError);
+          // Continue with original classification if new form detection fails
+        }
+      }
+      
       await updateProcessingStep(pool, ingestionId, 'classification', 'completed');
       
       // Step 3: Field Extraction Enhancement
@@ -5431,6 +5460,123 @@ ${ocrText}`;
     } catch (error) {
       console.error('Error fetching form fields:', error);
       res.status(500).json({ error: 'Failed to fetch form fields', details: error.message });
+    }
+  });
+
+  // New Form Detection and Approval API endpoints
+  app.get('/api/forms/new-submissions', async (req, res) => {
+    try {
+      const pool = await sql.connect({
+        server: process.env.AZURE_SQL_SERVER!,
+        database: process.env.AZURE_SQL_DATABASE!,
+        user: process.env.AZURE_SQL_USER!,
+        password: process.env.AZURE_SQL_PASSWORD!,
+        options: { encrypt: true, trustServerCertificate: false }
+      });
+
+      const result = await pool.request().query(`
+        SELECT 
+          form_id,
+          form_name,
+          form_type,
+          form_description as description,
+          status,
+          confidence,
+          source_text,
+          source_ingestion_id,
+          created_date
+        FROM TF_forms 
+        WHERE status = 'Pending Approval'
+        ORDER BY created_date DESC
+      `);
+
+      res.json(result.recordset);
+    } catch (error) {
+      console.error('Error fetching new form submissions:', error);
+      res.status(500).json({ error: 'Failed to fetch new form submissions' });
+    }
+  });
+
+  app.post('/api/forms/approve/:formId', async (req, res) => {
+    try {
+      const { formId } = req.params;
+      const pool = await sql.connect({
+        server: process.env.AZURE_SQL_SERVER!,
+        database: process.env.AZURE_SQL_DATABASE!,
+        user: process.env.AZURE_SQL_USER!,
+        password: process.env.AZURE_SQL_PASSWORD!,
+        options: { encrypt: true, trustServerCertificate: false }
+      });
+
+      await pool.request()
+        .input('formId', formId)
+        .query(`
+          UPDATE TF_forms 
+          SET status = 'Approved', updated_date = GETDATE()
+          WHERE form_id = @formId
+        `);
+
+      res.json({ success: true, message: 'Form approved successfully' });
+    } catch (error) {
+      console.error('Error approving form:', error);
+      res.status(500).json({ error: 'Failed to approve form' });
+    }
+  });
+
+  app.post('/api/forms/reject/:formId', async (req, res) => {
+    try {
+      const { formId } = req.params;
+      const { reason } = req.body;
+      const pool = await sql.connect({
+        server: process.env.AZURE_SQL_SERVER!,
+        database: process.env.AZURE_SQL_DATABASE!,
+        user: process.env.AZURE_SQL_USER!,
+        password: process.env.AZURE_SQL_PASSWORD!,
+        options: { encrypt: true, trustServerCertificate: false }
+      });
+
+      await pool.request()
+        .input('formId', formId)
+        .input('reason', reason || 'Rejected by Back Office')
+        .query(`
+          UPDATE TF_forms 
+          SET status = 'Rejected', 
+              rejection_reason = @reason,
+              updated_date = GETDATE()
+          WHERE form_id = @formId
+        `);
+
+      res.json({ success: true, message: 'Form rejected successfully' });
+    } catch (error) {
+      console.error('Error rejecting form:', error);
+      res.status(500).json({ error: 'Failed to reject form' });
+    }
+  });
+
+  app.get('/api/forms/detection-stats', async (req, res) => {
+    try {
+      const pool = await sql.connect({
+        server: process.env.AZURE_SQL_SERVER!,
+        database: process.env.AZURE_SQL_DATABASE!,
+        user: process.env.AZURE_SQL_USER!,
+        password: process.env.AZURE_SQL_PASSWORD!,
+        options: { encrypt: true, trustServerCertificate: false }
+      });
+
+      const stats = await pool.request().query(`
+        SELECT 
+          COUNT(*) as total_submissions,
+          SUM(CASE WHEN status = 'Pending Approval' THEN 1 ELSE 0 END) as pending_count,
+          SUM(CASE WHEN status = 'Approved' THEN 1 ELSE 0 END) as approved_count,
+          SUM(CASE WHEN status = 'Rejected' THEN 1 ELSE 0 END) as rejected_count,
+          AVG(confidence) as avg_confidence
+        FROM TF_forms
+      `);
+
+      res.json(stats.recordset[0]);
+    } catch (error) {
+      console.error('Error fetching detection stats:', error);
+      res.status(500).json({ error: 'Failed to fetch detection statistics' });
     }
   });
 

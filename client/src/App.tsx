@@ -48,6 +48,7 @@ import LifecycleStates from "@/pages/lifecycle/LifecycleStates";
 import MainUpload from "@/pages/forms/MainUpload";
 import IngestionRecords from "@/pages/forms/IngestionRecords";
 import BackOfficeApproval from "@/pages/forms/BackOfficeApproval";
+import NewFormDetection from "@/pages/forms/NewFormDetection";
 import FormApproval from "@/pages/forms/FormApproval";
 import FormTemplates from "@/pages/forms/FormTemplates";
 import GroupedDocuments from "@/pages/forms/GroupedDocuments";
@@ -168,6 +169,7 @@ function Router() {
             <Route path="/forms/main" component={MainUpload} />
             <Route path="/forms/records" component={IngestionRecords} />
             <Route path="/forms/backoffice" component={BackOfficeApproval} />
+            <Route path="/forms/new-detection" component={NewFormDetection} />
             <Route path="/forms/approval" component={FormApproval} />
             <Route path="/forms/templates" component={FormTemplates} />
             <Route path="/forms/grouped" component={GroupedDocuments} />
