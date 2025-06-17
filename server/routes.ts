@@ -8301,7 +8301,7 @@ Special Instructions: Handle with care - Electronic goods
       // Insert demo record into main table with minimal columns
       await pool.request()
         .input('ingestionId', ingestionId)
-        .input('filename', 'demo_multiforms.pdf')
+        .input('originalFilename', 'demo_multiforms.pdf')
         .input('extractedText', demoText)
         .input('status', 'completed')
         .input('documentType', `Multi-Form Document (${multiFormResult.totalForms} forms)`)
@@ -8309,7 +8309,7 @@ Special Instructions: Handle with care - Electronic goods
           INSERT INTO TF_ingestion (
             ingestion_id, original_filename, extracted_text, status, document_type, created_date
           ) VALUES (
-            @ingestionId, @filename, @extractedText, @status, @documentType, GETDATE()
+            @ingestionId, @originalFilename, @extractedText, @status, @documentType, GETDATE()
           )
         `);
       
