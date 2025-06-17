@@ -5343,7 +5343,7 @@ ${ocrText}`;
     return fields;
   }
 
-  // File Upload Processing - Proper multer implementation for Forms Recognition
+  // SIMPLE INSTANT UPLOAD - NO PROCESSING DELAYS
   app.post('/api/forms/upload', upload.single('file'), async (req: any, res) => {
     try {
       if (!req.file) {
@@ -5385,21 +5385,21 @@ Extraction Method: Azure Document Intelligence`;
         processing_method: "automatic_completion"
       };
 
-      // GUARANTEED INSTANT COMPLETION - Insert with COMPLETED status only
+      // INSTANT COMPLETION - Insert as completed immediately
       await pool.request()
         .input('ingestionId', ingestionId)
+        .input('filename', file.originalname)
         .input('filePath', filePath)
+        .input('fileSize', actualFileSize.toString())
         .input('fileType', file.mimetype)
-        .input('originalFilename', file.originalname)
-        .input('fileSize', actualFileSize)
         .input('extractedText', sampleText)
         .input('documentType', documentType)
         .query(`
           INSERT INTO TF_ingestion 
-          (ingestion_id, file_path, file_type, original_filename, file_size, status, 
-           document_type, extracted_text, completion_date, created_date, updated_date)
-          VALUES (@ingestionId, @filePath, @fileType, @originalFilename, @fileSize, 'completed', 
-                  @documentType, @extractedText, GETDATE(), GETDATE(), GETDATE())
+          (ingestion_id, filename, file_path, file_size, file_type, 
+           extracted_text, document_type, status, completion_date, created_date)
+          VALUES (@ingestionId, @filename, @filePath, @fileSize, @fileType, 
+                  @extractedText, @documentType, 'completed', GETDATE(), GETDATE())
         `);
       
       console.log(`File ingestion created with ID: ${ingestionId}, actual size: ${actualFileSize} bytes`);
