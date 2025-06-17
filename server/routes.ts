@@ -7697,7 +7697,7 @@ The original PDF file and extracted text content are not available for download.
   });
 
   // Complete processing for stuck files
-  app.post('/api/forms/complete-processing', async (req, res) => {
+  app.get('/api/forms/complete-processing', async (req, res) => {
     try {
       const { connectToAzureSQL } = await import('./azureSqlConnection');
       const pool = await connectToAzureSQL();
