@@ -47,6 +47,7 @@ export default function MainUpload() {
   const [extractedForms, setExtractedForms] = useState<ExtractedForm[]>([]);
   const [isLoadingForms, setIsLoadingForms] = useState(false);
   const [currentIngestionId, setCurrentIngestionId] = useState<string>('');
+  const [statusResponse, setStatusResponse] = useState<any>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const addLog = useCallback((level: LogEntry['level'], message: string, details?: string) => {
@@ -150,8 +151,11 @@ export default function MainUpload() {
   const startStatusMonitoring = (ingestionId: string) => {
     const checkStatus = async () => {
       try {
-        const statusResponse = await fetch(`/api/forms/processing-status/${ingestionId}`);
-        const statusData = await statusResponse.json();
+        const response = await fetch(`/api/forms/processing-status/${ingestionId}`);
+        const statusData = await response.json();
+        
+        // Set the statusResponse state variable
+        setStatusResponse(statusData);
         
         if (statusData.completed) {
           setProcessingStatus({
