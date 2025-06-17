@@ -7726,8 +7726,8 @@ The original PDF file and extracted text content are not available for download.
             SELECT 
               id, ingestion_id, content, confidence, language, created_date,
               COALESCE(form_id, 'F001') as form_id,
-              COALESCE(character_count, LEN(ISNULL(content, ''))) as character_count,
-              COALESCE(word_count, (LEN(ISNULL(content, '')) - LEN(REPLACE(ISNULL(content, ''), ' ', '')) + 1)) as word_count
+              COALESCE(character_count, 0) as character_count,
+              COALESCE(word_count, 0) as word_count
             FROM TF_ingestion_TXT 
             ORDER BY created_date DESC
           `;
@@ -8973,7 +8973,7 @@ Extraction Date: ${new Date().toISOString()}
         WHERE i.status = 'completed' 
         AND t.id IS NULL
         AND i.extracted_text IS NOT NULL
-        AND LEN(i.extracted_text) > 10
+        AND DATALENGTH(i.extracted_text) > 10
       `);
       
       console.log(`Found ${result.recordset.length} records that need TXT table population`);
