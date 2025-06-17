@@ -5500,55 +5500,64 @@ Special Instructions: Handle with care - Electronic goods
       // Generate unique ingestion ID
       const ingestionId = `demo_${Date.now()}_multi`;
       
-      // Insert demo record into main table
-      await pool.request()
-        .input('ingestionId', ingestionId)
-        .input('filename', 'demo_multiforms.pdf')
-        .input('fileSize', '1500000')
-        .input('mimeType', 'application/pdf')
-        .input('extractedText', demoText)
-        .input('status', 'processing')
-        .query(`
-          INSERT INTO TF_ingestion (
-            ingestion_id, original_filename, file_size, mime_type, 
-            extracted_text, status, created_date
-          ) VALUES (
-            @ingestionId, @filename, @fileSize, @mimeType, 
-            @extractedText, @status, GETDATE()
-          )
-        `);
-      
-      // Perform multi-form analysis
+      // Perform multi-form analysis first
       const { multiFormProcessor } = await import('./multiFormProcessor');
       
       console.log('Processing demo multi-form document...');
       const multiFormResult = await multiFormProcessor.analyzeMultiFormDocument('demo_multiforms.pdf', demoText);
       
-      // Store the results
-      await multiFormProcessor.storeMultiFormResults(pool, ingestionId, multiFormResult);
-      
-      // Update main record
+      // Insert demo record into main table with minimal columns
       await pool.request()
         .input('ingestionId', ingestionId)
-        .input('documentType', `Multi-Form Document (${multiFormResult.totalForms} forms)`)
-        .input('extractedData', JSON.stringify({
-          totalForms: multiFormResult.totalForms,
-          forms: multiFormResult.forms.map(f => ({
-            type: f.formType,
-            confidence: f.confidence,
-            textLength: f.extractedText.length
-          }))
-        }))
+        .input('filename', 'demo_multiforms.pdf')
+        .input('extractedText', demoText)
         .input('status', 'completed')
+        .input('documentType', `Multi-Form Document (${multiFormResult.totalForms} forms)`)
         .query(`
-          UPDATE TF_ingestion 
-          SET document_type = @documentType,
-              extracted_data = @extractedData,
-              status = @status,
-              completion_date = GETDATE(),
-              updated_date = GETDATE()
-          WHERE ingestion_id = @ingestionId
+          INSERT INTO TF_ingestion (
+            ingestion_id, original_filename, extracted_text, status, document_type, created_date
+          ) VALUES (
+            @ingestionId, @filename, @extractedText, @status, @documentType, GETDATE()
+          )
         `);
+      
+      // Store the individual form results directly
+      for (let i = 0; i < multiFormResult.forms.length; i++) {
+        const form = multiFormResult.forms[i];
+        
+        // Store in PDF table
+        await pool.request()
+          .input('ingestionId', ingestionId)
+          .input('formId', form.formType.replace(/\s+/g, '_').toLowerCase() + '_v1')
+          .input('filePath', `${ingestionId}_form_${i + 1}.pdf`)
+          .input('documentType', form.formType)
+          .input('pageRange', `${form.startPage || 1}-${form.endPage || 1}`)
+          .query(`
+            INSERT INTO TF_ingestion_Pdf (ingestion_id, form_id, file_path, document_type, page_range, created_date)
+            VALUES (@ingestionId, @formId, @filePath, @documentType, @pageRange, GETDATE())
+          `);
+        
+        // Store in TXT table
+        await pool.request()
+          .input('ingestionId', ingestionId)
+          .input('content', form.extractedText)
+          .input('language', 'en')
+          .query(`
+            INSERT INTO TF_ingestion_TXT (ingestion_id, content, language, created_date)
+            VALUES (@ingestionId, @content, @language, GETDATE())
+          `);
+        
+        // Store extracted fields
+        await pool.request()
+          .input('ingestionId', ingestionId)
+          .input('formType', form.formType)
+          .input('confidence', form.confidence)
+          .input('extractedFields', JSON.stringify(form.extractedFields))
+          .query(`
+            INSERT INTO TF_ingestion_fields (ingestion_id, form_type, confidence, extracted_fields, created_date)
+            VALUES (@ingestionId, @formType, @confidence, @extractedFields, GETDATE())
+          `);
+      }
       
       res.json({ 
         success: true, 
@@ -5561,6 +5570,7 @@ Special Instructions: Handle with care - Electronic goods
           type: f.formType,
           confidence: f.confidence,
           textLength: f.extractedText.length,
+          extractedFields: Object.keys(f.extractedFields).length,
           viewUrl: `/api/forms/view-form/${ingestionId}/${index}`,
           downloadTextUrl: `/api/forms/download-form-text/${ingestionId}/${index}`,
           downloadPdfUrl: `/api/forms/download-form-pdf/${ingestionId}/${index}`

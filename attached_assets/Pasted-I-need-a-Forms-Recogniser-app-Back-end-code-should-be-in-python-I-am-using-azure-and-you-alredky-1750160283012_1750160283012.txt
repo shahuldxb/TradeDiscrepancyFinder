@@ -1,0 +1,49 @@
+I need a Forms Recogniser app. Back-end code should be in python. I am using 
+azure and you alredky know how to connect. All Business logic should be in 
+python, UI UX only on react, you can use Node JS.  Create a new Menu “ I am 
+tired” and create all these functionality under this. I am attaching a sample file 
+to start with.
+
+
+The muti part scanned pdf file may contain one form to x forms. (In 
+sample, it consists 10 forms and may be duplicated).
+2. You should segregate it to convert by individual PDF’s and text file. (This 
+process is forms classification using Azure document Intelligence. This is 
+the most critical part)
+3. If a new form is detected, create a new json file for future use.
+4. Extract the form and store it in an azure database.
+5. Give me a file upload screen with progress bar.
+6. Do the OCR and me an OCR progress bar.
+7. Break it into constituent pdfs and show me display in a screen as files are
+getting spilt and a progress bar.
+8. Translate into a formatted text show me and display in a screen as files 
+are getting spilt and a progress bar.
+9. Extract the text and store it in a json file and display in a screen as files 
+are getting spilt and a progress bar.
+****************  Persistence layer **************************************
+1. All the tables should be created in azure.  (No NO NO NO postgres at any
+pinty and post gres is not a fail safe format)
+2. Create a Table for each ingestion as a TF_ingestion
+3. Create another table  as TF_ingestion_Pdf for each pdf
+4. Create another table  as TF_ingestion_TXT for each TXT
+5. Create another table to store all the as a TF_ingestion_fields for each 
+extraction of fields
+6. Any new instance of forms should wait for an approval status in Back 
+office
+7. For each form, create a new Table TF_forms, TF_Fields. (This will be your
+base line)
+****************   Part of UI UX**************************************
+1. File upload and OCR recognition. One main UI
+2. All actions should have a progress bar, logs (Info, Error, Warning, 
+Critical)
+3. Display each extracted pdf in the same windows in new tabs
+4. Display each translated text in the same windows in new tabs
+5. Under each, text in a sub window, perform a fields or attribute extraction 
+with key value pairs
+8. Give me a window to see load TF_ingestion, TF_ingestion_Pdf, 
+TF_ingestion_TXT, TF_ingestion_fields. (Full beautiful Crud)
+9. Give me a window to see load TF_forms and approve it. Show the 
+tf_fields. Give an option to add or edit. Tf_forms and TF_fields column 
+should be exhaustive. Use your AI to expand it.
+
+
