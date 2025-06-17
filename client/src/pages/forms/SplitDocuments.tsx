@@ -1,18 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  FileText, 
-  Download, 
-  Eye, 
-  Scissors,
-  ChevronRight,
-  Calendar,
-  FileImage,
-  BarChart3
-} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Download, Eye, FileText, Calendar, Hash, BarChart3 } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 interface SplitDocument {
   ingestion_id: string;
@@ -20,276 +11,277 @@ interface SplitDocument {
   document_type: string;
   status: string;
   created_date: string;
-  file_size: number;
+  file_size: string;
   extracted_text: string;
-  extracted_data: any;
-  parent_document?: string;
-  pages?: string;
-  confidence?: number;
+  extracted_data: {
+    confidence: number;
+    pages: string;
+    form_type: string;
+    parent_document: string;
+    split_from_multipage: boolean;
+  };
+  pages: string;
+  confidence: number;
+  parent_document: string;
+}
+
+interface SplitDocumentsResponse {
+  success: boolean;
+  split_documents: SplitDocument[];
+  parent_document: {
+    ingestion_id: string;
+    filename: string;
+    size: string;
+  };
+  total_split: number;
 }
 
 export default function SplitDocuments() {
-  const { data: splitDocs, isLoading } = useQuery({
-    queryKey: ['/api/forms/split-documents'],
+  const { data: splitData, isLoading, error } = useQuery<SplitDocumentsResponse>({
+    queryKey: ["/api/forms/split-documents"],
     refetchInterval: 5000,
   });
 
-  const executeMultiPageProcessing = async () => {
+  const handleDownload = async (document: SplitDocument, type: 'pdf' | 'txt') => {
     try {
-      const response = await fetch('/api/forms/execute-multipage-processing', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+      const response = await fetch(`/api/forms/download-split/${document.ingestion_id}?type=${type}`, {
+        headers: {
+          'Accept': 'application/octet-stream',
+        },
       });
-      const result = await response.json();
-      
-      if (result.success) {
-        // Refresh the data
-        window.location.reload();
-      }
-    } catch (error) {
-      console.error('Error executing processing:', error);
-    }
-  };
 
-  const downloadFile = async (ingestionId: string, type: 'pdf' | 'txt') => {
-    try {
-      const response = await fetch(`/api/forms/download/${ingestionId}/${type}`);
+      if (!response.ok) {
+        throw new Error(`Failed to download ${type.toUpperCase()}`);
+      }
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
+      a.style.display = 'none';
       a.href = url;
-      a.download = `${ingestionId}.${type}`;
+      a.download = `${document.original_filename.replace('.pdf', '')}.${type}`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      
+      toast({
+        title: "Download Started",
+        description: `${type.toUpperCase()} file download initiated`,
+      });
     } catch (error) {
-      console.error('Download error:', error);
+      toast({
+        title: "Download Failed",
+        description: `Failed to download ${type.toUpperCase()} file`,
+        variant: "destructive",
+      });
     }
   };
 
-  const viewText = async (ingestionId: string) => {
-    try {
-      const response = await fetch(`/api/forms/view-text/${ingestionId}`);
-      const data = await response.json();
-      
-      const newWindow = window.open('', '_blank');
-      if (newWindow) {
-        newWindow.document.write(`
-          <html>
-            <head><title>Extracted Text - ${ingestionId}</title></head>
-            <body style="font-family: monospace; padding: 20px; white-space: pre-wrap;">
-              <h2>Extracted Text</h2>
-              <hr>
-              ${data.extracted_text || 'No text extracted'}
-            </body>
-          </html>
-        `);
-      }
-    } catch (error) {
-      console.error('View error:', error);
+  const handleViewText = (document: SplitDocument) => {
+    const newWindow = window.open('', '_blank');
+    if (newWindow) {
+      newWindow.document.write(`
+        <html>
+          <head>
+            <title>${document.original_filename} - Extracted Text</title>
+            <style>
+              body { font-family: Arial, sans-serif; padding: 20px; line-height: 1.6; }
+              .header { border-bottom: 2px solid #ccc; padding-bottom: 10px; margin-bottom: 20px; }
+              .content { white-space: pre-wrap; }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <h1>${document.original_filename}</h1>
+              <p><strong>Document Type:</strong> ${document.document_type}</p>
+              <p><strong>Pages:</strong> ${document.pages}</p>
+              <p><strong>Confidence:</strong> ${(document.confidence * 100).toFixed(1)}%</p>
+            </div>
+            <div class="content">${document.extracted_text}</div>
+          </body>
+        </html>
+      `);
+      newWindow.document.close();
+    }
+  };
+
+  const getConfidenceColor = (confidence: number) => {
+    if (confidence >= 0.9) return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
+    if (confidence >= 0.8) return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
+    return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300";
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'completed':
+        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
+      case 'processing':
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
+      case 'pending':
+        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
+      case 'error':
+        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300";
+      default:
+        return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300";
     }
   };
 
   if (isLoading) {
     return (
-      <div className="p-6">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-          <div className="h-32 bg-gray-200 rounded"></div>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold">Split PDF & Text</h1>
+        </div>
+        <div className="grid gap-4">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i} className="animate-pulse">
+              <CardHeader>
+                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+              </CardHeader>
+              <CardContent>
+                <div className="h-20 bg-gray-200 rounded"></div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </div>
     );
   }
 
-  const splitDocuments = splitDocs?.split_documents || [];
-  const parentDocument = splitDocs?.parent_document;
-
-  return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-start">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-            <Scissors className="h-8 w-8 text-blue-600" />
-            Split PDF & Text Documents
-          </h1>
-          <p className="text-gray-600 mt-2">
-            Individual form types extracted from multi-page documents
-          </p>
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold">Split PDF & Text</h1>
         </div>
-        
-        {splitDocuments.length === 0 && (
-          <Button onClick={executeMultiPageProcessing} className="bg-blue-600 hover:bg-blue-700">
-            <Scissors className="h-4 w-4 mr-2" />
-            Process Multi-Page LC Document
-          </Button>
-        )}
-      </div>
-
-      {/* Parent Document Info */}
-      {parentDocument && (
-        <Card className="border-l-4 border-l-purple-500">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-purple-600" />
-              Original Multi-Page Document
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <p className="text-sm text-gray-600">Filename</p>
-                <p className="font-medium">{parentDocument.filename}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Size</p>
-                <p className="font-medium">{parentDocument.size}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Split Into</p>
-                <p className="font-medium">{splitDocuments.length} forms</p>
-              </div>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center text-red-600">
+              <p>Error loading split documents: {error.message}</p>
             </div>
           </CardContent>
         </Card>
-      )}
+      </div>
+    );
+  }
 
-      {/* Split Documents */}
-      {splitDocuments.length > 0 ? (
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <h2 className="text-xl font-semibold">Split Form Documents</h2>
-            <Badge variant="outline">{splitDocuments.length} documents</Badge>
-          </div>
-          
-          <div className="grid gap-4">
-            {splitDocuments.map((doc: SplitDocument, index: number) => (
-              <Card key={doc.ingestion_id} className="border-l-4 border-l-green-500">
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="flex items-center gap-2">
-                        <FileText className="h-5 w-5 text-green-600" />
-                        {doc.document_type}
-                        {doc.pages && (
-                          <Badge variant="outline" className="text-xs">
-                            Pages {doc.pages}
-                          </Badge>
-                        )}
-                      </CardTitle>
-                      <CardDescription>
-                        ID: {doc.ingestion_id}
-                        {doc.confidence && (
-                          <span className="ml-2">• Confidence: {(doc.confidence * 100).toFixed(1)}%</span>
-                        )}
-                      </CardDescription>
-                    </div>
-                    <Badge className="bg-green-100 text-green-800">
-                      {doc.status}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <Tabs defaultValue="details" className="w-full">
-                    <TabsList className="grid w-full grid-cols-3">
-                      <TabsTrigger value="details">Details</TabsTrigger>
-                      <TabsTrigger value="text">Extracted Text</TabsTrigger>
-                      <TabsTrigger value="actions">Download</TabsTrigger>
-                    </TabsList>
-                    
-                    <TabsContent value="details" className="space-y-4">
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div>
-                          <p className="text-sm text-gray-600">File Size</p>
-                          <p className="font-medium">{(doc.file_size / 1024).toFixed(1)} KB</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-600">Created</p>
-                          <p className="font-medium">
-                            {new Date(doc.created_date).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-600">Text Length</p>
-                          <p className="font-medium">{doc.extracted_text?.length || 0} chars</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-600">Form Type</p>
-                          <p className="font-medium">{doc.document_type}</p>
-                        </div>
-                      </div>
-                    </TabsContent>
-                    
-                    <TabsContent value="text" className="space-y-4">
-                      <div className="bg-gray-50 p-4 rounded-lg">
-                        <div className="flex justify-between items-start mb-2">
-                          <h4 className="font-medium">Extracted Text Preview</h4>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => viewText(doc.ingestion_id)}
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            Full View
-                          </Button>
-                        </div>
-                        <pre className="text-sm text-gray-700 whitespace-pre-wrap max-h-32 overflow-y-auto">
-                          {doc.extracted_text?.substring(0, 300)}
-                          {doc.extracted_text?.length > 300 && '...'}
-                        </pre>
-                      </div>
-                    </TabsContent>
-                    
-                    <TabsContent value="actions" className="space-y-4">
-                      <div className="flex gap-2 flex-wrap">
-                        <Button 
-                          variant="outline" 
-                          onClick={() => downloadFile(doc.ingestion_id, 'pdf')}
-                          className="flex items-center gap-2"
-                        >
-                          <Download className="h-4 w-4" />
-                          Download PDF
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          onClick={() => downloadFile(doc.ingestion_id, 'txt')}
-                          className="flex items-center gap-2"
-                        >
-                          <Download className="h-4 w-4" />
-                          Download Text
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          onClick={() => viewText(doc.ingestion_id)}
-                          className="flex items-center gap-2"
-                        >
-                          <Eye className="h-4 w-4" />
-                          View Text
-                        </Button>
-                      </div>
-                    </TabsContent>
-                  </Tabs>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+  if (!splitData?.split_documents?.length) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold">Split PDF & Text</h1>
         </div>
-      ) : (
-        <Card className="text-center py-12">
-          <CardContent>
-            <Scissors className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No Split Documents</h3>
-            <p className="text-gray-600 mb-4">
-              Process your multi-page LC document to split it into individual form types
-            </p>
-            <Button onClick={executeMultiPageProcessing} className="bg-blue-600 hover:bg-blue-700">
-              <Scissors className="h-4 w-4 mr-2" />
-              Start Processing
-            </Button>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center text-muted-foreground">
+              <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No split documents found. Upload a multi-page PDF to see individual forms here.</p>
+            </div>
           </CardContent>
         </Card>
-      )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Split PDF & Text</h1>
+          <p className="text-muted-foreground">Individual forms from multi-page documents</p>
+        </div>
+        {splitData.parent_document && (
+          <Card className="w-80">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm">Parent Document</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="space-y-1 text-sm">
+                <p><strong>File:</strong> {splitData.parent_document.filename}</p>
+                <p><strong>Size:</strong> {splitData.parent_document.size}</p>
+                <p><strong>Split into:</strong> {splitData.total_split} forms</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      <div className="grid gap-6">
+        {splitData.split_documents.map((document) => (
+          <Card key={document.ingestion_id} className="overflow-hidden">
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="space-y-1">
+                  <CardTitle className="text-lg">{document.original_filename}</CardTitle>
+                  <CardDescription>{document.document_type}</CardDescription>
+                </div>
+                <div className="flex gap-2">
+                  <Badge className={getStatusColor(document.status)}>
+                    {document.status}
+                  </Badge>
+                  <Badge className={getConfidenceColor(document.confidence)}>
+                    {(document.confidence * 100).toFixed(1)}% confidence
+                  </Badge>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <Hash className="h-4 w-4 text-muted-foreground" />
+                  <span>Pages: {document.pages}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <span>Created: {new Date(document.created_date).toLocaleDateString()}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                  <span>Size: {(parseInt(document.file_size) / 1024).toFixed(1)} KB</span>
+                </div>
+              </div>
+
+              <div className="bg-muted p-4 rounded-lg">
+                <h4 className="font-medium mb-2">Text Preview</h4>
+                <p className="text-sm text-muted-foreground line-clamp-3">
+                  {document.extracted_text.substring(0, 200)}...
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => handleViewText(document)}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <Eye className="h-4 w-4" />
+                  View Full Text
+                </Button>
+                <Button
+                  onClick={() => handleDownload(document, 'pdf')}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  Download PDF
+                </Button>
+                <Button
+                  onClick={() => handleDownload(document, 'txt')}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  Download TXT
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }
