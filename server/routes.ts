@@ -27,7 +27,15 @@ import { nanoid } from "nanoid";
 
 // Configure multer for file uploads with memory storage
 const upload = multer({
-  storage: multer.memoryStorage(), // Store files in memory as Buffer
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, 'uploads/');
+    },
+    filename: (req, file, cb) => {
+      const timestamp = Date.now();
+      cb(null, `${timestamp}_${file.originalname}`);
+    }
+  }),
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB limit
   },
