@@ -25,19 +25,19 @@ import path from "path";
 import fs from "fs";
 import { nanoid } from "nanoid";
 
-// Configure multer for file uploads
+// Configure multer for file uploads with memory storage
 const upload = multer({
-  dest: 'uploads/',
+  storage: multer.memoryStorage(), // Store files in memory as Buffer
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB limit
   },
   fileFilter: (req, file, cb) => {
-    // Allow only specific file types
-    const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf'];
+    // Allow only specific file types for Forms Recognizer
+    const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf', 'text/plain'];
     if (allowedMimes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Invalid file type. Only PDF, JPEG, PNG, and GIF files are allowed.'));
+      cb(new Error('Invalid file type. Only PDF, JPEG, PNG, GIF, and TXT files are allowed.'));
     }
   }
 });

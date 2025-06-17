@@ -97,6 +97,11 @@ export class FormsRecognizerService {
     const fileName = `${ingestionId}_${file.originalname}`;
     const filePath = path.join(this.uploadsDir, fileName);
     
+    // Check if file buffer exists
+    if (!file.buffer) {
+      throw new Error('File buffer is undefined - ensure multer is configured to store files in memory');
+    }
+    
     await fs.writeFile(filePath, file.buffer);
     
     return { filePath, ingestionId };
