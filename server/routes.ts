@@ -4201,6 +4201,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const ocrText = await performOCR(filename);
       await updateProcessingStep(pool, ingestionId, 'ocr', 'completed');
       
+      // Store OCR text in TXT table after extraction
+      if (ocrText && ocrText.length > 0) {
+        const txtId = `txt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        
+        await pool.request()
+          .input('ingestionId', ingestionId)
+          .input('content', ocrText)
+          .input('language', 'en')
+          .query(`
+            INSERT INTO TF_ingestion_TXT (
+              ingestion_id, content, language, created_date
+            ) VALUES (
+              @ingestionId, @content, @language, GETDATE()
+            )
+          `);
+        
+        console.log(`✅ OCR text stored in TXT table: ${ocrText.length} characters`);
+      }
+      
       // Step 2: Azure Document Intelligence Classification
       await updateProcessingStep(pool, ingestionId, 'classification', 'processing');
       

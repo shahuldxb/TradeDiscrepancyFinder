@@ -387,20 +387,29 @@ export default function MainUpload() {
                     </TabsContent>
                     
                     <TabsContent value="text" className="space-y-4">
-                      <div className="flex justify-between items-center">
-                        <h4 className="font-medium">Extracted Text Content</h4>
-                        <div className="flex gap-2">
-                          <Badge variant="secondary">{form.textContent.length.toLocaleString()} characters</Badge>
-                          <Button size="sm" variant="outline" onClick={() => navigator.clipboard.writeText(form.textContent)}>
-                            Copy Text
-                          </Button>
+                      <div className="border rounded-lg h-64 flex flex-col bg-gray-50">
+                        <div className="p-4 border-b bg-white rounded-t-lg">
+                          <div className="flex justify-between items-center">
+                            <h4 className="font-medium">Extracted Text Content</h4>
+                            <div className="flex gap-2">
+                              <Badge variant="secondary">{form.textContent.length.toLocaleString()} characters</Badge>
+                              <Button size="sm" variant="outline" onClick={() => navigator.clipboard.writeText(form.textContent)}>
+                                <Copy className="h-4 w-4 mr-1" />
+                                Copy Text
+                              </Button>
+                              <Button size="sm" onClick={() => downloadTextFile(form.id, form.filename)}>
+                                <Download className="h-4 w-4 mr-1" />
+                                Download TXT
+                              </Button>
+                            </div>
+                          </div>
                         </div>
+                        <ScrollArea className="flex-1 p-4">
+                          <pre className="text-sm whitespace-pre-wrap font-mono text-gray-800">
+                            {form.textContent}
+                          </pre>
+                        </ScrollArea>
                       </div>
-                      <ScrollArea className="h-64 border rounded p-4">
-                        <pre className="text-sm whitespace-pre-wrap font-mono text-gray-800">
-                          {form.textContent}
-                        </pre>
-                      </ScrollArea>
                     </TabsContent>
                     
                     <TabsContent value="fields" className="space-y-4">
