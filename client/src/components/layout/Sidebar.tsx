@@ -291,34 +291,19 @@ const navigationItems = [
     description: "Forms Recognition & Processing",
     subItems: [
       {
-        name: "Document Processing",
-        href: "/forms/upload",
-        description: "Upload and process documents with Azure AI",
+        name: "File Upload & OCR",
+        href: "/forms/main",
+        description: "Upload and process multi-form PDFs",
       },
       {
-        name: "Enhanced Processing",
-        href: "/forms/enhanced",
-        description: "Multi-form PDF analysis with Python backend",
-      },
-      {
-        name: "Processing Dashboard",
-        href: "/forms/ingestion",
-        description: "Monitor document processing status",
-      },
-      {
-        name: "Grouped Documents",
-        href: "/forms/grouped",
-        description: "Documents organized by form type classification",
+        name: "Ingestion Records",
+        href: "/forms/records",
+        description: "View TF_ingestion, TF_ingestion_Pdf, TF_ingestion_TXT, TF_ingestion_fields",
       },
       {
         name: "Back Office Approval",
-        href: "/forms/approval",
-        description: "Approve new form types for processing",
-      },
-      {
-        name: "Form Management",
-        href: "/forms/templates",
-        description: "Manage approved form definitions",
+        href: "/forms/backoffice",
+        description: "Approve TF_forms and manage TF_fields",
       },
     ],
   },

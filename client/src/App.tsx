@@ -45,9 +45,9 @@ import LifecycleDashboard from "@/pages/lifecycle/LifecycleDashboard";
 import MasterDocuments from "@/pages/lifecycle/MasterDocuments";
 import SubDocuments from "@/pages/lifecycle/SubDocuments";
 import LifecycleStates from "@/pages/lifecycle/LifecycleStates";
-import FileUpload from "@/pages/forms/FileUpload";
-import EnhancedFileUpload from "@/pages/forms/EnhancedFileUpload";
-import IngestionManagement from "@/pages/forms/IngestionManagement";
+import MainUpload from "@/pages/forms/MainUpload";
+import IngestionRecords from "@/pages/forms/IngestionRecords";
+import BackOfficeApproval from "@/pages/forms/BackOfficeApproval";
 import FormApproval from "@/pages/forms/FormApproval";
 import FormTemplates from "@/pages/forms/FormTemplates";
 import GroupedDocuments from "@/pages/forms/GroupedDocuments";
@@ -162,13 +162,10 @@ function Router() {
             <Route path="/lifecycle/mt7-dependencies" component={LifecycleDashboard} />
             <Route path="/lifecycle/analytics" component={LifecycleDashboard} />
             
-            {/* Forms Recognition Routes */}
-            <Route path="/forms/upload" component={FileUpload} />
-            <Route path="/forms/enhanced" component={EnhancedFileUpload} />
-            <Route path="/forms/ingestion" component={IngestionManagement} />
-            <Route path="/forms/grouped" component={GroupedDocuments} />
-            <Route path="/forms/approval" component={FormApproval} />
-            <Route path="/forms/templates" component={FormTemplates} />
+            {/* Forms Recognizer Routes */}
+            <Route path="/forms/main" component={MainUpload} />
+            <Route path="/forms/records" component={IngestionRecords} />
+            <Route path="/forms/backoffice" component={BackOfficeApproval} />
             
             {/* System Admin Routes */}
             <Route path="/admin/users" component={AgentMonitor} />
