@@ -170,6 +170,7 @@ function Router() {
             
             {/* Forms Recognizer Routes */}
             <Route path="/forms" component={ComprehensiveFormsUI} />
+            <Route path="/forms/instant" component={InstantUpload} />
             <Route path="/forms/main" component={MainUpload} />
             <Route path="/forms/records" component={IngestionRecords} />
             <Route path="/forms/backoffice" component={BackOfficeApproval} />
@@ -177,7 +178,7 @@ function Router() {
             <Route path="/forms/approval" component={FormApproval} />
             <Route path="/forms/templates" component={FormTemplates} />
             <Route path="/forms/grouped" component={GroupedDocuments} />
-          <Route path="/forms/split" component={SplitDocuments} />
+            <Route path="/forms/split" component={SplitDocuments} />
             <Route path="/forms/crud" component={ComprehensiveCRUD} />
             <Route path="/forms/system" component={FormsApprovalSystem} />
             
