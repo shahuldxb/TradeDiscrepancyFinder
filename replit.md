@@ -113,7 +113,13 @@ This is a sophisticated Trade Finance Discrepancy Resolution Platform that lever
 - Backend (Python) receives PDF file through REST API endpoint
 - Status: Fully implemented and operational with Azure SQL database integration
 
-### Step 2: [AWAITING USER PROMPT]
+### Step 2: Form Detection & Classification (Python + Azure Document Intelligence) ✅ COMPLETED
+- Uploaded PDF processed using Azure Document Intelligence custom model/classifier
+- Individual forms are identified and segregated (one file with X forms → X individual PDFs)
+- Each individual form stored temporarily for further processing
+- Form detection results automatically stored in TF_ingestion_Pdf table
+- Processing pipeline now includes form_detection step with completion tracking
+- Status: Complete with database integration and processing status updates
 ### Step 3: [AWAITING USER PROMPT]
 ### Step 4: [AWAITING USER PROMPT]
 ### Step 5: [AWAITING USER PROMPT]
