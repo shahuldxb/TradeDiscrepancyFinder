@@ -23,7 +23,8 @@ import {
   AlertCircle,
   Database,
   Copy,
-  Code
+  Code,
+  Trash2
 } from "lucide-react";
 
 interface Ingestion {
@@ -109,13 +110,9 @@ export default function IngestionManagement() {
     return new Date(dateString).toLocaleString();
   };
 
-  const handleDownload = async (ingestion: Ingestion, format: 'txt' | 'json' = 'txt') => {
+  const handleDownload = async (ingestion: Ingestion) => {
     try {
-      const url = format === 'json' 
-        ? `/api/forms/download/${ingestion.ingestion_id}?format=json`
-        : `/api/forms/download/${ingestion.ingestion_id}`;
-        
-      const response = await fetch(url);
+      const response = await fetch(`/api/forms/download/${ingestion.ingestion_id}`);
       if (!response.ok) {
         throw new Error('Download failed');
       }
@@ -126,9 +123,7 @@ export default function IngestionManagement() {
       a.href = downloadUrl;
       
       const baseName = ingestion.original_filename?.split('.')[0] || 'document';
-      a.download = format === 'json' 
-        ? `${baseName}_extracted.json`
-        : `${baseName}_extracted.txt`;
+      a.download = `${baseName}_extracted.txt`;
         
       document.body.appendChild(a);
       a.click();
@@ -137,6 +132,29 @@ export default function IngestionManagement() {
     } catch (error) {
       console.error('Download error:', error);
       alert('Failed to download file');
+    }
+  };
+
+  const handleDelete = async (ingestion: Ingestion) => {
+    if (!confirm(`Are you sure you want to delete "${ingestion.original_filename}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/forms/delete/${ingestion.ingestion_id}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Delete failed');
+      }
+      
+      // Refresh the list after successful deletion
+      refetch();
+      alert('Document deleted successfully');
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert('Failed to delete document');
     }
   };
 
@@ -377,12 +395,11 @@ export default function IngestionManagement() {
                               </DialogContent>
                             </Dialog>
                             <div className="flex gap-1">
-                              <Button variant="ghost" size="sm" onClick={() => handleDownload(ingestion, 'txt')} title="Download as TXT">
+                              <Button variant="ghost" size="sm" onClick={() => handleDownload(ingestion)} title="Download extracted text">
                                 <Download className="h-4 w-4" />
                               </Button>
-                              <Button variant="ghost" size="sm" onClick={() => handleDownload(ingestion, 'json')} title="Download as JSON">
-                                <Download className="h-4 w-4" />
-                                <span className="text-xs ml-1">JSON</span>
+                              <Button variant="ghost" size="sm" onClick={() => handleDelete(ingestion)} title="Delete document" className="text-red-600 hover:text-red-700">
+                                <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
                           </div>

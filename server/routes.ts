@@ -4754,6 +4754,71 @@ Extraction Date: ${new Date().toISOString()}
       res.status(500).json({ error: 'Failed to download extracted text: ' + (error as Error).message });
     }
   });
+
+  // Delete ingestion record and associated files
+  app.delete('/api/forms/delete/:id', async (req, res) => {
+    try {
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+      
+      const ingestionId = req.params.id;
+      
+      // First get the file path to delete the physical file
+      const fileResult = await pool.request()
+        .input('ingestionId', ingestionId)
+        .query(`SELECT file_path FROM TF_ingestion WHERE ingestion_id = @ingestionId`);
+      
+      if (fileResult.recordset.length === 0) {
+        return res.status(404).json({ error: 'Document not found' });
+      }
+      
+      const filePath = fileResult.recordset[0].file_path;
+      
+      // Delete from database first
+      await pool.request()
+        .input('ingestionId', ingestionId)
+        .query(`DELETE FROM TF_ingestion WHERE ingestion_id = @ingestionId`);
+      
+      // Try to delete the physical file
+      const fs = await import('fs');
+      const path = await import('path');
+      
+      try {
+        let fullPath = path.resolve(filePath);
+        
+        // If original path doesn't exist, try to find in uploads directory
+        if (!fs.existsSync(fullPath)) {
+          const uploadsDir = path.resolve('uploads');
+          const files = fs.readdirSync(uploadsDir);
+          
+          // Find files that might match this ingestion
+          const possibleFiles = files.map(file => path.join(uploadsDir, file));
+          
+          // Try to delete all files that might be related
+          for (const possiblePath of possibleFiles) {
+            if (fs.existsSync(possiblePath)) {
+              try {
+                fs.unlinkSync(possiblePath);
+              } catch (fileError) {
+                console.warn('Could not delete file:', possiblePath, fileError);
+              }
+            }
+          }
+        } else {
+          fs.unlinkSync(fullPath);
+        }
+      } catch (fileError) {
+        console.warn('File deletion warning:', fileError);
+        // Continue even if file deletion fails
+      }
+      
+      res.json({ success: true, message: 'Document deleted successfully' });
+      
+    } catch (error) {
+      console.error('Error deleting document:', error);
+      res.status(500).json({ error: 'Failed to delete document: ' + (error as Error).message });
+    }
+  });
   
   // Get Forms for Approval
   app.get('/api/forms/approval', async (req, res) => {
