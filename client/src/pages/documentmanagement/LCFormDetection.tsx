@@ -26,7 +26,7 @@ interface DetectedForm {
   }>;
 }
 
-export default function FormDetection() {
+export default function TradeFinanceFormDetection() {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -324,7 +324,7 @@ This form was automatically extracted from the uploaded document using Azure Doc
                   {selectedFile ? (
                     <div className="space-y-2">
                       <CheckCircle className="mx-auto h-12 w-12 text-green-600" />
-                      <p className="text-lg font-medium text-green-700">LC Document Selected</p>
+                      <p className="text-lg font-medium text-green-700">Trade Finance Document Selected</p>
                       <p className="text-sm text-gray-600">{selectedFile.name}</p>
                       <p className="text-xs text-gray-500">
                         {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
@@ -334,7 +334,7 @@ This form was automatically extracted from the uploaded document using Azure Doc
                     <div className="space-y-2">
                       <Upload className="mx-auto h-12 w-12 text-gray-400" />
                       <p className="text-lg font-medium text-gray-700">
-                        Drop LC document here or click to browse
+                        Drop trade finance document here or click to browse
                       </p>
                       <p className="text-sm text-gray-500">
                         Supports PDF, PNG, JPG, DOCX files
@@ -364,7 +364,7 @@ This form was automatically extracted from the uploaded document using Azure Doc
                   size="lg"
                 >
                   <Scissors className="mr-2 h-4 w-4" />
-                  Start LC Form Detection
+                  Start Document Processing
                 </Button>
               </div>
             </CardContent>
@@ -376,7 +376,7 @@ This form was automatically extracted from the uploaded document using Azure Doc
           <Card>
             <CardHeader>
               <CardTitle>Processing Progress</CardTitle>
-              <CardDescription>Real-time progress of LC form detection pipeline</CardDescription>
+              <CardDescription>Real-time progress of trade finance document processing pipeline</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -426,7 +426,7 @@ This form was automatically extracted from the uploaded document using Azure Doc
             <CardHeader>
               <CardTitle>Detected Forms</CardTitle>
               <CardDescription>
-                Forms identified and extracted from the LC document
+                Forms identified and extracted from the trade finance document
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -477,7 +477,7 @@ This form was automatically extracted from the uploaded document using Azure Doc
                   <FileText className="mx-auto h-12 w-12 text-gray-400" />
                   <p className="mt-2 text-lg font-medium text-gray-900">No Forms Detected</p>
                   <p className="text-sm text-gray-500">
-                    Upload an LC document to start form detection
+                    Upload a trade finance document to start form detection
                   </p>
                 </div>
               )}
