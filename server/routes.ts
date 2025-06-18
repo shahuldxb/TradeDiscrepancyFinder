@@ -12137,29 +12137,22 @@ def classify_document_content(text):
     text_lower = text.lower()
     
     # Document type patterns based on actual content
-    patterns = {
-        'Commercial Invoice': [
-            r'\\binvoice\\b.*\\bnumber\\b',
-            r'\\btotal\\b.*\\bamount\\b',
-            r'\\bseller\\b|\\bvendor\\b',
-            r'\\bbuyer\\b|\\bcustomer\\b',
-            r'\\binvoice\\b.*\\bdate\\b'
-        ],
-        'Bill of Lading': [
-            r'\\bbill\\s+of\\s+lading\\b',
-            r'\\bb/l\\s+no\\b|\\bbl\\s+number\\b',
-            r'\\bport\\s+of\\s+loading\\b',
-            r'\\bport\\s+of\\s+discharge\\b',
-            r'\\bvessel\\b.*\\bname\\b',
-            r'\\bcontainer\\b.*\\bnumber\\b'
-        ],
-        'Certificate of Origin': [
-            r'\\bcertificate\\s+of\\s+origin\\b',
-            r'\\bcountry\\s+of\\s+origin\\b',
-            r'\\bexporter\\b',
-            r'\\bconsignee\\b',
-            r'\\bcertify\\b.*\\borigin\\b'
-        ],
+        } catch (error) {
+          console.error('Form detection error:', error);
+          reject(error);
+        }
+      });
+    } catch (error) {
+      console.error('Form detection error:', error);
+      return {
+        detected_forms: [],
+        segregated_pdfs: [],
+        total_forms: 0,
+        status: 'error',
+        error: (error as Error).message
+      };
+    }
+  }
         'Packing List': [
             r'\\bpacking\\s+list\\b',
             r'\\bpackages?\\b.*\\bnumber\\b',
@@ -12246,28 +12239,6 @@ def extract_key_fields(text, doc_type):
     
     return fields
 
-# Main processing
-if __name__ == "__main__":
-    file_path = sys.argv[1]
-    
-    # Extract text using OCR
-    extracted_text = extract_text_from_pdf(file_path)
-    
-    if not extracted_text:
-        result = {
-            "error": "Could not extract text from document",
-            "document_type": "Unknown Document",
-            "confidence": 0,
-            "extracted_text": "",
-            "extracted_fields": {}
-        }
-    else:
-        # Classify document based on content
-        doc_type, confidence, all_scores = classify_document_content(extracted_text)
-        
-        # Extract key fields
-        fields = extract_key_fields(extracted_text, doc_type)
-        
           let output = '';
           let errorOutput = '';
 
