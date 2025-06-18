@@ -432,45 +432,115 @@ This form was automatically extracted from the uploaded document using Azure Doc
             <CardContent>
               {detectedForms.length > 0 ? (
                 <div className="grid gap-6">
-                  {detectedForms.map((form, index) => (
-                    <Card key={index} className="border-l-4 border-l-blue-600">
-                      <CardHeader>
-                        <div className="flex items-center justify-between">
-                          <CardTitle className="text-lg">{form.form_type}</CardTitle>
-                          <Badge variant="secondary">
-                            {form.confidence}% confidence
-                          </Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-4">
-                          {form.extracted_fields.map((field, fieldIndex) => (
-                            <div key={fieldIndex} className="p-3 bg-gray-50 rounded-lg">
-                              <div className="flex justify-between items-start mb-2">
-                                <span className="font-medium text-sm">{field.field_name}:</span>
-                                <Badge variant="outline" className="text-xs">
-                                  {field.confidence}%
-                                </Badge>
+                  {(() => {
+                    // Group forms by document type and collect page numbers
+                    const groupedForms = detectedForms.reduce((acc, form) => {
+                      const docType = form.form_type;
+                      if (!acc[docType]) {
+                        acc[docType] = {
+                          pages: [],
+                          confidence: form.confidence,
+                          forms: []
+                        };
+                      }
+                      // Extract page number from extracted fields or use index
+                      const pageNum = form.extracted_fields.find(f => f.field_name === 'Page Number')?.field_value || 
+                                     form.page_numbers?.[0] || 
+                                     acc[docType].pages.length + 1;
+                      acc[docType].pages.push(parseInt(pageNum));
+                      acc[docType].forms.push(form);
+                      return acc;
+                    }, {} as Record<string, any>);
+
+                    return Object.entries(groupedForms).map(([docType, group]) => {
+                      const sortedPages = group.pages.sort((a: number, b: number) => a - b);
+                      const pageDisplay = sortedPages.length > 1 
+                        ? `Pages ${sortedPages.join(', ')}` 
+                        : `Page ${sortedPages[0]}`;
+                      
+                      // Document descriptions
+                      const descriptions: Record<string, string> = {
+                        'Letter of Credit': 'LC details with issuing bank information',
+                        'Commercial Invoice': 'Invoice from seller to buyer',
+                        'Bill of Lading': 'Shipping documents with vessel details',
+                        'Certificate of Origin': 'Origin certification from chamber of commerce',
+                        'Packing List': 'Package weight and dimension details',
+                        'Insurance Certificate': 'Marine insurance coverage',
+                        'Draft/Bill of Exchange': 'Payment instrument details'
+                      };
+                      
+                      return (
+                        <Card key={docType} className="border-l-4 border-l-blue-600 bg-slate-800 text-white">
+                          <CardHeader>
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <CardTitle className="text-lg text-white">
+                                  {docType} ({pageDisplay})
+                                </CardTitle>
+                                <p className="text-sm text-slate-300 mt-1">
+                                  {descriptions[docType] || 'Trade finance document'}
+                                </p>
                               </div>
-                              <div className="text-sm text-gray-700 whitespace-pre-wrap break-words">
-                                {String(field.field_value)}
+                              <Badge variant="secondary" className="bg-slate-700 text-white">
+                                {group.forms.length} page{group.forms.length > 1 ? 's' : ''}
+                              </Badge>
+                            </div>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-3">
+                              <div className="flex justify-between text-sm">
+                                <span className="text-slate-300">Document Type:</span>
+                                <span className="text-white">{docType}</span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-slate-300">Page Numbers:</span>
+                                <span className="text-white">{sortedPages.join(', ')}</span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-slate-300">Confidence:</span>
+                                <span className="text-white">{group.confidence}%</span>
                               </div>
                             </div>
-                          ))}
-                        </div>
-                        <div className="mt-4 flex space-x-2">
-                          <Button size="sm" variant="outline" onClick={() => handleViewForm(form)}>
-                            <Eye className="h-4 w-4 mr-1" />
-                            View Form
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => handleExportData(form)}>
-                            <FileText className="h-4 w-4 mr-1" />
-                            Export Data
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                            <div className="mt-4 flex space-x-2">
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="border-slate-600 text-white hover:bg-slate-700"
+                                onClick={() => {
+                                  // Combine all pages for this document type
+                                  const combinedForm = {
+                                    ...group.forms[0],
+                                    form_type: `${docType} (All Pages)`,
+                                    extracted_fields: group.forms.flatMap(f => f.extracted_fields)
+                                  };
+                                  handleViewForm(combinedForm);
+                                }}
+                              >
+                                <Eye className="h-4 w-4 mr-1" />
+                                View All Pages
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="border-slate-600 text-white hover:bg-slate-700"
+                                onClick={() => {
+                                  const combinedForm = {
+                                    ...group.forms[0],
+                                    form_type: `${docType} (All Pages)`,
+                                    extracted_fields: group.forms.flatMap(f => f.extracted_fields)
+                                  };
+                                  handleExportData(combinedForm);
+                                }}
+                              >
+                                <FileText className="h-4 w-4 mr-1" />
+                                Export All
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    });
+                  })()}
                 </div>
               ) : (
                 <div className="text-center py-8">
