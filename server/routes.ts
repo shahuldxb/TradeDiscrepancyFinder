@@ -11866,14 +11866,14 @@ except Exception as e:
       const randomSuffix = Math.random().toString(36).substring(2, 8);
       const finalBatchName = `${uniqueBatchName}_${randomSuffix}`;
       
-      // Simple insert with only batch_name and created_at (minimal required fields)
+      // Insert with only batch_name (let created_at auto-populate)
       const result = await pool.request()
         .input('batchName', finalBatchName)
         .query(`
           INSERT INTO instrument_ingestion_new 
-          (batch_name, created_at) 
+          (batch_name) 
           OUTPUT INSERTED.id 
-          VALUES (@batchName, GETDATE())
+          VALUES (@batchName)
         `);
 
       const instrumentId = result.recordset[0].id;
