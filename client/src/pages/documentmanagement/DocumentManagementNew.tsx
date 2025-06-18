@@ -22,6 +22,21 @@ interface DocumentManagementStats {
   lastUpdated: string;
 }
 
+interface ProcessingForm {
+  name: string;
+  status: string;
+  progress: number;
+  pages: number;
+  type: string;
+  currentStep?: string;
+}
+
+interface ProcessingStep {
+  name: string;
+  status: 'pending' | 'processing' | 'completed' | 'error';
+  progress: number;
+}
+
 export default function DocumentManagementNew() {
   const [documents, setDocuments] = useState<MasterDocument[]>([]);
   const [stats, setStats] = useState<DocumentManagementStats>({
@@ -32,6 +47,16 @@ export default function DocumentManagementNew() {
   });
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+  const [batchName, setBatchName] = useState('');
+  const [processingForms, setProcessingForms] = useState<ProcessingForm[]>([]);
+  const [processingSteps, setProcessingSteps] = useState<ProcessingStep[]>([
+    { name: 'Upload', status: 'pending', progress: 0 },
+    { name: 'Validate', status: 'pending', progress: 0 },
+    { name: 'OCR', status: 'pending', progress: 0 },
+    { name: 'Extract', status: 'pending', progress: 0 },
+    { name: 'Split', status: 'pending', progress: 0 },
+    { name: 'Store', status: 'pending', progress: 0 }
+  ]);
   const { toast } = useToast();
 
   const fetchDocuments = async () => {
@@ -314,7 +339,7 @@ export default function DocumentManagementNew() {
                   <Input
                     placeholder="Enter batch name (e.g., LC_BATCH_001)"
                     value={batchName}
-                    onChange={(e) => setBatchName(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBatchName(e.target.value)}
                     className="flex-1"
                   />
                   <Button onClick={generateBatchName} variant="outline">
@@ -323,10 +348,54 @@ export default function DocumentManagementNew() {
                 </div>
               </div>
 
-              {/* Step 3-4: Show Forms Progress */}
+              {/* Processing Steps Progress */}
               {processingForms.length > 0 && (
                 <div className="space-y-4">
-                  <h4 className="font-semibold">Forms Processing Progress</h4>
+                  <h4 className="font-semibold">Processing Pipeline</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {processingSteps.map((step, index) => (
+                      <Card key={index} className="p-3">
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <span className="font-medium text-sm">{step.name}</span>
+                            <Badge 
+                              variant={
+                                step.status === 'completed' ? 'default' : 
+                                step.status === 'processing' ? 'secondary' : 
+                                'outline'
+                              }
+                              className="text-xs"
+                            >
+                              {step.status}
+                            </Badge>
+                          </div>
+                          <div className="space-y-1">
+                            <div className="flex justify-between text-xs">
+                              <span>Progress</span>
+                              <span>{step.progress}%</span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-1.5">
+                              <div
+                                className={`h-1.5 rounded-full transition-all duration-300 ${
+                                  step.status === 'completed' ? 'bg-green-600' :
+                                  step.status === 'processing' ? 'bg-blue-600' :
+                                  'bg-gray-400'
+                                }`}
+                                style={{ width: `${step.progress}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Individual Forms Progress */}
+              {processingForms.length > 0 && (
+                <div className="space-y-4">
+                  <h4 className="font-semibold">Uploaded Documents</h4>
                   <div className="space-y-3">
                     {processingForms.map((form, index) => (
                       <Card key={index} className="p-4">
@@ -337,21 +406,9 @@ export default function DocumentManagementNew() {
                               {form.status}
                             </Badge>
                           </div>
-                          <div className="space-y-2">
-                            <div className="flex justify-between text-sm">
-                              <span>Slice & Stitch Progress</span>
-                              <span>{form.progress}%</span>
-                            </div>
-                            <div className="w-full bg-gray-200 rounded-full h-2">
-                              <div
-                                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                                style={{ width: `${form.progress}%` }}
-                              ></div>
-                            </div>
-                          </div>
                           <div className="grid grid-cols-2 gap-4 text-sm">
                             <div>
-                              <span className="text-muted-foreground">Pages:</span> {form.pages}
+                              <span className="text-muted-foreground">Estimated Pages:</span> {form.pages}
                             </div>
                             <div>
                               <span className="text-muted-foreground">Form Type:</span> {form.type}
@@ -366,8 +423,12 @@ export default function DocumentManagementNew() {
 
               {/* Action Buttons */}
               <div className="flex space-x-2">
-                <Button onClick={startProcessing} disabled={!batchName || processingForms.length === 0}>
-                  Start Ingestion
+                <Button 
+                  onClick={startProcessing} 
+                  disabled={!batchName || processingForms.length === 0}
+                  className="flex-1"
+                >
+                  Start Processing Pipeline
                 </Button>
                 <Button variant="outline" onClick={resetUpload}>
                   Reset
@@ -377,25 +438,52 @@ export default function DocumentManagementNew() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="split" className="space-y-4">
+        <TabsContent value="validation" className="space-y-4">
+          {/* Validation Review Screen */}
           <Card>
             <CardHeader>
-              <CardTitle>Split Documents</CardTitle>
+              <CardTitle>Validation Review</CardTitle>
               <p className="text-sm text-muted-foreground">
-                Split multi-page documents into individual forms
+                Review ingested documents with validation status and results
               </p>
             </CardHeader>
             <CardContent>
               <div className="text-center py-8 space-y-4">
-                <FileText className="h-12 w-12 mx-auto text-muted-foreground" />
+                <Database className="h-12 w-12 mx-auto text-muted-foreground" />
                 <div className="space-y-2">
-                  <h3 className="text-lg font-semibold">Document Splitting</h3>
+                  <h3 className="text-lg font-semibold">Document Validation</h3>
                   <p className="text-sm text-muted-foreground">
-                    Upload multi-page PDFs to automatically split into individual forms
+                    Table of all ingested docs with validation status and links to results
                   </p>
                 </div>
                 <Button variant="outline">
-                  Upload PDF to Split
+                  Load Validation Results
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="registration" className="space-y-4">
+          {/* Document Registration Screen */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Document Registration</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Load single form, view extracted attributes, approve or edit
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8 space-y-4">
+                <Settings className="h-12 w-12 mx-auto text-muted-foreground" />
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold">Form Registration</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Upload known form, extract key-value pairs, and manage approval
+                  </p>
+                </div>
+                <Button variant="outline">
+                  Upload Form for Registration
                 </Button>
               </div>
             </CardContent>
