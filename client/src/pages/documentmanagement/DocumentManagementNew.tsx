@@ -1078,27 +1078,30 @@ export default function DocumentManagementNew() {
                                     <span className="font-medium">{doc.field_value}</span>
                                   </div>
                                 </TableCell>
+                                <TableCell className="font-mono text-sm">{doc.field_name}</TableCell>
                                 <TableCell>
-                                  <Badge variant="outline">{doc.field_name}</Badge>
-                                </TableCell>
-                                <TableCell>
-                                  <span className="text-sm text-muted-foreground">{doc.batch_name}</span>
-                                </TableCell>
-                                <TableCell>
-                                  <Badge variant={doc.confidence_score && doc.confidence_score > 0.8 ? "default" : "secondary"}>
-                                    {doc.confidence_score ? `${Math.round(doc.confidence_score * 100)}%` : 'N/A'}
+                                  <Badge variant="outline" className="text-xs">
+                                    {doc.batch_name}
                                   </Badge>
                                 </TableCell>
                                 <TableCell>
-                                  <span className="text-sm">{new Date(doc.created_at).toLocaleDateString()}</span>
+                                  {doc.confidence_score ? (
+                                    <div className="flex items-center gap-1">
+                                      <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                                      <span className="text-sm">{doc.confidence_score}%</span>
+                                    </div>
+                                  ) : (
+                                    <span className="text-muted-foreground text-sm">N/A</span>
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-sm text-muted-foreground">
+                                  {new Date(doc.created_at).toLocaleDateString()}
                                 </TableCell>
                                 <TableCell>
-                                  <div className="flex items-center gap-2">
-                                    <Button variant="ghost" size="sm">
-                                      <Eye className="w-4 h-4" />
-                                    </Button>
-                                    <Button variant="ghost" size="sm">
-                                      <Download className="w-4 h-4" />
+                                  <div className="flex gap-2">
+                                    <Button size="sm" variant="outline">
+                                      <Eye className="w-4 h-4 mr-1" />
+                                      View
                                     </Button>
                                   </div>
                                 </TableCell>
