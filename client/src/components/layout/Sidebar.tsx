@@ -325,6 +325,14 @@ const navigationItems = [
     ],
   },
   {
+    name: "Document Management New",
+    icon: Folder,
+    description: "New Document Management System",
+    subItems: [
+      // Sub-items will be added based on your step-by-step instructions
+    ],
+  },
+  {
     name: "Lifecycle Management",
     icon: GitBranch,
     description: "tf_genie Database Dashboard",
