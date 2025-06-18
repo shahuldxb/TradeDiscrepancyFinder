@@ -11865,16 +11865,20 @@ except Exception as e:
       const randomSuffix = Math.random().toString(36).substring(2, 8);
       const finalBatchName = `${uniqueBatchName}_${randomSuffix}`;
       
-      // Check existing records to avoid duplicates and understand schema
-      const checkExisting = await pool.request()
-        .query(`SELECT TOP 1 * FROM instrument_ingestion_new ORDER BY id DESC`);
-      
-      console.log('Existing record structure:', checkExisting.recordset[0]);
-      
-      // Simple insert with minimal required fields
+      // Simple approach - try insert with all possible NULL-able fields populated
       const result = await pool.request()
-        .input('batchName', finalBatchName)
-        .query(`INSERT INTO instrument_ingestion_new (batch_name) OUTPUT INSERTED.id VALUES (@batchName)`);
+        .input('batchName', sql.VarChar(255), finalBatchName)
+        .input('instrumentType', sql.VarChar(50), 'LC_Document')
+        .input('status', sql.VarChar(50), 'Processing')
+        .input('createdAt', sql.DateTime, new Date())
+        .input('processingStatus', sql.VarChar(50), 'uploaded')
+        .input('documentCount', sql.Int, 1)
+        .query(`
+          INSERT INTO instrument_ingestion_new 
+          (batch_name, instrument_type, status, created_at, processing_status, document_count) 
+          OUTPUT INSERTED.id 
+          VALUES (@batchName, @instrumentType, @status, @createdAt, @processingStatus, @documentCount)
+        `);
 
       const instrumentId = result.recordset[0].id;
       
