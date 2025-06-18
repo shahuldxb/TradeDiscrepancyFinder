@@ -675,19 +675,35 @@ function DocumentHistory() {
               </Button>
               <Button size="sm" variant="outline" onClick={() => {
                 const exportData = {
+                  documentId: doc.id,
                   filename: doc.filename,
-                  document_type: doc.documentType,
-                  confidence: doc.confidence,
-                  processed_at: doc.processedAt,
-                  extracted_text: doc.fullText || doc.extractedText,
-                  file_size: doc.fileSize
+                  uploadDate: doc.uploadDate,
+                  processingMethod: doc.processingMethod || 'Direct OCR Text Extraction',
+                  totalForms: doc.totalForms || doc.detectedForms?.length || 1,
+                  fileSize: doc.fileSize,
+                  detectedForms: doc.detectedForms?.map((form: any) => ({
+                    id: form.id,
+                    formType: form.formType,
+                    confidence: form.confidence,
+                    pageNumbers: form.pageNumbers,
+                    extractedText: form.extractedText,
+                    status: form.status,
+                    textLength: form.extractedText ? form.extractedText.length : 0
+                  })) || [{
+                    formType: doc.documentType,
+                    confidence: doc.confidence,
+                    extractedText: doc.fullText || doc.extractedText,
+                    textLength: (doc.fullText || doc.extractedText || '').length
+                  }],
+                  exportDate: new Date().toISOString(),
+                  exportVersion: "1.0"
                 };
                 
                 const jsonBlob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
                 const url = URL.createObjectURL(jsonBlob);
                 const link = document.createElement('a');
                 link.href = url;
-                link.download = `${doc.filename.replace(/\.[^/.]+$/, '')}_results.json`;
+                link.download = `${doc.filename.replace(/\.[^/.]+$/, '')}_extracted_data.json`;
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);

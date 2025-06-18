@@ -309,19 +309,29 @@ try {
                 text_length: 0
               };
               
-              // Store complete processing result in document history
+              // Store complete processing result in document history with all forms
               const historyDoc = {
                 id: docId,
                 filename: req.file?.originalname || 'Unknown',
+                uploadDate: new Date().toISOString(),
+                processingMethod: 'Direct OCR Text Extraction',
+                totalForms: formsData.length,
+                fileSize: req.file?.size || 0,
+                detectedForms: formsData.map((form: any, index: number) => ({
+                  id: `${docId}_form_${index + 1}`,
+                  formType: form.form_type || form.document_type,
+                  confidence: form.confidence,
+                  pageNumbers: [form.page_number],
+                  extractedText: form.extracted_text,
+                  status: 'completed'
+                })),
                 documentType: primaryForm.form_type || primaryForm.document_type,
                 confidence: Math.round((primaryForm.confidence || 0) * 100),
                 extractedText: primaryForm.extracted_text,
                 fullText: primaryForm.extracted_text,
-                fileSize: req.file ? `${(req.file.size / 1024 / 1024).toFixed(2)} MB` : 'Unknown',
                 processedAt: new Date().toISOString(),
                 docId: docId,
-                totalPages: analysisResult.total_pages,
-                totalForms: formsData.length
+                totalPages: analysisResult.total_pages
               };
               
               // Replace the initial entry with complete processing result
