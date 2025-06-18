@@ -11089,31 +11089,61 @@ For technical support, please reference Document ID: ${ingestionId}`;
       
       if (!hasDocumentCode) {
         // Add document_code column if it doesn't exist
-        await pool.request().query('ALTER TABLE masterdocuments_new ADD document_code VARCHAR(50)');
-        console.log('Added document_code column');
+        try {
+          await pool.request().query('ALTER TABLE masterdocuments_new ADD document_code VARCHAR(50)');
+          console.log('Added document_code column');
+        } catch (alterError) {
+          console.log('Column may already exist or alter failed:', (alterError as Error).message);
+        }
       }
 
       // Insert records only if they don't exist (avoid duplicates)
       const sampleCodes = ['CI001', 'UNK001', 'LC001', 'UNK_DOC', 'CI_SAMPLE'];
+      let insertedCount = 0;
       
       for (const code of sampleCodes) {
-        const existing = await pool.request()
-          .input('code', code)
-          .query('SELECT COUNT(*) as count FROM masterdocuments_new WHERE document_code = @code');
-          
-        if (existing.recordset[0].count === 0) {
-          const formName = {
-            'CI001': 'Sample Commercial Invoice',
-            'UNK001': 'New Unknown Document', 
-            'LC001': 'LC Document',
-            'UNK_DOC': 'Unknown Document Type',
-            'CI_SAMPLE': 'Commercial Invoice'
-          }[code];
-          
-          await pool.request()
-            .input('code', code)
-            .input('name', formName)
-            .query('INSERT INTO masterdocuments_new (document_code, form_name, is_active) VALUES (@code, @name, 0)');
+        try {
+          // Check if record with this code exists
+          const existing = hasDocumentCode 
+            ? await pool.request()
+                .input('code', code)
+                .query('SELECT COUNT(*) as count FROM masterdocuments_new WHERE document_code = @code')
+            : { recordset: [{ count: 0 }] }; // If no document_code column, assume no duplicates
+            
+          if (existing.recordset[0].count === 0) {
+            const formName = {
+              'CI001': 'Sample Commercial Invoice',
+              'UNK001': 'New Unknown Document', 
+              'LC001': 'LC Document',
+              'UNK_DOC': 'Unknown Document Type',
+              'CI_SAMPLE': 'Commercial Invoice'
+            }[code];
+            
+            // Build insert query based on available columns
+            let insertQuery = 'INSERT INTO masterdocuments_new (';
+            let valuesQuery = 'VALUES (';
+            
+            if (hasDocumentCode) {
+              insertQuery += 'document_code, ';
+              valuesQuery += '@code, ';
+            }
+            insertQuery += 'form_name, is_active) ';
+            valuesQuery += '@name, 0)';
+            
+            const finalQuery = insertQuery + valuesQuery;
+            
+            const insertRequest = pool.request()
+              .input('name', formName);
+            
+            if (hasDocumentCode) {
+              insertRequest.input('code', code);
+            }
+            
+            await insertRequest.query(finalQuery);
+            insertedCount++;
+          }
+        } catch (insertError) {
+          console.log(`Failed to insert ${code}:`, (insertError as Error).message);
         }
       }
 
@@ -11122,7 +11152,8 @@ For technical support, please reference Document ID: ${ingestionId}`;
 
       res.json({
         success: true,
-        message: `Successfully processed masterdocuments_new - Total records: ${verifyResult.recordset.length}`,
+        message: `Successfully processed masterdocuments_new - Total records: ${verifyResult.recordset.length}, Inserted: ${insertedCount}`,
+        tableStructure: columnCheck.recordset,
         data: verifyResult.recordset
       });
 
