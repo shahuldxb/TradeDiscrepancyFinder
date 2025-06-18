@@ -79,8 +79,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const docId = Date.now().toString();
       
-      // Use Comprehensive OCR for authentic document content extraction
-      const pythonProcess = spawn('python3', ['server/comprehensiveOCR.py', req.file.path], {
+      // Use Direct OCR for authentic document content extraction
+      const pythonProcess = spawn('python3', ['server/directOCR.py', req.file.path], {
         stdio: ['pipe', 'pipe', 'pipe'],
         timeout: 10000
       });
@@ -251,9 +251,9 @@ try {
         
         console.log(`📋 Processing: ${req.file?.originalname} | LC Detection: ${isLCDocument}`);
         
-        // Use Comprehensive OCR for authentic document content extraction
-        const scriptPath = 'server/comprehensiveOCR.py';
-        console.log(`🚀 Using Comprehensive OCR Processor: ${scriptPath}`);
+        // Use Direct OCR for authentic document content extraction
+        const scriptPath = 'server/directOCR.py';
+        console.log(`🚀 Using Direct OCR Processor: ${scriptPath}`);
         const pythonProcess = spawn('python3', [scriptPath, filePath]);
         
         let output = '';
