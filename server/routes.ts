@@ -195,10 +195,10 @@ async function saveToAzureDatabase(docId: string, file: any, analysisResult: any
       .query(`
         INSERT INTO TF_ingestion (
           ingestion_id, original_filename, file_path, file_type, file_size, 
-          status, extracted_text, extracted_data, created_date, updated_date
+          status, extracted_text, extracted_data, created_date
         ) VALUES (
           @ingestionId, @originalFilename, @filePath, @fileType, @fileSize,
-          @status, @extractedText, @extractedData, GETDATE(), GETDATE()
+          @status, @extractedText, @extractedData, GETDATE()
         )
       `);
 
