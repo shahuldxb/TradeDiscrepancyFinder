@@ -268,22 +268,110 @@ export default function DocumentManagementNew() {
         </TabsContent>
 
         <TabsContent value="upload" className="space-y-4">
+          {/* Upload & Ingestion Screen */}
           <Card>
             <CardHeader>
-              <CardTitle>PDF Upload & Processing</CardTitle>
+              <CardTitle>Upload & Ingestion</CardTitle>
               <p className="text-sm text-muted-foreground">
-                Ready for Step 2: Upload PDF (Single/Multi-scanned) via UI - awaiting UI specifications
+                Upload PDF, create batch name, slice & stitch forms with progress tracking
               </p>
             </CardHeader>
-            <CardContent>
-              <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center space-y-4">
-                <Upload className="h-12 w-12 mx-auto text-muted-foreground" />
-                <div className="space-y-2">
-                  <h3 className="text-lg font-semibold">Upload Interface</h3>
-                  <p className="text-sm text-muted-foreground">
-                    UI implementation pending specifications
-                  </p>
+            <CardContent className="space-y-6">
+              {/* Step 1: Upload PDF */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-semibold">Step 1: Upload PDF</h4>
+                  <Badge variant="outline">Single/Multi-scanned</Badge>
                 </div>
+                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center space-y-4 hover:border-primary/50 transition-colors">
+                  <Upload className="h-10 w-10 mx-auto text-muted-foreground" />
+                  <div className="space-y-2">
+                    <h3 className="font-medium">Upload PDF Documents</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Support for single and multi-page scanned documents
+                    </p>
+                  </div>
+                  <input
+                    type="file"
+                    accept=".pdf"
+                    multiple
+                    className="hidden"
+                    id="pdf-upload"
+                    onChange={(e) => handlePdfUpload(e.target.files)}
+                  />
+                  <label htmlFor="pdf-upload">
+                    <Button variant="outline" className="cursor-pointer">
+                      Choose PDF Files
+                    </Button>
+                  </label>
+                </div>
+              </div>
+
+              {/* Step 2: Create Batch Name */}
+              <div className="space-y-4">
+                <h4 className="font-semibold">Step 2: Create Batch Name</h4>
+                <div className="flex space-x-2">
+                  <Input
+                    placeholder="Enter batch name (e.g., LC_BATCH_001)"
+                    value={batchName}
+                    onChange={(e) => setBatchName(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button onClick={generateBatchName} variant="outline">
+                    Generate
+                  </Button>
+                </div>
+              </div>
+
+              {/* Step 3-4: Show Forms Progress */}
+              {processingForms.length > 0 && (
+                <div className="space-y-4">
+                  <h4 className="font-semibold">Forms Processing Progress</h4>
+                  <div className="space-y-3">
+                    {processingForms.map((form, index) => (
+                      <Card key={index} className="p-4">
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center">
+                            <span className="font-medium">{form.name}</span>
+                            <Badge variant={form.status === 'completed' ? 'default' : 'secondary'}>
+                              {form.status}
+                            </Badge>
+                          </div>
+                          <div className="space-y-2">
+                            <div className="flex justify-between text-sm">
+                              <span>Slice & Stitch Progress</span>
+                              <span>{form.progress}%</span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-2">
+                              <div
+                                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                style={{ width: `${form.progress}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <span className="text-muted-foreground">Pages:</span> {form.pages}
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Form Type:</span> {form.type}
+                            </div>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex space-x-2">
+                <Button onClick={startProcessing} disabled={!batchName || processingForms.length === 0}>
+                  Start Ingestion
+                </Button>
+                <Button variant="outline" onClick={resetUpload}>
+                  Reset
+                </Button>
               </div>
             </CardContent>
           </Card>
