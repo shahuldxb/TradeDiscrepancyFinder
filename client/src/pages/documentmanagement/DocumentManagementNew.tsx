@@ -593,41 +593,162 @@ export default function DocumentManagementNew() {
               </p>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Step 1: Upload PDF */}
+              {/* File Upload Zone */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-semibold">Step 1: Upload PDF</h4>
-                  <Badge variant="outline">Single/Multi-scanned</Badge>
+                  <h4 className="font-semibold">Upload LC Documents</h4>
+                  <Badge variant="outline">PDF/Images Supported</Badge>
                 </div>
                 <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center space-y-4 hover:border-primary/50 transition-colors">
                   <Upload className="h-10 w-10 mx-auto text-muted-foreground" />
                   <div className="space-y-2">
-                    <h3 className="font-medium">Upload PDF Documents</h3>
+                    <h3 className="font-medium">Upload Documents for Processing</h3>
                     <p className="text-sm text-muted-foreground">
-                      Support for single and multi-page scanned documents
+                      Upload LC documents to automatically identify constituent documents
                     </p>
                   </div>
                   <input
-                    ref={fileInputRef}
                     type="file"
-                    accept=".pdf,.png,.jpg,.jpeg,.txt"
+                    accept=".pdf,.png,.jpg,.jpeg"
                     multiple
                     className="hidden"
-                    id="pdf-upload"
-                    onChange={handleFileUpload}
+                    id="document-upload"
+                    onChange={async (e) => {
+                      const files = e.target.files;
+                      if (!files || files.length === 0) return;
+                      
+                      setProcessingStatus('uploading');
+                      
+                      try {
+                        for (const file of files) {
+                          const formData = new FormData();
+                          formData.append('file', file);
+                          formData.append('batchName', batchName || `batch_${Date.now()}`);
+                          
+                          const response = await fetch('/api/document-management/upload', {
+                            method: 'POST',
+                            body: formData
+                          });
+                          
+                          if (response.ok) {
+                            const result = await response.json();
+                            toast({
+                              title: "Success",
+                              description: result.message,
+                            });
+                            
+                            // Refresh data after successful upload
+                            setTimeout(() => {
+                              window.location.reload();
+                            }, 1000);
+                          } else {
+                            throw new Error('Upload failed');
+                          }
+                        }
+                      } catch (error) {
+                        toast({
+                          title: "Error",
+                          description: "File upload failed",
+                          variant: "destructive"
+                        });
+                      } finally {
+                        setProcessingStatus('idle');
+                      }
+                    }}
                   />
-                  <label htmlFor="pdf-upload">
-                    <Button variant="outline" className="cursor-pointer">
-                      Choose Files
+                  <label htmlFor="document-upload">
+                    <Button 
+                      variant="outline" 
+                      className="cursor-pointer"
+                      disabled={processingStatus === 'uploading'}
+                    >
+                      {processingStatus === 'uploading' ? 'Uploading...' : 'Choose Files'}
                     </Button>
                   </label>
                 </div>
               </div>
 
-              {/* Step 2: Create Batch Name */}
+              {/* Batch Name Input */}
               <div className="space-y-4">
-                <h4 className="font-semibold">Step 2: Create Batch Name</h4>
+                <h4 className="font-semibold">Batch Name (Optional)</h4>
                 <div className="flex space-x-2">
+                  <Input
+                    placeholder="Enter batch name (auto-generated if empty)"
+                    value={batchName}
+                    onChange={(e) => setBatchName(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button 
+                    onClick={() => setBatchName(`batch_${Date.now()}`)}
+                    variant="outline"
+                  >
+                    Generate
+                  </Button>
+                </div>
+              </div>
+
+              {/* Processing Status */}
+              {processingStatus !== 'idle' && (
+                <Card className="border-blue-200 bg-blue-50">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                      <div>
+                        <p className="font-medium">
+                          {processingStatus === 'uploading' ? 'Uploading Files...' : 'Processing Documents...'}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {processingStatus === 'uploading' 
+                            ? 'Files are being uploaded and validated' 
+                            : 'Extracting constituent documents from uploaded files'
+                          }
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Quick Actions */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Button 
+                  onClick={async () => {
+                    try {
+                      const response = await fetch('/api/document-management/test-lc-processing', { method: 'POST' });
+                      const result = await response.json();
+                      toast({
+                        title: result.success ? "Success" : "Error",
+                        description: result.message || result.error,
+                        variant: result.success ? "default" : "destructive"
+                      });
+                      if (result.success) {
+                        setTimeout(() => window.location.reload(), 1000);
+                      }
+                    } catch (error) {
+                      toast({
+                        title: "Error",
+                        description: "Failed to process sample LC document",
+                        variant: "destructive"
+                      });
+                    }
+                  }}
+                  variant="outline"
+                  className="justify-start"
+                  disabled={processingStatus !== 'idle'}
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Process Sample LC Document
+                </Button>
+                
+                <Button 
+                  onClick={() => window.location.reload()}
+                  variant="outline" 
+                  className="justify-start"
+                >
+                  <Eye className="h-4 w-4 mr-2" />
+                  Refresh All Data
+                </Button>
+              </div>
                   <Input
                     placeholder="Enter batch name (e.g., LC_BATCH_001)"
                     value={batchName}
@@ -766,9 +887,27 @@ export default function DocumentManagementNew() {
                         <TableCell>{new Date(record.last_updated).toLocaleDateString()}</TableCell>
                         <TableCell>
                           <div className="flex gap-2">
-                            <Button size="sm" variant="outline">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => {
+                                // View validation details in a modal or new tab
+                                window.open(`/api/document-management/validation-detail/${record.id}`, '_blank');
+                              }}
+                            >
                               <Eye className="h-4 w-4 mr-1" />
                               Review
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="ghost"
+                              onClick={() => {
+                                // Download validation report
+                                window.open(`/api/document-management/download-validation/${record.id}`, '_blank');
+                              }}
+                            >
+                              <Download className="h-4 w-4 mr-1" />
+                              Download
                             </Button>
                           </div>
                         </TableCell>
@@ -1099,9 +1238,37 @@ export default function DocumentManagementNew() {
                                 </TableCell>
                                 <TableCell>
                                   <div className="flex gap-2">
-                                    <Button size="sm" variant="outline">
+                                    <Button 
+                                      size="sm" 
+                                      variant="outline"
+                                      onClick={() => {
+                                        // Show document details
+                                        toast({
+                                          title: "Document Details",
+                                          description: `Viewing ${doc.field_name}: ${doc.field_value}`
+                                        });
+                                      }}
+                                    >
                                       <Eye className="w-4 h-4 mr-1" />
                                       View
+                                    </Button>
+                                    <Button 
+                                      size="sm" 
+                                      variant="ghost"
+                                      onClick={() => {
+                                        // Download document data
+                                        const dataStr = JSON.stringify(doc, null, 2);
+                                        const dataBlob = new Blob([dataStr], {type: 'application/json'});
+                                        const url = URL.createObjectURL(dataBlob);
+                                        const link = document.createElement('a');
+                                        link.href = url;
+                                        link.download = `${doc.field_name}_${doc.batch_name}.json`;
+                                        link.click();
+                                        URL.revokeObjectURL(url);
+                                      }}
+                                    >
+                                      <Download className="w-4 h-4 mr-1" />
+                                      Export
                                     </Button>
                                   </div>
                                 </TableCell>
