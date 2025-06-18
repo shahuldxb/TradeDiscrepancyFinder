@@ -891,9 +891,15 @@ export default function DocumentManagementNew() {
                                 <Eye className="h-4 w-4 mr-1" />
                                 View
                               </Button>
-                              <Button size="sm" variant="outline">
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => {
+                                  window.open('/api/document-management/download-lc-documents', '_blank');
+                                }}
+                              >
                                 <Download className="h-4 w-4 mr-1" />
-                                Export
+                                Export CSV
                               </Button>
                             </div>
                           </TableCell>
@@ -909,13 +915,24 @@ export default function DocumentManagementNew() {
                   <p className="text-muted-foreground mb-4">
                     No constituent documents have been identified from LC documents yet.
                   </p>
-                  <Button onClick={() => {
-                    fetch('/api/document-management/test-lc-processing', { method: 'POST' })
-                      .then(() => window.location.reload());
-                  }}>
-                    <Upload className="h-4 w-4 mr-2" />
-                    Test LC Processing
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button onClick={() => {
+                      fetch('/api/document-management/test-lc-processing', { method: 'POST' })
+                        .then(() => window.location.reload());
+                    }}>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Test LC Processing
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      onClick={() => {
+                        window.open('/api/document-management/download-lc-documents', '_blank');
+                      }}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Download Sample CSV
+                    </Button>
+                  </div>
                 </div>
               )}
             </CardContent>
