@@ -11079,12 +11079,24 @@ For technical support, please reference Document ID: ${ingestionId}`;
       const lcFilePath = 'uploads/lc_1750221925806.pdf';
       const batchName = `LC_TEST_${Date.now()}`;
       
+      // First, read and analyze the LC document
+      const fs = require('fs');
+      const fileStats = fs.statSync(lcFilePath);
+      
+      // Perform OCR on the LC document
+      const ocrResult = await performOCRExtraction(lcFilePath);
+      console.log(`OCR extracted ${ocrResult.text.length} characters from LC`);
+      
+      // Identify document types within LC
+      const documentsInLC = extractDocumentsFromLC(ocrResult.text);
+      console.log(`Found ${documentsInLC.length} document types in LC:`, documentsInLC);
+      
       // Create ingestion record
       const result = await pool.request()
         .input('batch_name', batchName)
         .input('original_name', 'lc_1750221925806.pdf')
         .input('file_path', lcFilePath)
-        .input('file_size', 0)
+        .input('file_size', fileStats.size)
         .input('mime_type', 'application/pdf')
         .query(`
           INSERT INTO instrument_ingestion_new 
@@ -11095,15 +11107,50 @@ For technical support, please reference Document ID: ${ingestionId}`;
 
       const documentId = result.recordset[0].id;
       
-      // Process through workflow
-      const mockFile = {
-        originalname: 'lc_1750221925806.pdf',
-        path: lcFilePath,
-        size: 0,
-        mimetype: 'application/pdf'
-      };
-      
-      await processDocumentWorkflow(documentId, mockFile as any, pool);
+      // Store document type and extracted text
+      await pool.request()
+        .input('document_id', documentId)
+        .input('extracted_text', ocrResult.text)
+        .input('confidence', ocrResult.confidence)
+        .query(`
+          INSERT INTO ingestion_docs_new (instrument_id, extracted_text, confidence_score, created_at)
+          VALUES (@document_id, @extracted_text, @confidence, GETDATE())
+        `);
+
+      // Store each found document type as a field
+      for (let i = 0; i < documentsInLC.length; i++) {
+        await pool.request()
+          .input('document_id', documentId)
+          .input('field_name', `Required_Document_${i + 1}`)
+          .input('field_value', documentsInLC[i])
+          .input('confidence', 0.85)
+          .query(`
+            INSERT INTO ingestion_fields_new (instrument_id, field_name, field_value, confidence_score, created_at)
+            VALUES (@document_id, @field_name, @field_value, @confidence, GETDATE())
+          `);
+      }
+
+      // Store document count
+      await pool.request()
+        .input('document_id', documentId)
+        .input('field_name', 'Required_Documents_Count')
+        .input('field_value', documentsInLC.length.toString())
+        .input('confidence', 0.9)
+        .query(`
+          INSERT INTO ingestion_fields_new (instrument_id, field_name, field_value, confidence_score, created_at)
+          VALUES (@document_id, @field_name, @field_value, @confidence, GETDATE())
+        `);
+
+      // Update status to processed
+      await pool.request()
+        .input('document_id', documentId)
+        .input('document_type', `LC Document (Contains: ${documentsInLC.join(', ')})`)
+        .input('status', 'processed')
+        .query(`
+          UPDATE instrument_ingestion_new 
+          SET document_type = @document_type, status = @status, processing_step = 'completed', updated_at = GETDATE()
+          WHERE id = @document_id
+        `);
 
       res.json({
         success: true,
