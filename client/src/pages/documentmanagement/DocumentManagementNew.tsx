@@ -162,13 +162,72 @@ export default function DocumentManagementNew() {
     }
   });
 
-  // Fetch validation records
+  // Fetch validation records from Azure SQL database
   const { data: validationData = [] } = useQuery<ValidationRecord[]>({
     queryKey: ['/api/document-management/validation-records'],
     queryFn: async () => {
-      const response = await fetch('/api/document-management/validation-records');
-      if (!response.ok) throw new Error('Failed to fetch validation records');
-      return response.json();
+      try {
+        // Query actual extracted fields from Azure SQL database
+        const response = await fetch('/api/azure-data/execute-sql', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query: `
+              SELECT TOP 10
+                ROW_NUMBER() OVER (ORDER BY f.created_at DESC) as id,
+                CASE 
+                  WHEN f.field_name LIKE '%Invoice%' OR f.field_name LIKE '%Amount%' OR f.field_name LIKE '%Total%' 
+                  THEN 'Commercial Invoice - ' + COALESCE(i.batch_name, 'Batch_' + CAST(f.instrument_id as varchar))
+                  WHEN f.field_name LIKE '%Lading%' OR f.field_name LIKE '%Vessel%' OR f.field_name LIKE '%Port%' 
+                  THEN 'Bill of Lading - ' + COALESCE(i.batch_name, 'Batch_' + CAST(f.instrument_id as varchar))
+                  WHEN f.field_name LIKE '%Origin%' OR f.field_name LIKE '%Certificate%' 
+                  THEN 'Certificate of Origin - ' + COALESCE(i.batch_name, 'Batch_' + CAST(f.instrument_id as varchar))
+                  WHEN f.field_name LIKE '%Packing%' OR f.field_name LIKE '%Package%' 
+                  THEN 'Packing List - ' + COALESCE(i.batch_name, 'Batch_' + CAST(f.instrument_id as varchar))
+                  ELSE COALESCE(i.document_type, 'Unknown Document') + ' - ' + COALESCE(i.batch_name, 'Batch_' + CAST(f.instrument_id as varchar))
+                END as document_name,
+                CASE 
+                  WHEN COALESCE(f.confidence_score, 0) >= 90 THEN 'passed'
+                  WHEN COALESCE(f.confidence_score, 0) >= 75 THEN 'pending'
+                  ELSE 'failed'
+                END as validation_status,
+                COUNT(f.field_name) as extracted_fields,
+                AVG(COALESCE(f.confidence_score, 85)) as confidence_score,
+                MAX(COALESCE(f.created_at, i.created_at, GETDATE())) as last_updated
+              FROM ingestion_fields_new f
+              LEFT JOIN instrument_ingestion_new i ON f.instrument_id = i.id
+              WHERE f.field_name IS NOT NULL AND f.field_name != '' AND f.field_value IS NOT NULL AND f.field_value != ''
+              GROUP BY f.field_name, f.instrument_id, i.batch_name, i.document_type, f.confidence_score
+              ORDER BY MAX(COALESCE(f.created_at, i.created_at, GETDATE())) DESC
+            `
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch validation data from Azure SQL');
+        }
+        
+        const result = await response.json();
+        const azureData = result.data || [];
+        
+        if (azureData.length === 0) {
+          console.log('No validation data found in Azure SQL database');
+          return [];
+        }
+        
+        return azureData.map((row: any) => ({
+          id: row.id,
+          document_name: row.document_name,
+          validation_status: row.validation_status,
+          extracted_fields: row.extracted_fields,
+          confidence_score: row.confidence_score,
+          last_updated: row.last_updated
+        }));
+        
+      } catch (error) {
+        console.error('Error fetching validation records from Azure:', error);
+        throw error;
+      }
     }
   });
 
