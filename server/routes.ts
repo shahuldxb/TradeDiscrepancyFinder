@@ -11070,34 +11070,45 @@ For technical support, please reference Document ID: ${ingestionId}`;
   // Document Management New - Insert sample data into masterdocuments_new
   app.post('/api/document-management/insert-sample-data', async (req, res) => {
     try {
-      const { connectToAzureSQL } = await import('./azureSqlConnection');
-      const pool = await connectToAzureSQL();
+      const sql = require('mssql');
+      
+      const azureConfig = {
+        server: process.env.AZURE_SQL_SERVER,
+        database: process.env.AZURE_SQL_DATABASE,
+        user: 'tf_genie',
+        password: process.env.AZURE_SQL_PASSWORD,
+        options: {
+          encrypt: true,
+          trustServerCertificate: false,
+          requestTimeout: 300000,
+          connectionTimeout: 30000
+        }
+      };
 
-      // Insert the 5 sample records
-      const sampleData = [
-        { id: 1, form_name: 'Sample Commercial Invoice', is_active: 0 },
-        { id: 2, form_name: 'New Unknown Document', is_active: 0 },
-        { id: 3, form_name: 'LC Document', is_active: 0 },
-        { id: 4, form_name: 'Unknown Document Type', is_active: 0 },
-        { id: 5, form_name: 'Commercial Invoice', is_active: 0 }
-      ];
+      await sql.connect(azureConfig);
 
-      let insertedCount = 0;
-      for (const record of sampleData) {
-        const result = await pool.request()
-          .input('form_name', record.form_name)
-          .input('is_active', record.is_active)
-          .query(`
-            INSERT INTO masterdocuments_new (form_name, is_active) 
-            VALUES (@form_name, @is_active)
-          `);
-        insertedCount++;
-      }
+      // Clear existing data first
+      await sql.query('DELETE FROM masterdocuments_new');
+
+      // Insert the 5 records with a single query
+      const insertResult = await sql.query(`
+        INSERT INTO masterdocuments_new (form_name, is_active) VALUES 
+        ('Sample Commercial Invoice', 0),
+        ('New Unknown Document', 0),
+        ('LC Document', 0),
+        ('Unknown Document Type', 0),
+        ('Commercial Invoice', 0)
+      `);
+
+      // Verify the data was inserted
+      const verifyResult = await sql.query('SELECT * FROM masterdocuments_new ORDER BY id');
+      
+      await sql.close();
 
       res.json({
         success: true,
-        message: `Successfully inserted ${insertedCount} records into masterdocuments_new`,
-        data: sampleData
+        message: `Successfully inserted ${verifyResult.recordset.length} records into masterdocuments_new`,
+        data: verifyResult.recordset
       });
 
     } catch (error) {
