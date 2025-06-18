@@ -759,8 +759,27 @@ export default function DocumentManagementNew() {
                     Upload known form, extract key-value pairs, and manage approval
                   </p>
                 </div>
-                <Button variant="outline">
-                  Upload Form for Registration
+                <Button 
+                  onClick={async () => {
+                    try {
+                      const response = await fetch('/api/document-management/test-lc-processing', { method: 'POST' });
+                      const result = await response.json();
+                      toast({
+                        title: result.success ? "Success" : "Error",
+                        description: result.message || result.error,
+                        variant: result.success ? "default" : "destructive"
+                      });
+                    } catch (error) {
+                      toast({
+                        title: "Error",
+                        description: "Failed to process LC document",
+                        variant: "destructive"
+                      });
+                    }
+                  }}
+                  variant="outline"
+                >
+                  Test LC Processing
                 </Button>
               </div>
             </CardContent>

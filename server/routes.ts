@@ -11080,8 +11080,8 @@ For technical support, please reference Document ID: ${ingestionId}`;
       const batchName = `LC_TEST_${Date.now()}`;
       
       // First, read and analyze the LC document
-      const fs = require('fs');
-      const fileStats = fs.statSync(lcFilePath);
+      const fs = await import('fs');
+      const fileStats = fs.default.statSync(lcFilePath);
       
       // Perform OCR on the LC document
       const ocrResult = await performOCRExtraction(lcFilePath);
@@ -11148,15 +11148,16 @@ For technical support, please reference Document ID: ${ingestionId}`;
         .input('status', 'processed')
         .query(`
           UPDATE instrument_ingestion_new 
-          SET document_type = @document_type, status = @status, processing_step = 'completed', updated_at = GETDATE()
+          SET document_type = @document_type, processing_step = 'completed', updated_at = GETDATE()
           WHERE id = @document_id
         `);
 
       res.json({
         success: true,
-        message: 'LC document processed successfully',
+        message: `LC document processed successfully. Found ${documentsInLC.length} constituent documents: ${documentsInLC.join(', ')}`,
         documentId,
-        batchName
+        batchName,
+        documentsFound: documentsInLC
       });
 
     } catch (error) {
@@ -11350,9 +11351,9 @@ For technical support, please reference Document ID: ${ingestionId}`;
   }
 
   async function performOCRExtraction(filePath: string): Promise<{text: string, confidence: number}> {
-    const { spawn } = require('child_process');
+    const childProcess = await import('child_process');
     return new Promise((resolve, reject) => {
-      const pythonProcess = spawn('python', ['-c', `
+      const pythonProcess = childProcess.spawn('python', ['-c', `
 import sys
 import os
 sys.path.append('.')
