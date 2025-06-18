@@ -11087,8 +11087,18 @@ For technical support, please reference Document ID: ${ingestionId}`;
 
       await sql.connect(azureConfig);
 
-      // Clear existing data first
-      await sql.query('DELETE FROM masterdocuments_new');
+      // Drop and recreate table with proper schema
+      await sql.query('DROP TABLE IF EXISTS masterdocuments_new');
+      
+      await sql.query(`
+        CREATE TABLE masterdocuments_new (
+          id INT IDENTITY(1,1) PRIMARY KEY,
+          document_code VARCHAR(50) NOT NULL,
+          form_name VARCHAR(255) NOT NULL,
+          is_active BIT NOT NULL DEFAULT 0,
+          created_at DATETIME DEFAULT GETDATE()
+        )
+      `);
 
       // Insert the 5 records with document codes
       const insertResult = await sql.query(`
@@ -11123,14 +11133,30 @@ For technical support, please reference Document ID: ${ingestionId}`;
   // Document Management New - View masterdocuments_new data
   app.get('/api/document-management/masterdocuments', async (req, res) => {
     try {
-      const { connectToAzureSQL } = await import('./azureSqlConnection');
-      const pool = await connectToAzureSQL();
+      const sql = require('mssql');
+      
+      const azureConfig = {
+        server: process.env.AZURE_SQL_SERVER,
+        database: process.env.AZURE_SQL_DATABASE,
+        user: 'tf_genie',
+        password: process.env.AZURE_SQL_PASSWORD,
+        options: {
+          encrypt: true,
+          trustServerCertificate: false,
+          requestTimeout: 300000,
+          connectionTimeout: 30000
+        }
+      };
 
-      const result = await pool.request().query(`
+      await sql.connect(azureConfig);
+
+      const result = await sql.query(`
         SELECT id, document_code, form_name, is_active, created_at 
         FROM masterdocuments_new 
         ORDER BY id
       `);
+
+      await sql.close();
 
       res.json({
         success: true,
