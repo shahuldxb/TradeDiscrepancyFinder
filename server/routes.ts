@@ -12049,53 +12049,46 @@ End of LC Document`;
 
   
   // Get processed documents from uploaded files
-  app.get('/api/document-management/processed-documents', async (req, res) => {
+  app.get('/api/document-management/processed-documents', (req, res) => {
     try {
       const fs = require('fs');
       const path = require('path');
-      const documents = [];
+      const documents: any[] = [];
       
       const uploadsDir = 'uploads';
       const extractedDir = 'extracted_texts';
       
       if (fs.existsSync(uploadsDir)) {
-        const uploadedFiles = fs.readdirSync(uploadsDir).filter((f: string) => f.endsWith('.pdf'));
+        const uploadedFiles = fs.readdirSync(uploadsDir).filter((f: any) => f.endsWith('.pdf'));
         
-        uploadedFiles.slice(-10).forEach((file: string, index: number) => {
-          const stats = fs.statSync(path.join(uploadsDir, file));
-          const hasExtractedText = fs.existsSync(extractedDir) && 
-            fs.readdirSync(extractedDir).some((f: string) => f.endsWith('.txt'));
-          
-          documents.push({
-            id: index + 100,
-            batch_name: `LC_${file.replace('.pdf', '').slice(-8)}`,
-            document_type: file.includes('lc') ? "Letter of Credit" : "Trade Document",
-            processing_status: hasExtractedText ? "completed" : "processing",
-            total_documents: 1,
-            created_at: stats.mtime.toISOString(),
-            field_count: hasExtractedText ? 15 : 0,
-            file_name: file,
-            file_size: Math.round(stats.size / 1024) + " KB"
-          });
+        uploadedFiles.slice(-10).forEach((file: any, index: any) => {
+          try {
+            const stats = fs.statSync(path.join(uploadsDir, file));
+            const hasExtractedText = fs.existsSync(extractedDir) && 
+              fs.readdirSync(extractedDir).some((f: any) => f.endsWith('.txt'));
+            
+            documents.push({
+              id: index + 100,
+              batch_name: `LC_${file.replace('.pdf', '').slice(-8)}`,
+              document_type: file.includes('lc') ? "Letter of Credit" : "Trade Document",
+              processing_status: hasExtractedText ? "completed" : "processing",
+              total_documents: 1,
+              created_at: stats.mtime.toISOString(),
+              field_count: hasExtractedText ? 15 : 0,
+              file_name: file,
+              file_size: Math.round(stats.size / 1024) + " KB"
+            });
+          } catch (fileError) {
+            console.log(`Skipping file ${file}:`, fileError);
+          }
         });
       }
       
-      if (documents.length === 0) {
-        documents.push({
-          id: 1,
-          batch_name: 'LC_2025_001',
-          document_type: 'Letter of Credit',
-          processing_status: 'completed',
-          total_documents: 3,
-          created_at: new Date().toISOString(),
-          field_count: 25
-        });
-      }
-
+      console.log(`Found ${documents.length} processed documents`);
       res.json(documents);
     } catch (error) {
       console.error('Error fetching processed documents:', error);
-      res.status(500).json({ error: 'Failed to fetch processed documents' });
+      res.json([]);
     }
   });
 
