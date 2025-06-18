@@ -647,8 +647,8 @@ export default function DocumentManagementNew() {
                       <div><strong>Policy Number:</strong> POL-2025-8901</div>
                     </div>
                     <div className="flex gap-2 mt-3">
-                      <Button variant="outline" size="sm">View PDF</Button>
-                      <Button variant="outline" size="sm">Download Text</Button>
+                      <Button variant="outline" size="sm" onClick={() => handleViewDocument('insurance-certificate', 'pdf')}>View PDF</Button>
+                      <Button variant="outline" size="sm" onClick={() => handleDownloadText('insurance-certificate')}>Download Text</Button>
                     </div>
                   </div>
                 </div>
