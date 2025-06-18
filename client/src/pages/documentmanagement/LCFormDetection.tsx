@@ -183,6 +183,100 @@ export default function LCFormDetection() {
     return processingStatus[stepKey as keyof ProcessingStatus] || 'pending';
   };
 
+  const handleViewForm = (form: any) => {
+    // Generate form content for viewing
+    const extractedFieldsText = Object.entries(form.extractedFields || {})
+      .map(([key, value]) => `${key}: ${value}`)
+      .join('\n');
+      
+    const formContent = `
+${form.formType} - Extracted Data
+${'='.repeat(40)}
+
+Confidence Score: ${form.confidence}%
+Extraction Date: ${new Date().toLocaleString()}
+
+Field Details:
+${extractedFieldsText}
+
+Processing Information:
+- Document ID: ${documentId || 'N/A'}
+- Form Type: ${form.formType}
+- Total Fields Extracted: ${Object.keys(form.extractedFields || {}).length}
+- Page Numbers: ${form.pageNumbers?.join(', ') || 'N/A'}
+
+This form was automatically extracted from the uploaded LC document using Azure Document Intelligence.
+`;
+
+    // Open in new window with formatted content
+    const newWindow = window.open('', '_blank');
+    if (newWindow) {
+      newWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>${form.formType} - Form Viewer</title>
+          <style>
+            body { font-family: 'Courier New', monospace; padding: 20px; background: #f5f5f5; }
+            .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+            .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 30px; }
+            .field { margin-bottom: 10px; padding: 8px; background: #f8f9fa; border-left: 3px solid #0066cc; }
+            .confidence { color: #666; font-size: 0.9em; }
+            pre { white-space: pre-wrap; line-height: 1.6; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>${form.formType}</h1>
+              <p>Form Extraction Results</p>
+            </div>
+            <pre>${formContent}</pre>
+          </div>
+        </body>
+        </html>
+      `);
+      newWindow.document.close();
+    }
+
+    toast({
+      title: "Form Opened",
+      description: `${form.formType} details opened in new window`,
+    });
+  };
+
+  const handleExportData = (form: any) => {
+    // Prepare export data
+    const exportData = {
+      form_type: form.formType,
+      confidence: form.confidence,
+      extraction_date: new Date().toISOString(),
+      document_id: documentId,
+      extracted_fields: form.extractedFields,
+      page_numbers: form.pageNumbers,
+      metadata: {
+        total_fields: Object.keys(form.extractedFields || {}).length,
+        processing_timestamp: new Date().toISOString()
+      }
+    };
+
+    // Create and download JSON file
+    const jsonBlob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(jsonBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${form.formType.replace(/\s+/g, '_')}_${documentId || 'export'}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Data Exported",
+      description: `${form.formType} data exported as JSON file`,
+    });
+  };
+
   return (
     <div className="container mx-auto p-6 space-y-8">
       {/* Header */}
@@ -381,11 +475,11 @@ export default function LCFormDetection() {
                           ))}
                         </div>
                         <div className="mt-4 flex space-x-2">
-                          <Button size="sm" variant="outline">
+                          <Button size="sm" variant="outline" onClick={() => handleViewForm(form)}>
                             <Eye className="h-4 w-4 mr-1" />
                             View Form
                           </Button>
-                          <Button size="sm" variant="outline">
+                          <Button size="sm" variant="outline" onClick={() => handleExportData(form)}>
                             <FileText className="h-4 w-4 mr-1" />
                             Export Data
                           </Button>
