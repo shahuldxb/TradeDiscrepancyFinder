@@ -232,10 +232,10 @@ try {
 
       // Process document with LC-aware multi-page form detection
       const result = await new Promise<any>((resolve, reject) => {
-        // Use LC analyzer for LC documents, multi-page processor for others
+        // Use fast LC processor for LC documents, multi-page processor for others
         const scriptPath = req.file?.originalname?.toLowerCase().includes('lc') || 
                           req.file?.originalname?.toLowerCase().includes('credit') ? 
-                          'server/lcDocumentAnalyzer.py' : 'server/multiPageProcessor.py';
+                          'server/fastLCProcessor.py' : 'server/multiPageProcessor.py';
         const pythonProcess = spawn('python3', [scriptPath, filePath]);
         
         let output = '';
@@ -263,7 +263,7 @@ try {
               const formsData = analysisResult.detected_forms || analysisResult.constituent_documents || [];
               const detectedForms = formsData.map((form: any, index: number) => ({
                 id: `${docId}_form_${index + 1}`,
-                formType: form.form_type,
+                formType: form.form_type || form.document_type,
                 confidence: form.confidence,
                 pageNumbers: [form.page_number],
                 extractedFields: {
