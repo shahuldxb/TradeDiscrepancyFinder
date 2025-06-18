@@ -11879,17 +11879,12 @@ except Exception as e:
           .input('batchName', finalBatchName)
           .input('instrumentType', 'LC_Document')
           .input('status', 'Processing')
-          .input('createdAt', new Date())
-          .input('processingStatus', 'uploaded')
-          .input('documentCount', 1)
           .query(`
             UPDATE instrument_ingestion_new 
             SET batch_name = @batchName,
                 instrument_type = @instrumentType,
                 status = @status,
-                created_at = @createdAt,
-                processing_status = @processingStatus,
-                document_count = @documentCount
+                created_at = GETDATE()
             OUTPUT INSERTED.id
             WHERE id = @id
           `);
@@ -11900,14 +11895,11 @@ except Exception as e:
             .input('batchName', finalBatchName)
             .input('instrumentType', 'LC_Document')
             .input('status', 'Processing')
-            .input('createdAt', new Date())
-            .input('processingStatus', 'uploaded')
-            .input('documentCount', 1)
             .query(`
               INSERT INTO instrument_ingestion_new 
-              (batch_name, instrument_type, status, created_at, processing_status, document_count) 
+              (batch_name, instrument_type, status, created_at) 
               OUTPUT INSERTED.id 
-              VALUES (@batchName, @instrumentType, @status, @createdAt, @processingStatus, @documentCount)
+              VALUES (@batchName, @instrumentType, @status, GETDATE())
             `);
         } catch (insertError) {
           throw new Error('Unable to insert record: ' + insertError.message);
