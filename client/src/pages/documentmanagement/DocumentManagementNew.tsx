@@ -84,8 +84,8 @@ export default function DocumentManagementNew() {
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Upload failed');
+        const errorData = await response.json().catch(() => ({ error: 'Upload failed' }));
+        throw new Error(errorData.error || errorData.message || `Upload failed with status ${response.status}`);
       }
       
       return response.json();
