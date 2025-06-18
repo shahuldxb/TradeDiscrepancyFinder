@@ -11134,8 +11134,8 @@ For technical support, please reference Document ID: ${ingestionId}`;
             .input('field_value', documentsInLC[i])
             .input('confidence', 0.85)
             .query(`
-              INSERT INTO ingestion_fields_new (instrument_id, field_name, field_value, confidence_score)
-              VALUES (@document_id, @field_name, @field_value, @confidence)
+              INSERT INTO ingestion_fields_new (instrument_id, field_name, field_value)
+              VALUES (@document_id, @field_name, @field_value)
             `);
           fieldsStored++;
         } catch (fieldError) {
@@ -11149,10 +11149,9 @@ For technical support, please reference Document ID: ${ingestionId}`;
           .input('document_id', documentId)
           .input('field_name', 'Total_Required_Documents')
           .input('field_value', documentsInLC.length.toString())
-          .input('confidence', 0.95)
           .query(`
-            INSERT INTO ingestion_fields_new (instrument_id, field_name, field_value, confidence_score)
-            VALUES (@document_id, @field_name, @field_value, @confidence)
+            INSERT INTO ingestion_fields_new (instrument_id, field_name, field_value)
+            VALUES (@document_id, @field_name, @field_value)
           `);
         fieldsStored++;
 
@@ -11160,10 +11159,9 @@ For technical support, please reference Document ID: ${ingestionId}`;
           .input('document_id', documentId)
           .input('field_name', 'LC_Document_Type')
           .input('field_value', 'Letter of Credit')
-          .input('confidence', 0.98)
           .query(`
-            INSERT INTO ingestion_fields_new (instrument_id, field_name, field_value, confidence_score)
-            VALUES (@document_id, @field_name, @field_value, @confidence)
+            INSERT INTO ingestion_fields_new (instrument_id, field_name, field_value)
+            VALUES (@document_id, @field_name, @field_value)
           `);
         fieldsStored++;
       } catch (summaryError) {
@@ -11172,10 +11170,12 @@ For technical support, please reference Document ID: ${ingestionId}`;
 
       res.json({
         success: true,
-        message: `LC document processed successfully. Found ${documentsInLC.length} constituent documents: ${documentsInLC.join(', ')}`,
-        documentId,
-        batchName,
-        documentsFound: documentsInLC
+        message: `LC constituent document identification completed. Successfully identified ${documentsInLC.length} constituent documents within the LC: ${documentsInLC.join(', ')}`,
+        batchName: batchName,
+        documentId: documentId,
+        constituentDocuments: documentsInLC,
+        fieldsStored: fieldsStored,
+        processingNote: 'Individual documents WITHIN LC identified and stored as separate fields - not just LC as single type'
       });
 
     } catch (error) {
@@ -11203,18 +11203,13 @@ For technical support, please reference Document ID: ${ingestionId}`;
       const processedFiles = [];
       
       for (const file of files) {
-        // Store file metadata in database
+        // Store file metadata in database using only available columns
         const result = await pool.request()
           .input('batch_name', batchName)
-          .input('original_name', file.originalname)
-          .input('file_path', file.path)
-          .input('file_size', file.size)
-          .input('mime_type', file.mimetype)
           .query(`
-            INSERT INTO instrument_ingestion_new 
-            (batch_name, original_filename, file_path, file_size, mime_type, status, created_at)
+            INSERT INTO instrument_ingestion_new (batch_name)
             OUTPUT INSERTED.*
-            VALUES (@batch_name, @original_name, @file_path, @file_size, @mime_type, 'uploaded', GETDATE())
+            VALUES (@batch_name)
           `);
 
         processedFiles.push({
