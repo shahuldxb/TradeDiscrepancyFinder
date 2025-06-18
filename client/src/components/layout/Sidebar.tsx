@@ -128,15 +128,32 @@ const navigationItems = [
     ],
   },
   {
+    name: "Document Management New",
+    icon: Folder,
+    description: "Advanced Document Processing Pipeline",
+    subItems: [
+      {
+        name: "Upload & Ingestion",
+        href: "/document-management-new",
+        description: "Step 2-3: Upload PDF and slice/OCR processing",
+      },
+      {
+        name: "Validation Review",
+        href: "/document-management-new/validation",
+        description: "Step 4-6: Document detection and validation",
+      },
+      {
+        name: "Document Registration",
+        href: "/document-management-new/registration",
+        description: "Step 7-12: Form registration and approval",
+      },
+    ],
+  },
+  {
     name: "Document Management",
     icon: Upload,
     description: "Document Processing & OCR",
     subItems: [
-      {
-        name: "Document Management New",
-        href: "/document-management-new",
-        description: "Advanced document processing pipeline",
-      },
       {
         name: "Document Upload",
         href: "/document-upload",
@@ -329,14 +346,7 @@ const navigationItems = [
       },
     ],
   },
-  {
-    name: "Document Management New",
-    icon: Folder,
-    description: "New Document Management System",
-    subItems: [
-      // Sub-items will be added based on your step-by-step instructions
-    ],
-  },
+
   {
     name: "Lifecycle Management",
     icon: GitBranch,
