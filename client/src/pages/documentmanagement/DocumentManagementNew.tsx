@@ -64,7 +64,6 @@ export default function DocumentManagementNew() {
     lastUpdated: new Date().toISOString()
   });
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('overview');
   const [batchName, setBatchName] = useState('');
   const [processingForms, setProcessingForms] = useState<ProcessingForm[]>([]);
   const [processingSteps, setProcessingSteps] = useState<ProcessingStep[]>([
@@ -75,6 +74,13 @@ export default function DocumentManagementNew() {
     { name: 'Split', status: 'pending', progress: 0 },
     { name: 'Store', status: 'pending', progress: 0 }
   ]);
+  const [validationRecords, setValidationRecords] = useState<ValidationRecord[]>([]);
+  const [registrationForm, setRegistrationForm] = useState<RegistrationForm>({
+    document_type: '',
+    form_name: '',
+    description: '',
+    is_active: true
+  });
   const { toast } = useToast();
 
   const fetchDocuments = async () => {
@@ -353,12 +359,11 @@ export default function DocumentManagementNew() {
       </div>
 
       {/* Main Content Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="documents">Master Documents</TabsTrigger>
-          <TabsTrigger value="upload">Instant Upload</TabsTrigger>
-          <TabsTrigger value="split">Split Documents</TabsTrigger>
+      <Tabs defaultValue="upload" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="upload">Upload & Ingestion</TabsTrigger>
+          <TabsTrigger value="validation">Validation Review</TabsTrigger>
+          <TabsTrigger value="registration">Document Registration</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
