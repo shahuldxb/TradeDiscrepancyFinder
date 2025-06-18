@@ -12102,84 +12102,130 @@ End of LC Document`;
 
       const file = req.file;
       const docId = `lc_${Date.now()}`;
+      const fileName = file.originalname?.toLowerCase() || '';
+      let detectedForms = [];
       
-      // Simulate LC form detection and splitting
-      const detectedForms = [
-        {
-          id: `form_1_${Date.now()}`,
-          formType: 'Commercial Invoice',
-          confidence: 0.95,
-          pageNumbers: [1, 2],
-          extractedFields: {
-            'Invoice Number': 'INV-2025-001',
-            'Invoice Date': '2025-06-18',
-            'Total Amount': 'USD 25,450.00',
-            'Seller': 'ABC Trading Co Ltd'
-          },
-          status: 'completed'
-        },
-        {
-          id: `form_2_${Date.now()}`,
-          formType: 'Bill of Lading',
-          confidence: 0.92,
-          pageNumbers: [3, 4],
-          extractedFields: {
-            'B/L Number': 'BL-2025-5432',
-            'Vessel Name': 'OCEAN SPIRIT',
-            'Port of Loading': 'Singapore',
-            'Port of Discharge': 'New York'
-          },
-          status: 'completed'
-        },
-        {
-          id: `form_3_${Date.now()}`,
-          formType: 'Certificate of Origin',
-          confidence: 0.89,
-          pageNumbers: [5],
-          extractedFields: {
-            'Certificate No': 'CO-2025-789',
-            'Country of Origin': 'Singapore',
-            'Exporter': 'ABC Trading Co Ltd',
-            'Consignee': 'XYZ Import Corp'
-          },
-          status: 'completed'
-        },
-        {
-          id: `form_4_${Date.now()}`,
-          formType: 'Packing List',
-          confidence: 0.87,
-          pageNumbers: [6],
-          extractedFields: {
-            'Packing List No': 'PL-2025-456',
-            'Total Packages': '150 Cartons',
-            'Net Weight': '2,450 KGS',
-            'Gross Weight': '2,650 KGS'
-          },
-          status: 'completed'
-        },
-        {
-          id: `form_5_${Date.now()}`,
-          formType: 'Insurance Certificate',
-          confidence: 0.91,
-          pageNumbers: [7],
-          extractedFields: {
-            'Certificate No': 'INS-2025-123',
-            'Insured Amount': 'USD 27,995.00',
-            'Insurance Company': 'Global Marine Insurance',
-            'Policy Number': 'POL-2025-8901'
-          },
-          status: 'completed'
+      console.log(`Processing document: ${fileName} (${file.size} bytes)`);
+      
+      // Check for specialized document types first
+      if (fileName.includes('multimodal') || fileName.includes('transport')) {
+        try {
+          console.log('Detected MTD document, using specialized processor...');
+          
+          // Use specialized MTD processor for accurate extraction
+          const { spawn } = await import('child_process');
+          const pythonProcess = spawn('python', [
+            'server/multimodalTransportProcessor.py',
+            file.path
+          ], {
+            stdio: ['pipe', 'pipe', 'pipe']
+          });
+
+          let output = '';
+          let errorOutput = '';
+
+          pythonProcess.stdout.on('data', (data) => {
+            output += data.toString();
+          });
+
+          pythonProcess.stderr.on('data', (data) => {
+            errorOutput += data.toString();
+          });
+
+          await new Promise((resolve, reject) => {
+            pythonProcess.on('close', (code) => {
+              if (code === 0) {
+                try {
+                  const mtdResult = JSON.parse(output);
+                  
+                  // Convert MTD result to form format
+                  const extractedFields = {};
+                  for (const [fieldName, fieldData] of Object.entries(mtdResult.extracted_fields || {})) {
+                    const fieldValue = typeof fieldData === 'object' ? fieldData.value : fieldData;
+                    extractedFields[fieldName] = fieldValue || 'Not extracted';
+                  }
+                  
+                  detectedForms = [{
+                    id: `${docId}_mtd_1`,
+                    formType: 'Multimodal Transport Document',
+                    confidence: (mtdResult.confidence_average || 86) / 100,
+                    pageNumbers: [1, 2],
+                    extractedFields,
+                    status: 'completed',
+                    processingMethod: 'Enhanced MTD Processing'
+                  }];
+                  
+                  console.log(`MTD processing completed: ${Object.keys(extractedFields).length} fields extracted`);
+                  resolve(detectedForms);
+                } catch (parseError) {
+                  console.error('MTD parsing error:', parseError);
+                  reject(parseError);
+                }
+              } else {
+                console.error('MTD processing error:', errorOutput);
+                reject(new Error(`MTD processing failed: ${errorOutput}`));
+              }
+            });
+          });
+
+        } catch (mtdError) {
+          console.error('MTD processing failed:', mtdError);
+          // Continue with standard processing
         }
-      ];
+      }
+      
+      // If no specialized processing was done, perform basic document classification
+      if (detectedForms.length === 0) {
+        console.log('Performing basic document classification...');
+        
+        // Determine document type based on filename and content
+        let documentType = 'Unknown Document';
+        let confidence = 0.7;
+        
+        if (fileName.includes('invoice')) {
+          documentType = 'Commercial Invoice';
+          confidence = 0.85;
+        } else if (fileName.includes('bill') && fileName.includes('lading')) {
+          documentType = 'Bill of Lading';
+          confidence = 0.88;
+        } else if (fileName.includes('certificate') && fileName.includes('origin')) {
+          documentType = 'Certificate of Origin';
+          confidence = 0.82;
+        } else if (fileName.includes('packing')) {
+          documentType = 'Packing List';
+          confidence = 0.80;
+        } else if (fileName.includes('insurance')) {
+          documentType = 'Insurance Certificate';
+          confidence = 0.83;
+        }
+        
+        // Create single form based on detected type
+        detectedForms = [{
+          id: `${docId}_form_1`,
+          formType: documentType,
+          confidence: confidence,
+          pageNumbers: [1],
+          extractedFields: {
+            'Document Type': documentType,
+            'File Name': file.originalname,
+            'File Size': `${(file.size / 1024).toFixed(1)} KB`,
+            'Processing Status': 'OCR and field extraction required'
+          },
+          status: 'needs_processing'
+        }];
+        
+        console.log(`Basic classification: ${documentType} (confidence: ${(confidence * 100).toFixed(0)}%)`);
+      }
       
       res.json({
         success: true,
         documentId: docId,
         fileName: file.originalname,
         fileSize: file.size,
-        totalPages: 7,
+        totalPages: detectedForms.length > 0 ? Math.max(...detectedForms.flatMap(f => f.pageNumbers)) : 1,
         detectedForms: detectedForms,
-        message: 'LC document processed and forms detected successfully'
+        formsDetected: detectedForms.length,
+        message: `Document processed successfully - ${detectedForms.length} form(s) detected`
       });
 
     } catch (error) {
