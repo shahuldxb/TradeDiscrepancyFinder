@@ -189,15 +189,16 @@ export default function LCFormDetection() {
 
   const handleViewForm = (form: any) => {
     // Generate form content for viewing
-    const extractedFieldsText = Object.entries(form.extractedFields || {})
+    const extractedFieldsText = Object.entries(form.extractedFields || form.extracted_fields || {})
       .map(([key, value]) => `${key}: ${value}`)
       .join('\n');
       
+    const formType = form.formType || form.form_type || 'Unknown Form';
     const formContent = `
-${form.formType} - Extracted Data
+${formType} - Extracted Data
 ${'='.repeat(40)}
 
-Confidence Score: ${form.confidence}%
+Confidence Score: ${form.confidence || 0}%
 Extraction Date: ${new Date().toLocaleString()}
 
 Field Details:
@@ -205,9 +206,9 @@ ${extractedFieldsText}
 
 Processing Information:
 - Document ID: ${documentId || 'N/A'}
-- Form Type: ${form.formType}
-- Total Fields Extracted: ${Object.keys(form.extractedFields || {}).length}
-- Page Numbers: ${form.pageNumbers?.join(', ') || 'N/A'}
+- Form Type: ${formType}
+- Total Fields Extracted: ${Object.keys(form.extractedFields || form.extracted_fields || {}).length}
+- Page Numbers: ${form.pageNumbers?.join(', ') || form.page_numbers?.join(', ') || 'N/A'}
 
 This form was automatically extracted from the uploaded LC document using Azure Document Intelligence.
 `;
@@ -219,7 +220,7 @@ This form was automatically extracted from the uploaded LC document using Azure 
         <!DOCTYPE html>
         <html>
         <head>
-          <title>${form.formType} - Form Viewer</title>
+          <title>${formType} - Form Viewer</title>
           <style>
             body { font-family: 'Courier New', monospace; padding: 20px; background: #f5f5f5; }
             .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
@@ -232,7 +233,7 @@ This form was automatically extracted from the uploaded LC document using Azure 
         <body>
           <div class="container">
             <div class="header">
-              <h1>${form.formType}</h1>
+              <h1>${formType}</h1>
               <p>Form Extraction Results</p>
             </div>
             <pre>${formContent}</pre>
@@ -245,21 +246,23 @@ This form was automatically extracted from the uploaded LC document using Azure 
 
     toast({
       title: "Form Opened",
-      description: `${form.formType} details opened in new window`,
+      description: `${formType} details opened in new window`,
     });
   };
 
   const handleExportData = (form: any) => {
     // Prepare export data
+    const formType = form.formType || form.form_type || 'Unknown Form';
+    const extractedFields = form.extractedFields || form.extracted_fields || {};
     const exportData = {
-      form_type: form.formType,
-      confidence: form.confidence,
+      form_type: formType,
+      confidence: form.confidence || 0,
       extraction_date: new Date().toISOString(),
       document_id: documentId,
-      extracted_fields: form.extractedFields,
-      page_numbers: form.pageNumbers,
+      extracted_fields: extractedFields,
+      page_numbers: form.pageNumbers || form.page_numbers || [],
       metadata: {
-        total_fields: Object.keys(form.extractedFields || {}).length,
+        total_fields: Object.keys(extractedFields).length,
         processing_timestamp: new Date().toISOString()
       }
     };
@@ -269,7 +272,7 @@ This form was automatically extracted from the uploaded LC document using Azure 
     const url = URL.createObjectURL(jsonBlob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${form.formType.replace(/\s+/g, '_')}_${documentId || 'export'}.json`;
+    link.download = `${(form.formType || form.form_type || 'unknown_form').replace(/\s+/g, '_')}_${documentId || 'export'}.json`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -277,7 +280,7 @@ This form was automatically extracted from the uploaded LC document using Azure 
 
     toast({
       title: "Data Exported",
-      description: `${form.formType} data exported as JSON file`,
+      description: `${form.formType || form.form_type || 'Form'} data exported as JSON file`,
     });
   };
 
