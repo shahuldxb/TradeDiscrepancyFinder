@@ -11090,18 +11090,18 @@ For technical support, please reference Document ID: ${ingestionId}`;
       // Clear existing data first
       await sql.query('DELETE FROM masterdocuments_new');
 
-      // Insert the 5 records with a single query
+      // Insert the 5 records with document codes
       const insertResult = await sql.query(`
-        INSERT INTO masterdocuments_new (form_name, is_active) VALUES 
-        ('Sample Commercial Invoice', 0),
-        ('New Unknown Document', 0),
-        ('LC Document', 0),
-        ('Unknown Document Type', 0),
-        ('Commercial Invoice', 0)
+        INSERT INTO masterdocuments_new (document_code, form_name, is_active) VALUES 
+        ('CI001', 'Sample Commercial Invoice', 0),
+        ('UNK001', 'New Unknown Document', 0),
+        ('LC001', 'LC Document', 0),
+        ('UNK_DOC', 'Unknown Document Type', 0),
+        ('CI_SAMPLE', 'Commercial Invoice', 0)
       `);
 
       // Verify the data was inserted
-      const verifyResult = await sql.query('SELECT * FROM masterdocuments_new ORDER BY id');
+      const verifyResult = await sql.query('SELECT id, document_code, form_name, is_active, created_at FROM masterdocuments_new ORDER BY id');
       
       await sql.close();
 
@@ -11127,7 +11127,7 @@ For technical support, please reference Document ID: ${ingestionId}`;
       const pool = await connectToAzureSQL();
 
       const result = await pool.request().query(`
-        SELECT id, form_name, is_active, created_at 
+        SELECT id, document_code, form_name, is_active, created_at 
         FROM masterdocuments_new 
         ORDER BY id
       `);
