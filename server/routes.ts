@@ -259,9 +259,15 @@ try {
                 docId: docId
               };
               
-              documentHistory.unshift(historyDoc);
+              // Replace the initial entry with complete processing result
+              const existingIndex = documentHistory.findIndex(doc => doc.docId === docId);
+              if (existingIndex !== -1) {
+                documentHistory[existingIndex] = historyDoc;
+              } else {
+                documentHistory.unshift(historyDoc);
+              }
               saveDocumentHistory();
-              console.log(`✓ Document stored in history: ${historyDoc.filename} (${historyDoc.documentType}) - ${documentHistory.length} total`);
+              console.log(`✓ Document updated in history: ${historyDoc.filename} (${historyDoc.documentType}) - ${documentHistory.length} total`);
               
               const detectedForms = [{
                 id: `${docId}_form_1`,
