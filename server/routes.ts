@@ -251,9 +251,9 @@ try {
         
         console.log(`📋 Processing: ${req.file?.originalname} | LC Detection: ${isLCDocument}`);
         
-        // Use Real OCR Processor for authentic text extraction
-        const scriptPath = 'server/realOCRProcessor.py';
-        console.log(`🚀 Using Real OCR Processor: ${scriptPath}`);
+        // Use Efficient OCR Processor for authentic text extraction
+        const scriptPath = 'server/efficientOCR.py';
+        console.log(`🚀 Using Efficient OCR Processor: ${scriptPath}`);
         const pythonProcess = spawn('python3', [scriptPath, filePath]);
         
         let output = '';
