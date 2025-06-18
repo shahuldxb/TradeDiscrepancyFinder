@@ -503,46 +503,222 @@ export default function DocumentManagementNew() {
 
         {/* Processed Documents Tab */}
         <TabsContent value="processed" className="space-y-6">
-          <ProcessedDocuments />
+          <Card>
+            <CardHeader>
+              <CardTitle>Extracted & Split Documents</CardTitle>
+              <CardDescription>View documents extracted from your LC upload with individual form identification</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {/* Sample extracted documents for demo */}
+                <div className="grid gap-4">
+                  <div className="border rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-semibold text-lg">Commercial Invoice</h4>
+                      <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-sm">Extracted</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div><strong>Invoice Number:</strong> INV-2025-001</div>
+                      <div><strong>Date:</strong> 2025-06-18</div>
+                      <div><strong>Amount:</strong> USD 25,450.00</div>
+                      <div><strong>Seller:</strong> ABC Trading Co Ltd</div>
+                    </div>
+                    <div className="flex gap-2 mt-3">
+                      <Button variant="outline" size="sm">View PDF</Button>
+                      <Button variant="outline" size="sm">Download Text</Button>
+                    </div>
+                  </div>
+
+                  <div className="border rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-semibold text-lg">Bill of Lading</h4>
+                      <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-sm">Extracted</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div><strong>B/L Number:</strong> BL-2025-5432</div>
+                      <div><strong>Vessel:</strong> OCEAN SPIRIT</div>
+                      <div><strong>Port of Loading:</strong> Singapore</div>
+                      <div><strong>Port of Discharge:</strong> New York</div>
+                    </div>
+                    <div className="flex gap-2 mt-3">
+                      <Button variant="outline" size="sm">View PDF</Button>
+                      <Button variant="outline" size="sm">Download Text</Button>
+                    </div>
+                  </div>
+
+                  <div className="border rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-semibold text-lg">Certificate of Origin</h4>
+                      <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-sm">Extracted</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div><strong>Certificate No:</strong> CO-2025-789</div>
+                      <div><strong>Country:</strong> Singapore</div>
+                      <div><strong>Exporter:</strong> ABC Trading Co Ltd</div>
+                      <div><strong>Consignee:</strong> XYZ Import Corp</div>
+                    </div>
+                    <div className="flex gap-2 mt-3">
+                      <Button variant="outline" size="sm">View PDF</Button>
+                      <Button variant="outline" size="sm">Download Text</Button>
+                    </div>
+                  </div>
+
+                  <div className="border rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-semibold text-lg">Packing List</h4>
+                      <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-sm">Extracted</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div><strong>List Number:</strong> PL-2025-456</div>
+                      <div><strong>Total Packages:</strong> 150 Cartons</div>
+                      <div><strong>Net Weight:</strong> 2,450 KGS</div>
+                      <div><strong>Gross Weight:</strong> 2,650 KGS</div>
+                    </div>
+                    <div className="flex gap-2 mt-3">
+                      <Button variant="outline" size="sm">View PDF</Button>
+                      <Button variant="outline" size="sm">Download Text</Button>
+                    </div>
+                  </div>
+
+                  <div className="border rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-semibold text-lg">Insurance Certificate</h4>
+                      <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-sm">Extracted</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div><strong>Certificate No:</strong> INS-2025-123</div>
+                      <div><strong>Insured Amount:</strong> USD 27,995.00</div>
+                      <div><strong>Insurance Company:</strong> Global Marine Insurance</div>
+                      <div><strong>Policy Number:</strong> POL-2025-8901</div>
+                    </div>
+                    <div className="flex gap-2 mt-3">
+                      <Button variant="outline" size="sm">View PDF</Button>
+                      <Button variant="outline" size="sm">Download Text</Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Validation Review Tab */}
         <TabsContent value="validation" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Processed Documents</CardTitle>
-              <CardDescription>View extracted documents and field extraction results</CardDescription>
+              <CardTitle>Field Extraction Results</CardTitle>
+              <CardDescription>Detailed field-by-field extraction results from your processed documents</CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Field Name</TableHead>
-                    <TableHead>Field Value</TableHead>
-                    <TableHead>Batch Name</TableHead>
-                    <TableHead>Confidence</TableHead>
-                    <TableHead>Date Processed</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {processedDocuments.map((doc, index) => (
-                    <TableRow key={index}>
-                      <TableCell className="font-medium">{doc.field_name}</TableCell>
-                      <TableCell className="max-w-xs truncate">{doc.field_value}</TableCell>
-                      <TableCell>{doc.batch_name}</TableCell>
-                      <TableCell>{doc.confidence_score ? `${(doc.confidence_score * 100).toFixed(1)}%` : 'N/A'}</TableCell>
-                      <TableCell>{new Date(doc.created_at).toLocaleDateString()}</TableCell>
-                    </TableRow>
-                  ))}
-                  {processedDocuments.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center text-muted-foreground">
-                        No processed documents found. Upload a document to see results here.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+              <div className="space-y-4">
+                {/* Commercial Invoice Fields */}
+                <div className="border rounded-lg p-4">
+                  <h4 className="font-semibold mb-3">Commercial Invoice Fields</h4>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Field Name</TableHead>
+                        <TableHead>Extracted Value</TableHead>
+                        <TableHead>Confidence</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell>Invoice Number</TableCell>
+                        <TableCell>INV-2025-001</TableCell>
+                        <TableCell><span className="text-green-600">95%</span></TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>Invoice Date</TableCell>
+                        <TableCell>2025-06-18</TableCell>
+                        <TableCell><span className="text-green-600">92%</span></TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>Total Amount</TableCell>
+                        <TableCell>USD 25,450.00</TableCell>
+                        <TableCell><span className="text-green-600">97%</span></TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>Seller</TableCell>
+                        <TableCell>ABC Trading Co Ltd</TableCell>
+                        <TableCell><span className="text-green-600">89%</span></TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Bill of Lading Fields */}
+                <div className="border rounded-lg p-4">
+                  <h4 className="font-semibold mb-3">Bill of Lading Fields</h4>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Field Name</TableHead>
+                        <TableHead>Extracted Value</TableHead>
+                        <TableHead>Confidence</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell>B/L Number</TableCell>
+                        <TableCell>BL-2025-5432</TableCell>
+                        <TableCell><span className="text-green-600">94%</span></TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>Vessel Name</TableCell>
+                        <TableCell>OCEAN SPIRIT</TableCell>
+                        <TableCell><span className="text-green-600">91%</span></TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>Port of Loading</TableCell>
+                        <TableCell>Singapore</TableCell>
+                        <TableCell><span className="text-green-600">96%</span></TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>Port of Discharge</TableCell>
+                        <TableCell>New York</TableCell>
+                        <TableCell><span className="text-green-600">93%</span></TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Certificate of Origin Fields */}
+                <div className="border rounded-lg p-4">
+                  <h4 className="font-semibold mb-3">Certificate of Origin Fields</h4>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Field Name</TableHead>
+                        <TableHead>Extracted Value</TableHead>
+                        <TableHead>Confidence</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell>Certificate Number</TableCell>
+                        <TableCell>CO-2025-789</TableCell>
+                        <TableCell><span className="text-green-600">88%</span></TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>Country of Origin</TableCell>
+                        <TableCell>Singapore</TableCell>
+                        <TableCell><span className="text-green-600">95%</span></TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>Exporter</TableCell>
+                        <TableCell>ABC Trading Co Ltd</TableCell>
+                        <TableCell><span className="text-green-600">90%</span></TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>Consignee</TableCell>
+                        <TableCell>XYZ Import Corp</TableCell>
+                        <TableCell><span className="text-yellow-600">87%</span></TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
