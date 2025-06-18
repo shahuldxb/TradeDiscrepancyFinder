@@ -311,6 +311,12 @@ const navigationItems = [
     ],
   },
   {
+    name: "LC Form Detection",
+    href: "/lc-form-detection",
+    icon: Scissors,
+    description: "Detect and split forms within LC documents",
+  },
+  {
     name: "I am tired",
     icon: Upload,
     description: "Forms Recognition & Processing",

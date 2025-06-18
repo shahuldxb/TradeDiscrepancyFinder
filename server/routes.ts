@@ -46,11 +46,16 @@ const upload = multer({
   },
   fileFilter: (req, file, cb) => {
     // Allow only specific file types for Forms Recognizer
-    const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf', 'text/plain'];
+    const allowedMimes = [
+      'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+      'application/pdf', 'text/plain', 'text/markdown',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/msword'
+    ];
     if (allowedMimes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Invalid file type. Only PDF, JPEG, PNG, GIF, and TXT files are allowed.'));
+      cb(new Error('Invalid file type. Only PDF, JPEG, PNG, GIF, TXT, MD, and DOC files are allowed.'));
     }
   }
 });
@@ -12063,18 +12068,111 @@ End of LC Document`;
       const file = req.file;
       const docId = `lc_${Date.now()}`;
       
-      // Simulate file processing
+      // Simulate LC form detection and splitting
+      const detectedForms = [
+        {
+          id: `form_1_${Date.now()}`,
+          formType: 'Commercial Invoice',
+          confidence: 0.95,
+          pageNumbers: [1, 2],
+          extractedFields: {
+            'Invoice Number': 'INV-2025-001',
+            'Invoice Date': '2025-06-18',
+            'Total Amount': 'USD 25,450.00',
+            'Seller': 'ABC Trading Co Ltd'
+          },
+          status: 'completed'
+        },
+        {
+          id: `form_2_${Date.now()}`,
+          formType: 'Bill of Lading',
+          confidence: 0.92,
+          pageNumbers: [3, 4],
+          extractedFields: {
+            'B/L Number': 'BL-2025-5432',
+            'Vessel Name': 'OCEAN SPIRIT',
+            'Port of Loading': 'Singapore',
+            'Port of Discharge': 'New York'
+          },
+          status: 'completed'
+        },
+        {
+          id: `form_3_${Date.now()}`,
+          formType: 'Certificate of Origin',
+          confidence: 0.89,
+          pageNumbers: [5],
+          extractedFields: {
+            'Certificate No': 'CO-2025-789',
+            'Country of Origin': 'Singapore',
+            'Exporter': 'ABC Trading Co Ltd',
+            'Consignee': 'XYZ Import Corp'
+          },
+          status: 'completed'
+        },
+        {
+          id: `form_4_${Date.now()}`,
+          formType: 'Packing List',
+          confidence: 0.87,
+          pageNumbers: [6],
+          extractedFields: {
+            'Packing List No': 'PL-2025-456',
+            'Total Packages': '150 Cartons',
+            'Net Weight': '2,450 KGS',
+            'Gross Weight': '2,650 KGS'
+          },
+          status: 'completed'
+        },
+        {
+          id: `form_5_${Date.now()}`,
+          formType: 'Insurance Certificate',
+          confidence: 0.91,
+          pageNumbers: [7],
+          extractedFields: {
+            'Certificate No': 'INS-2025-123',
+            'Insured Amount': 'USD 27,995.00',
+            'Insurance Company': 'Global Marine Insurance',
+            'Policy Number': 'POL-2025-8901'
+          },
+          status: 'completed'
+        }
+      ];
+      
       res.json({
         success: true,
         documentId: docId,
         fileName: file.originalname,
         fileSize: file.size,
-        message: 'LC document uploaded successfully'
+        totalPages: 7,
+        detectedForms: detectedForms,
+        message: 'LC document processed and forms detected successfully'
       });
 
     } catch (error) {
       console.error('Upload error:', error);
       res.status(500).json({ error: 'Failed to upload LC document' });
+    }
+  });
+
+  app.get('/api/lc-form-detection/status/:documentId', async (req, res) => {
+    try {
+      const { documentId } = req.params;
+      
+      // Simulate processing status
+      res.json({
+        documentId,
+        status: 'completed',
+        progress: 100,
+        processingSteps: [
+          { id: 'upload', name: 'File Upload', status: 'completed', progress: 100 },
+          { id: 'ocr', name: 'OCR Processing', status: 'completed', progress: 100 },
+          { id: 'detection', name: 'Form Detection', status: 'completed', progress: 100 },
+          { id: 'splitting', name: 'Document Splitting', status: 'completed', progress: 100 },
+          { id: 'grouping', name: 'Form Grouping', status: 'completed', progress: 100 }
+        ]
+      });
+    } catch (error) {
+      console.error('Status error:', error);
+      res.status(500).json({ error: 'Failed to get processing status' });
     }
   });
 
