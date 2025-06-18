@@ -19,32 +19,32 @@ class MultiPageFormProcessor:
     def __init__(self):
         self.form_patterns = {
             'Commercial Invoice': [
-                r'commercial\s+invoice', r'invoice\s+no', r'seller', r'buyer', 
-                r'description\s+of\s+goods', r'unit\s+price', r'total\s+amount'
+                r'commercial\s+invoice', r'invoice\s+no', r'invoice\s+number', r'seller', r'buyer', 
+                r'description\s+of\s+goods', r'unit\s+price', r'total\s+amount', r'fob', r'cif'
             ],
             'Bill of Lading': [
-                r'bill\s+of\s+lading', r'shipper', r'consignee', r'notify\s+party',
-                r'port\s+of\s+loading', r'port\s+of\s+discharge', r'vessel'
+                r'bill\s+of\s+lading', r'b/l', r'bl\s+no', r'shipper', r'consignee', r'notify\s+party',
+                r'port\s+of\s+loading', r'port\s+of\s+discharge', r'vessel', r'ocean\s+bill'
             ],
             'Certificate of Origin': [
                 r'certificate\s+of\s+origin', r'country\s+of\s+origin', r'exporter',
-                r'importer', r'chamber\s+of\s+commerce', r'certify'
+                r'importer', r'chamber\s+of\s+commerce', r'certify', r'origin\s+certificate'
             ],
             'Packing List': [
-                r'packing\s+list', r'carton\s+no', r'net\s+weight', r'gross\s+weight',
-                r'dimensions', r'packages', r'contents'
+                r'packing\s+list', r'weight\s+list', r'carton\s+no', r'net\s+weight', r'gross\s+weight',
+                r'dimensions', r'packages', r'contents', r'ctns', r'measurement'
             ],
             'Insurance Certificate': [
-                r'insurance\s+certificate', r'policy\s+no', r'insured\s+amount',
-                r'coverage', r'underwriter', r'premium'
+                r'insurance\s+certificate', r'insurance\s+policy', r'policy\s+no', r'insured\s+amount',
+                r'coverage', r'underwriter', r'premium', r'marine\s+insurance'
             ],
             'Letter of Credit': [
-                r'letter\s+of\s+credit', r'documentary\s+credit', r'irrevocable',
-                r'beneficiary', r'applicant', r'issuing\s+bank', r'advising\s+bank'
+                r'letter\s+of\s+credit', r'documentary\s+credit', r'lc\s+no', r'credit\s+no',
+                r'irrevocable', r'beneficiary', r'applicant', r'issuing\s+bank', r'advising\s+bank'
             ],
             'Multimodal Transport Document': [
                 r'multimodal\s+transport', r'combined\s+transport', r'freight\s+forwarder',
-                r'place\s+of\s+receipt', r'place\s+of\s+delivery'
+                r'place\s+of\s+receipt', r'place\s+of\s+delivery', r'container\s+no'
             ]
         }
     
@@ -72,6 +72,7 @@ class MultiPageFormProcessor:
         text_lower = text.lower()
         best_match = "Unknown Document"
         best_score = 0.0
+        best_confidence = 0.3
         
         for form_type, patterns in self.form_patterns.items():
             score = 0
@@ -94,7 +95,7 @@ class MultiPageFormProcessor:
                     best_match = form_type
                     best_confidence = confidence
         
-        return best_match, best_confidence if best_score > 0 else 0.3
+        return best_match, best_confidence
     
     def split_and_process_document(self, file_path: str) -> Dict[str, Any]:
         """Split multi-page document and process each page"""
