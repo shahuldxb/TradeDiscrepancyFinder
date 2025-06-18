@@ -199,15 +199,25 @@ async function saveToAzureDatabase(docId: string, file: any, analysisResult: any
       .input('fileType', file?.mimetype || 'unknown')
       .input('fileSize', file?.size || 0)
       .input('status', 'completed')
-      .input('extractedText', formsData[0]?.extracted_text || '')
+      .input('extractedText', formsData.map(f => f.extracted_text).join('\n\n--- PAGE BREAK ---\n\n'))
       .input('extractedData', JSON.stringify({
         totalPages: analysisResult.total_pages,
         totalForms: formsData.length,
         processingMethod: 'Direct OCR Text Extraction',
         detectedForms: formsData.map((f: any) => ({
+          id: `${docId}_form_${formsData.indexOf(f) + 1}`,
           formType: f.form_type || f.document_type,
           confidence: f.confidence,
-          pageNumber: f.page_number
+          pageNumbers: [f.page_number],
+          extractedFields: {
+            'Full Extracted Text': f.extracted_text,
+            'Document Classification': f.form_type || f.document_type,
+            'Processing Statistics': `${f.extracted_text?.length || 0} characters extracted from page ${f.page_number}`,
+            'Page Number': f.page_number.toString()
+          },
+          status: 'completed',
+          processingMethod: 'Direct OCR Text Extraction',
+          fullText: f.extracted_text
         }))
       }))
       .query(`
@@ -333,12 +343,12 @@ async function loadFromAzureDatabase() {
           .input('ingestionId', record.ingestion_id)
           .query('SELECT extracted_data FROM TF_ingestion WHERE ingestion_id = @ingestionId');
         
-        // Get extracted text
+        // Get main extracted text
         const textResult = await pool.request()
           .input('ingestionId', record.ingestion_id)
-          .query('SELECT TOP 1 content FROM TF_ingestion_TXT WHERE ingestion_id = @ingestionId');
+          .query('SELECT extracted_text FROM TF_ingestion WHERE ingestion_id = @ingestionId');
         
-        // Get form count
+        // Get form count from database
         const formResult = await pool.request()
           .input('ingestionId', record.ingestion_id)
           .query('SELECT COUNT(*) as count FROM TF_ingestion_Pdf WHERE ingestion_id = @ingestionId');
@@ -346,7 +356,7 @@ async function loadFromAzureDatabase() {
         const extractedData = dataResult.recordset[0]?.extracted_data ? 
           JSON.parse(dataResult.recordset[0].extracted_data) : {};
         
-        const extractedText = textResult.recordset[0]?.content || '';
+        const extractedText = textResult.recordset[0]?.extracted_text || '';
         const formCount = formResult.recordset[0]?.count || 1;
         
         documents.push({
