@@ -513,101 +513,85 @@ export default function DocumentManagementNew() {
           <TabsTrigger value="registration">Document Registration</TabsTrigger>
         </TabsList>
 
-        {/* Upload Doc Tab - LC Form Detection */}
+        {/* Upload & Ingestion Tab */}
         <TabsContent value="upload" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>LC Document Upload & Form Detection</CardTitle>
-              <CardDescription>Upload LC documents for automatic form detection and constituent document splitting</CardDescription>
+              <CardTitle>Document Upload & Processing</CardTitle>
+              <CardDescription>Upload documents for OCR processing and field extraction</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                {/* Upload Area */}
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors">
+                {/* File Upload Area */}
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
                   <input
+                    ref={fileInputRef}
                     type="file"
-                    id="lc-file-upload"
-                    accept=".pdf,.png,.jpg,.jpeg"
+                    accept=".pdf,.png,.jpg,.jpeg,.txt"
                     className="hidden"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) {
-                        handleLCFileUpload(file);
+                        setSelectedFile(file);
                       }
                     }}
                   />
-                  <label htmlFor="lc-file-upload" className="cursor-pointer">
-                    <div className="mx-auto h-12 w-12 text-gray-400">
-                      <svg fill="none" stroke="currentColor" viewBox="0 0 48 48">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" />
-                      </svg>
+                  <div className="space-y-4">
+                    <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                    <div>
+                      <p className="text-lg font-medium">Upload Document</p>
+                      <p className="text-sm text-gray-500">PDF, PNG, JPG, TXT files supported</p>
                     </div>
-                    <div className="mt-4">
-                      <p className="text-lg font-medium">Upload LC Document</p>
-                      <p className="text-sm text-gray-500">PDF, PNG, JPG files up to 10MB</p>
-                    </div>
-                  </label>
+                    {selectedFile && (
+                      <div className="text-sm text-gray-600">
+                        Selected: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
+                      </div>
+                    )}
+                    <Button 
+                      onClick={() => fileInputRef.current?.click()}
+                      variant="outline"
+                    >
+                      Choose File
+                    </Button>
+                  </div>
                 </div>
 
                 {/* Batch Name Input */}
-                <div>
-                  <label className="block text-sm font-medium mb-2">Batch Name</label>
-                  <input
-                    type="text"
-                    value={lcBatchName}
-                    onChange={(e) => setLcBatchName(e.target.value)}
-                    placeholder="Enter batch name for this LC upload"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Batch Name</label>
+                  <Input
+                    value={batchName}
+                    onChange={(e) => setBatchName(e.target.value)}
+                    placeholder="Enter batch name for this upload"
                   />
                 </div>
 
-                {/* Processing Status */}
-                {lcProcessingStatus && (
-                  <div className="space-y-3">
-                    <h4 className="font-semibold">Processing Status</h4>
-                    <div className="space-y-2">
-                      {lcProcessingSteps.map((step, index) => (
-                        <div key={index} className="flex items-center space-x-3">
-                          <div className={`w-4 h-4 rounded-full ${
-                            lcProcessingStatus[step.key] === 'completed' ? 'bg-green-500' :
-                            lcProcessingStatus[step.key] === 'processing' ? 'bg-blue-500 animate-pulse' :
-                            'bg-gray-300'
-                          }`} />
-                          <span className="text-sm">{step.label}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                {/* Upload Button */}
+                <Button 
+                  onClick={handleFileUpload}
+                  disabled={!selectedFile || processingStatus === 'processing'}
+                  className="w-full"
+                >
+                  {processingStatus === 'processing' ? 'Processing...' : 'Upload & Process'}
+                </Button>
 
-                {/* Detected Forms */}
-                {lcDetectedForms.length > 0 && (
+                {/* Processing Status */}
+                {processingStatus !== 'idle' && (
                   <div className="space-y-4">
-                    <h4 className="font-semibold">Detected Forms ({lcDetectedForms.length})</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {lcDetectedForms.map((form, index) => (
-                        <div key={index} className="border rounded-lg p-4">
-                          <div className="flex justify-between items-start mb-2">
-                            <h5 className="font-medium">{form.form_type}</h5>
-                            <span className={`px-2 py-1 rounded text-xs ${
-                              form.confidence >= 90 ? 'bg-green-100 text-green-800' :
-                              form.confidence >= 75 ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-red-100 text-red-800'
-                            }`}>
-                              {form.confidence}% confidence
-                            </span>
+                    <div className="text-sm font-medium">Processing Status: {processingStatus}</div>
+                    {processingStatus === 'processing' && (
+                      <div className="space-y-2">
+                        <div className="text-xs text-gray-500">Document validation, OCR extraction, and field analysis in progress...</div>
+                        <div className="bg-blue-100 border border-blue-200 rounded p-3">
+                          <div className="animate-pulse flex space-x-2">
+                            <div className="rounded-full bg-blue-500 h-2 w-2"></div>
+                            <div className="rounded-full bg-blue-500 h-2 w-2"></div>
+                            <div className="rounded-full bg-blue-500 h-2 w-2"></div>
                           </div>
-                          <div className="text-sm text-gray-600 space-y-1">
-                            {form.extracted_fields.map((field, fieldIndex) => (
-                              <div key={fieldIndex} className="flex justify-between">
-                                <span>{field.name}:</span>
-                                <span className="font-medium">{field.value}</span>
-                              </div>
-                            ))}
-                          </div>
+                          <div className="text-xs text-blue-800 mt-2">Processing document...</div>
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -615,8 +599,8 @@ export default function DocumentManagementNew() {
           </Card>
         </TabsContent>
 
-        {/* Upload & Ingestion Tab */}
-        <TabsContent value="ingestion" className="space-y-6">
+        {/* Processed Documents Tab */}
+        <TabsContent value="processed" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>Manual LC Document Upload</CardTitle>
