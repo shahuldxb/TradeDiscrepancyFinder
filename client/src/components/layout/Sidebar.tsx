@@ -133,6 +133,11 @@ const navigationItems = [
     description: "Document Processing & OCR",
     subItems: [
       {
+        name: "Document Management New",
+        href: "/document-management-new",
+        description: "Advanced document processing pipeline",
+      },
+      {
         name: "Document Upload",
         href: "/document-upload",
         description: "Upload and process documents",

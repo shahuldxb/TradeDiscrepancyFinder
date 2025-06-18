@@ -96,6 +96,7 @@ function Router() {
             <Route path="/incoterms/statistics" component={IncotermsDataGrid} />
             
             {/* Document Management Routes */}
+            <Route path="/document-management-new" component={DocumentManagementNew} />
             <Route path="/document-upload" component={DocumentUpload} />
             <Route path="/documents" component={DocumentUpload} />
             <Route path="/document-management/upload-documents" component={DocumentUpload} />
