@@ -10931,6 +10931,142 @@ For technical support, please reference Document ID: ${ingestionId}`;
     }
   });
 
+  // Document Management New - Step 1: Create Tables
+  app.post('/api/document-management/create-tables', async (req, res) => {
+    try {
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+
+      // 1. masterdocuments_new table
+      await pool.request().query(`
+        IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='masterdocuments_new' AND xtype='U')
+        CREATE TABLE masterdocuments_new (
+          id INT IDENTITY(1,1) PRIMARY KEY,
+          form_name NVARCHAR(255) NOT NULL,
+          is_active BIT DEFAULT 1,
+          created_at DATETIME2 DEFAULT GETDATE()
+        )
+      `);
+
+      // 2. masterdocument_fields_new table
+      await pool.request().query(`
+        IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='masterdocument_fields_new' AND xtype='U')
+        CREATE TABLE masterdocument_fields_new (
+          id INT IDENTITY(1,1) PRIMARY KEY,
+          form_id INT NOT NULL,
+          field_name NVARCHAR(255) NOT NULL,
+          json_config NTEXT,
+          created_at DATETIME2 DEFAULT GETDATE(),
+          FOREIGN KEY (form_id) REFERENCES masterdocuments_new(id)
+        )
+      `);
+
+      // 3. instrument_ingestion_new table
+      await pool.request().query(`
+        IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='instrument_ingestion_new' AND xtype='U')
+        CREATE TABLE instrument_ingestion_new (
+          id INT IDENTITY(1,1) PRIMARY KEY,
+          batch_name NVARCHAR(255),
+          unique_key NVARCHAR(255) UNIQUE,
+          created_at DATETIME2 DEFAULT GETDATE()
+        )
+      `);
+
+      // 4. ingestion_docs_new table
+      await pool.request().query(`
+        IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='ingestion_docs_new' AND xtype='U')
+        CREATE TABLE ingestion_docs_new (
+          id INT IDENTITY(1,1) PRIMARY KEY,
+          instrument_id INT NOT NULL,
+          form_name NVARCHAR(255),
+          processed_status NVARCHAR(50) DEFAULT 'pending',
+          created_at DATETIME2 DEFAULT GETDATE(),
+          FOREIGN KEY (instrument_id) REFERENCES instrument_ingestion_new(id)
+        )
+      `);
+
+      // 5. ingestion_fields_new table
+      await pool.request().query(`
+        IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='ingestion_fields_new' AND xtype='U')
+        CREATE TABLE ingestion_fields_new (
+          id INT IDENTITY(1,1) PRIMARY KEY,
+          doc_id INT NOT NULL,
+          field_key NVARCHAR(255),
+          field_value NTEXT,
+          mt_code NVARCHAR(10),
+          perceived_info NTEXT,
+          processed_status NVARCHAR(50) DEFAULT 'pending',
+          created_at DATETIME2 DEFAULT GETDATE(),
+          FOREIGN KEY (doc_id) REFERENCES ingestion_docs_new(id)
+        )
+      `);
+
+      // 6. ingestion_validation_results_new table
+      await pool.request().query(`
+        IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='ingestion_validation_results_new' AND xtype='U')
+        CREATE TABLE ingestion_validation_results_new (
+          id INT IDENTITY(1,1) PRIMARY KEY,
+          ingestion_id INT NOT NULL,
+          result_json NTEXT,
+          validation_type NVARCHAR(100),
+          created_at DATETIME2 DEFAULT GETDATE(),
+          FOREIGN KEY (ingestion_id) REFERENCES instrument_ingestion_new(id)
+        )
+      `);
+
+      // 7. masterdocuments_history_new table
+      await pool.request().query(`
+        IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='masterdocuments_history_new' AND xtype='U')
+        CREATE TABLE masterdocuments_history_new (
+          id INT IDENTITY(1,1) PRIMARY KEY,
+          original_id INT NOT NULL,
+          form_name NVARCHAR(255) NOT NULL,
+          is_active BIT,
+          change_type NVARCHAR(50),
+          changed_at DATETIME2 DEFAULT GETDATE(),
+          changed_by NVARCHAR(255)
+        )
+      `);
+
+      // 8. masterdocument_fields_history_new table
+      await pool.request().query(`
+        IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='masterdocument_fields_history_new' AND xtype='U')
+        CREATE TABLE masterdocument_fields_history_new (
+          id INT IDENTITY(1,1) PRIMARY KEY,
+          original_id INT NOT NULL,
+          form_id INT NOT NULL,
+          field_name NVARCHAR(255) NOT NULL,
+          json_config NTEXT,
+          change_type NVARCHAR(50),
+          changed_at DATETIME2 DEFAULT GETDATE(),
+          changed_by NVARCHAR(255)
+        )
+      `);
+
+      res.json({
+        success: true,
+        message: 'Document Management New tables created successfully',
+        tables: [
+          'masterdocuments_new',
+          'masterdocument_fields_new', 
+          'instrument_ingestion_new',
+          'ingestion_docs_new',
+          'ingestion_fields_new',
+          'ingestion_validation_results_new',
+          'masterdocuments_history_new',
+          'masterdocument_fields_history_new'
+        ]
+      });
+
+    } catch (error) {
+      console.error('Error creating Document Management tables:', error);
+      res.status(500).json({ 
+        error: 'Failed to create tables',
+        details: (error as Error).message
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
