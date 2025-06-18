@@ -11905,7 +11905,7 @@ except Exception as e:
         success: true,
         message: 'LC document processed successfully',
         instrumentId: instrumentId,
-        ingestionId: ingestionId,
+        documentId: documentId,
         batchName: finalBatchName,
         fileName: fileName,
         fileSize: file.size,
