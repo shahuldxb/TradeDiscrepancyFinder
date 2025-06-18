@@ -11105,19 +11105,28 @@ For technical support, please reference Document ID: ${ingestionId}`;
         ORDER BY id
       `);
 
-      for (let i = 0; i < nullRecords.recordset.length; i++) {
-        const record = nullRecords.recordset[i];
+      // Count by type for sequential numbering
+      let ciCount = 1;
+      let unkCount = 1; 
+      let lcCount = 1;
+      let docCount = 1;
+
+      for (const record of nullRecords.recordset) {
         let documentCode = '';
         
-        // Assign codes based on form_name patterns
+        // Assign codes based on form_name patterns with sequential numbering
         if (record.form_name.toLowerCase().includes('commercial invoice')) {
-          documentCode = `CI${String(i + 1).padStart(3, '0')}`;
+          documentCode = `CI${String(ciCount).padStart(3, '0')}`;
+          ciCount++;
         } else if (record.form_name.toLowerCase().includes('unknown')) {
-          documentCode = `UNK${String(i + 1).padStart(3, '0')}`;
+          documentCode = `UNK${String(unkCount).padStart(3, '0')}`;
+          unkCount++;
         } else if (record.form_name.toLowerCase().includes('lc document')) {
-          documentCode = `LC${String(i + 1).padStart(3, '0')}`;
+          documentCode = `LC${String(lcCount).padStart(3, '0')}`;
+          lcCount++;
         } else {
-          documentCode = `DOC${String(i + 1).padStart(3, '0')}`;
+          documentCode = `DOC${String(docCount).padStart(3, '0')}`;
+          docCount++;
         }
 
         await pool.request()
