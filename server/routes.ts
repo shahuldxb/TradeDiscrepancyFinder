@@ -79,8 +79,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const docId = Date.now().toString();
       
-      // Use Fast LC Processor for document classification and constituent document detection
-      const pythonProcess = spawn('python3', ['server/fastLCProcessor.py', req.file.path], {
+      // Use Real Text OCR for authentic document content extraction
+      const pythonProcess = spawn('python3', ['server/realTextOCR.py', req.file.path], {
         stdio: ['pipe', 'pipe', 'pipe'],
         timeout: 10000
       });
@@ -251,9 +251,9 @@ try {
         
         console.log(`📋 Processing: ${req.file?.originalname} | LC Detection: ${isLCDocument}`);
         
-        // Use Efficient OCR Processor for authentic text extraction
-        const scriptPath = 'server/efficientOCR.py';
-        console.log(`🚀 Using Efficient OCR Processor: ${scriptPath}`);
+        // Use Real Text OCR for authentic document content extraction
+        const scriptPath = 'server/realTextOCR.py';
+        console.log(`🚀 Using Real Text OCR Processor: ${scriptPath}`);
         const pythonProcess = spawn('python3', [scriptPath, filePath]);
         
         let output = '';
