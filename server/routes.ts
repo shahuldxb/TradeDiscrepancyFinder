@@ -11097,13 +11097,13 @@ For technical support, please reference Document ID: ${ingestionId}`;
       const fs = await import('fs');
       const fileStats = fs.statSync(lcFilePath);
       
-      // Create basic ingestion record using only batch_name (the core identifier)
+      // Create basic ingestion record with unique batch_name
       const result = await pool.request()
         .input('batch_name', batchName)
         .query(`
           INSERT INTO instrument_ingestion_new 
           (batch_name)
-          OUTPUT INSERTED.*
+          OUTPUT INSERTED.id, INSERTED.batch_name
           VALUES (@batch_name)
         `);
 
