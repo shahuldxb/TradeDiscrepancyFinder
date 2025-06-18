@@ -155,17 +155,17 @@ export default function FormDetection() {
   };
 
   const handleViewForm = (form: any) => {
-    // Generate form content for viewing
-    const extractedFieldsText = Object.entries(form.extractedFields || form.extracted_fields || {})
-      .map(([key, value]) => `${key}: ${value}`)
-      .join('\n');
+    // Generate form content for viewing using actual extracted fields
+    const extractedFieldsText = form.extracted_fields
+      .map((field: any) => `${field.field_name}: ${field.field_value}`)
+      .join('\n\n');
       
-    const formType = form.formType || form.form_type || 'Unknown Form';
+    const formType = form.form_type || 'Unknown Form';
     const formContent = `
 ${formType} - Extracted Data
 ${'='.repeat(40)}
 
-Confidence Score: ${form.confidence || 0}%
+Confidence Score: ${form.confidence}%
 Extraction Date: ${new Date().toLocaleString()}
 
 Field Details:
@@ -218,18 +218,22 @@ This form was automatically extracted from the uploaded document using Azure Doc
   };
 
   const handleExportData = (form: any) => {
-    // Prepare export data
-    const formType = form.formType || form.form_type || 'Unknown Form';
-    const extractedFields = form.extractedFields || form.extracted_fields || {};
+    // Prepare export data using actual extracted fields
+    const formType = form.form_type || 'Unknown Form';
+    const extractedFields = form.extracted_fields.reduce((acc: any, field: any) => {
+      acc[field.field_name] = field.field_value;
+      return acc;
+    }, {});
+    
     const exportData = {
       form_type: formType,
       confidence: form.confidence || 0,
       extraction_date: new Date().toISOString(),
       document_id: documentId,
       extracted_fields: extractedFields,
-      page_numbers: form.pageNumbers || form.page_numbers || [],
+      page_numbers: form.page_numbers || [],
       metadata: {
-        total_fields: Object.keys(extractedFields).length,
+        total_fields: form.extracted_fields.length,
         processing_timestamp: new Date().toISOString()
       }
     };
@@ -239,7 +243,7 @@ This form was automatically extracted from the uploaded document using Azure Doc
     const url = URL.createObjectURL(jsonBlob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${(form.formType || form.form_type || 'unknown_form').replace(/\s+/g, '_')}_${documentId || 'export'}.json`;
+    link.download = `${(form.form_type || 'unknown_form').replace(/\s+/g, '_')}_${documentId || 'export'}.json`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -247,7 +251,7 @@ This form was automatically extracted from the uploaded document using Azure Doc
 
     toast({
       title: "Data Exported",
-      description: `${form.formType || form.form_type || 'Form'} data exported as JSON file`,
+      description: `${form.form_type || 'Form'} data exported as JSON file`,
     });
   };
 
@@ -435,15 +439,17 @@ This form was automatically extracted from the uploaded document using Azure Doc
                         </div>
                       </CardHeader>
                       <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-4">
                           {form.extracted_fields.map((field, fieldIndex) => (
-                            <div key={fieldIndex} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                              <span className="font-medium text-sm">{field.field_name}:</span>
-                              <div className="text-right">
-                                <span className="text-sm">{field.field_value}</span>
-                                <Badge variant="outline" className="ml-2 text-xs">
+                            <div key={fieldIndex} className="p-3 bg-gray-50 rounded-lg">
+                              <div className="flex justify-between items-start mb-2">
+                                <span className="font-medium text-sm">{field.field_name}:</span>
+                                <Badge variant="outline" className="text-xs">
                                   {field.confidence}%
                                 </Badge>
+                              </div>
+                              <div className="text-sm text-gray-700 whitespace-pre-wrap break-words">
+                                {String(field.field_value)}
                               </div>
                             </div>
                           ))}

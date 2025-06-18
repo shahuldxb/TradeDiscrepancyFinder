@@ -108,9 +108,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 confidence: analysisResult.confidence,
                 pageNumbers: [1],
                 extractedFields: {
-                  'Extracted Text Preview': analysisResult.extracted_text.substring(0, 500) + '...',
-                  'Text Length': `${analysisResult.text_length} characters`,
-                  'Processing Method': 'OCR-based content analysis'
+                  'Full Extracted Text': analysisResult.extracted_text,
+                  'Document Classification': analysisResult.document_type,
+                  'Processing Statistics': `${analysisResult.text_length} characters extracted via OCR`
                 },
                 status: 'completed',
                 processingMethod: 'Real OCR Content Analysis',
