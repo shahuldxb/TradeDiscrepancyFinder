@@ -10,12 +10,14 @@ import { apiRequest } from "@/lib/queryClient";
 
 interface ProcessedDocument {
   id: number;
-  batchName: string;
-  fileName: string;
-  processingStatus: string;
-  characterCount: string;
-  extractedTextPreview: string;
-  createdAt: string;
+  batch_name: string;
+  file_name: string;
+  processing_status: string;
+  document_type: string;
+  total_documents: number;
+  field_count: number;
+  file_size: string;
+  created_at: string;
 }
 
 interface ExtractedTextResponse {
