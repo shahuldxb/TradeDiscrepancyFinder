@@ -230,9 +230,9 @@ try {
       saveDocumentHistory();
       console.log(`✓ DOCUMENT STORED: ${historyEntry.filename} (${historyEntry.fileSize})`);
 
-      // Process document with OCR
+      // Process document with multi-page form detection
       const result = await new Promise<any>((resolve, reject) => {
-        const pythonProcess = spawn('python3', ['server/quickOCR.py', filePath]);
+        const pythonProcess = spawn('python3', ['server/multiPageProcessor.py', filePath]);
         
         let output = '';
         let errorOutput = '';
@@ -250,17 +250,49 @@ try {
             try {
               const analysisResult = JSON.parse(output);
               
-              // Store complete processing result in document history with FULL extracted text
+              if (analysisResult.error) {
+                reject(new Error(analysisResult.error));
+                return;
+              }
+              
+              // Create detected forms array from multi-page processing
+              const detectedForms = analysisResult.detected_forms.map((form: any, index: number) => ({
+                id: `${docId}_form_${index + 1}`,
+                formType: form.form_type,
+                confidence: form.confidence,
+                pageNumbers: [form.page_number],
+                extractedFields: {
+                  'Full Extracted Text': form.extracted_text,
+                  'Document Classification': form.form_type,
+                  'Processing Statistics': `${form.text_length} characters extracted from page ${form.page_number}`,
+                  'Page Number': form.page_number.toString()
+                },
+                status: 'completed',
+                processingMethod: analysisResult.processing_method,
+                fullText: form.extracted_text
+              }));
+              
+              // For history, combine all forms or use the first/primary form
+              const primaryForm = analysisResult.detected_forms[0] || {
+                form_type: 'Unknown Document',
+                confidence: 0.3,
+                extracted_text: 'No content extracted',
+                text_length: 0
+              };
+              
+              // Store complete processing result in document history
               const historyDoc = {
                 id: docId,
                 filename: req.file?.originalname || 'Unknown',
-                documentType: analysisResult.document_type,
-                confidence: Math.round((analysisResult.confidence || 0) * 100),
-                extractedText: analysisResult.extracted_text, // Store FULL text, no truncation
-                fullText: analysisResult.extracted_text, // Also store as fullText for compatibility
+                documentType: primaryForm.form_type,
+                confidence: Math.round((primaryForm.confidence || 0) * 100),
+                extractedText: primaryForm.extracted_text,
+                fullText: primaryForm.extracted_text,
                 fileSize: req.file ? `${(req.file.size / 1024 / 1024).toFixed(2)} MB` : 'Unknown',
                 processedAt: new Date().toISOString(),
-                docId: docId
+                docId: docId,
+                totalPages: analysisResult.total_pages,
+                totalForms: analysisResult.detected_forms.length
               };
               
               // Replace the initial entry with complete processing result
@@ -271,35 +303,21 @@ try {
                 documentHistory.unshift(historyDoc);
               }
               saveDocumentHistory();
-              console.log(`✓ Document updated in history: ${historyDoc.filename} (${historyDoc.documentType}) - ${documentHistory.length} total`);
-              
-              const detectedForms = [{
-                id: `${docId}_form_1`,
-                formType: analysisResult.document_type,
-                confidence: analysisResult.confidence,
-                pageNumbers: [1],
-                extractedFields: {
-                  'Full Extracted Text': analysisResult.extracted_text,
-                  'Document Classification': analysisResult.document_type,
-                  'Processing Statistics': `${analysisResult.text_length} characters extracted via OCR`
-                },
-                status: 'completed',
-                processingMethod: 'Real OCR Content Analysis',
-                fullText: analysisResult.extracted_text
-              }];
+              console.log(`✓ Multi-page document processed: ${historyDoc.filename} (${analysisResult.total_pages} pages, ${analysisResult.detected_forms.length} forms) - ${documentHistory.length} total`);
               
               resolve({
                 docId,
                 detectedForms,
-                totalForms: 1,
-                processingMethod: 'OCR Classification',
+                totalForms: analysisResult.detected_forms.length,
+                totalPages: analysisResult.total_pages,
+                processingMethod: analysisResult.processing_method,
                 status: 'completed'
               });
             } catch (parseError) {
               reject(parseError);
             }
           } else {
-            reject(new Error(`OCR processing failed: ${errorOutput}`));
+            reject(new Error(`Multi-page processing failed: ${errorOutput}`));
           }
         });
       });
