@@ -64,7 +64,7 @@ export default function LCFormDetection() {
       // Start upload
       setProcessingStatus({ upload: 'processing' });
       
-      const response = await fetch('/api/lc-form-detection/upload', {
+      const response = await fetch('/api/form-detection/upload', {
         method: 'POST',
         body: formData
       });

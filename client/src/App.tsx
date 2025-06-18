@@ -102,7 +102,7 @@ function Router() {
             <Route path="/document-management-new" component={DocumentManagementNew} />
             <Route path="/document-management-new/validation" component={DocumentManagementNew} />
             <Route path="/document-management-new/registration" component={DocumentManagementNew} />
-            <Route path="/lc-form-detection" component={LCFormDetection} />
+            <Route path="/form-detection" component={LCFormDetection} />
             <Route path="/document-management-new/processed" component={DocumentManagementNew} />
   
 

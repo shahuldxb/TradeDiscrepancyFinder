@@ -12093,8 +12093,8 @@ End of LC Document`;
     res.json([]);
   });
 
-  // LC Form Detection API endpoints
-  app.post('/api/lc-form-detection/upload', upload.single('file'), async (req, res) => {
+  // Form Detection API endpoints
+  app.post('/api/form-detection/upload', upload.single('file'), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
@@ -12371,7 +12371,7 @@ if __name__ == "__main__":
     }
   });
 
-  app.get('/api/lc-form-detection/status/:documentId', async (req, res) => {
+  app.get('/api/form-detection/status/:documentId', async (req, res) => {
     try {
       const { documentId } = req.params;
       
@@ -12394,7 +12394,7 @@ if __name__ == "__main__":
     }
   });
 
-  app.post('/api/lc-form-detection/process/:docId', async (req, res) => {
+  app.post('/api/form-detection/process/:docId', async (req, res) => {
     try {
       const { docId } = req.params;
       
