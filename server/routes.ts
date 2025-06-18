@@ -12275,16 +12275,6 @@ if __name__ == "__main__":
             "extracted_fields": fields,
             "text_length": len(extracted_text),
             "classification_scores": all_scores,
-            "processing_timestamp": datetime.now().isoformat()
-        }
-    
-    print(json.dumps(result))
-            `,
-            file.path
-          ], {
-            stdio: ['pipe', 'pipe', 'pipe']
-          });
-
           let output = '';
           let errorOutput = '';
 
