@@ -12174,47 +12174,254 @@ End of LC Document`;
         }
       }
       
-      // If no specialized processing was done, perform basic document classification
+      // If no specialized processing was done, perform OCR-based document classification
       if (detectedForms.length === 0) {
-        console.log('Performing basic document classification...');
+        console.log('Performing OCR-based document classification...');
         
-        // Determine document type based on filename and content
-        let documentType = 'Unknown Document';
-        let confidence = 0.7;
-        
-        if (fileName.includes('invoice')) {
-          documentType = 'Commercial Invoice';
-          confidence = 0.85;
-        } else if (fileName.includes('bill') && fileName.includes('lading')) {
-          documentType = 'Bill of Lading';
-          confidence = 0.88;
-        } else if (fileName.includes('certificate') && fileName.includes('origin')) {
-          documentType = 'Certificate of Origin';
-          confidence = 0.82;
-        } else if (fileName.includes('packing')) {
-          documentType = 'Packing List';
-          confidence = 0.80;
-        } else if (fileName.includes('insurance')) {
-          documentType = 'Insurance Certificate';
-          confidence = 0.83;
+        try {
+          // Use Python OCR and classification script for real document analysis
+          const { spawn } = await import('child_process');
+          const pythonProcess = spawn('python', [
+            '-c', `
+import sys
+import os
+import fitz  # PyMuPDF
+import re
+from datetime import datetime
+import json
+
+def extract_text_from_pdf(file_path):
+    try:
+        doc = fitz.open(file_path)
+        full_text = ""
+        for page in doc:
+            text = page.get_text()
+            full_text += text + "\\n"
+        doc.close()
+        return full_text.strip()
+    except:
+        return ""
+
+def classify_document_content(text):
+    text_lower = text.lower()
+    
+    # Document type patterns based on actual content
+    patterns = {
+        'Commercial Invoice': [
+            r'\\binvoice\\b.*\\bnumber\\b',
+            r'\\btotal\\b.*\\bamount\\b',
+            r'\\bseller\\b|\\bvendor\\b',
+            r'\\bbuyer\\b|\\bcustomer\\b',
+            r'\\binvoice\\b.*\\bdate\\b'
+        ],
+        'Bill of Lading': [
+            r'\\bbill\\s+of\\s+lading\\b',
+            r'\\bb/l\\s+no\\b|\\bbl\\s+number\\b',
+            r'\\bport\\s+of\\s+loading\\b',
+            r'\\bport\\s+of\\s+discharge\\b',
+            r'\\bvessel\\b.*\\bname\\b',
+            r'\\bcontainer\\b.*\\bnumber\\b'
+        ],
+        'Certificate of Origin': [
+            r'\\bcertificate\\s+of\\s+origin\\b',
+            r'\\bcountry\\s+of\\s+origin\\b',
+            r'\\bexporter\\b',
+            r'\\bconsignee\\b',
+            r'\\bcertify\\b.*\\borigin\\b'
+        ],
+        'Packing List': [
+            r'\\bpacking\\s+list\\b',
+            r'\\bpackages?\\b.*\\bnumber\\b',
+            r'\\bnet\\s+weight\\b',
+            r'\\bgross\\s+weight\\b',
+            r'\\bmeasurement\\b|\\bcbm\\b'
+        ],
+        'Insurance Certificate': [
+            r'\\binsurance\\b.*\\bcertificate\\b',
+            r'\\bpolicy\\b.*\\bnumber\\b',
+            r'\\binsured\\b.*\\bamount\\b',
+            r'\\bcoverage\\b',
+            r'\\binsurer\\b|\\binsurance\\s+company\\b'
+        ],
+        'Letter of Credit': [
+            r'\\bletter\\s+of\\s+credit\\b',
+            r'\\bdocumentary\\s+credit\\b',
+            r'\\blc\\s+number\\b',
+            r'\\bissuing\\s+bank\\b',
+            r'\\bapplicant\\b.*\\bbeneficiary\\b'
+        ]
+    }
+    
+    scores = {}
+    for doc_type, type_patterns in patterns.items():
+        score = 0
+        matches = []
+        for pattern in type_patterns:
+            if re.search(pattern, text_lower):
+                score += 1
+                matches.append(pattern)
+        scores[doc_type] = {
+            'score': score, 
+            'total_patterns': len(type_patterns),
+            'confidence': score / len(type_patterns),
+            'matches': matches
         }
+    
+    # Find best match
+    best_type = max(scores.keys(), key=lambda x: scores[x]['confidence'])
+    return best_type, scores[best_type]['confidence'], scores
+
+def extract_key_fields(text, doc_type):
+    fields = {}
+    text_lower = text.lower()
+    
+    if doc_type == 'Commercial Invoice':
+        # Extract invoice specific fields
+        invoice_num = re.search(r'invoice\\s+no[.:]*\\s*([A-Z0-9\\-/]+)', text, re.IGNORECASE)
+        if invoice_num:
+            fields['Invoice Number'] = invoice_num.group(1)
+            
+        amount = re.search(r'total\\s+amount[:\\s]*([A-Z]{3}\\s*[\\d,\\.]+)', text, re.IGNORECASE)
+        if amount:
+            fields['Total Amount'] = amount.group(1)
+            
+        date = re.search(r'invoice\\s+date[:\\s]*(\\d{1,2}[/-]\\d{1,2}[/-]\\d{2,4})', text, re.IGNORECASE)
+        if date:
+            fields['Invoice Date'] = date.group(1)
+    
+    elif doc_type == 'Bill of Lading':
+        # Extract B/L specific fields
+        bl_num = re.search(r'b/l\\s+no[.:]*\\s*([A-Z0-9\\-/]+)', text, re.IGNORECASE)
+        if bl_num:
+            fields['B/L Number'] = bl_num.group(1)
+            
+        vessel = re.search(r'vessel[:\\s]*([A-Z\\s]+)', text, re.IGNORECASE)
+        if vessel:
+            fields['Vessel Name'] = vessel.group(1).strip()
+            
+        pol = re.search(r'port\\s+of\\s+loading[:\\s]*([A-Z\\s,]+)', text, re.IGNORECASE)
+        if pol:
+            fields['Port of Loading'] = pol.group(1).strip()
+    
+    elif doc_type == 'Certificate of Origin':
+        # Extract COO specific fields
+        cert_num = re.search(r'certificate\\s+no[.:]*\\s*([A-Z0-9\\-/]+)', text, re.IGNORECASE)
+        if cert_num:
+            fields['Certificate Number'] = cert_num.group(1)
+            
+        country = re.search(r'country\\s+of\\s+origin[:\\s]*([A-Z\\s]+)', text, re.IGNORECASE)
+        if country:
+            fields['Country of Origin'] = country.group(1).strip()
+    
+    return fields
+
+# Main processing
+if __name__ == "__main__":
+    file_path = sys.argv[1]
+    
+    # Extract text using OCR
+    extracted_text = extract_text_from_pdf(file_path)
+    
+    if not extracted_text:
+        result = {
+            "error": "Could not extract text from document",
+            "document_type": "Unknown Document",
+            "confidence": 0,
+            "extracted_text": "",
+            "extracted_fields": {}
+        }
+    else:
+        # Classify document based on content
+        doc_type, confidence, all_scores = classify_document_content(extracted_text)
         
-        // Create single form based on detected type
-        detectedForms = [{
-          id: `${docId}_form_1`,
-          formType: documentType,
-          confidence: confidence,
-          pageNumbers: [1],
-          extractedFields: {
-            'Document Type': documentType,
-            'File Name': file.originalname,
-            'File Size': `${(file.size / 1024).toFixed(1)} KB`,
-            'Processing Status': 'OCR and field extraction required'
-          },
-          status: 'needs_processing'
-        }];
+        # Extract key fields
+        fields = extract_key_fields(extracted_text, doc_type)
         
-        console.log(`Basic classification: ${documentType} (confidence: ${(confidence * 100).toFixed(0)}%)`);
+        result = {
+            "document_type": doc_type,
+            "confidence": confidence,
+            "extracted_text": extracted_text[:2000],  # Limit text for response
+            "extracted_fields": fields,
+            "text_length": len(extracted_text),
+            "classification_scores": all_scores,
+            "processing_timestamp": datetime.now().isoformat()
+        }
+    
+    print(json.dumps(result))
+            `,
+            file.path
+          ], {
+            stdio: ['pipe', 'pipe', 'pipe']
+          });
+
+          let output = '';
+          let errorOutput = '';
+
+          pythonProcess.stdout.on('data', (data) => {
+            output += data.toString();
+          });
+
+          pythonProcess.stderr.on('data', (data) => {
+            errorOutput += data.toString();
+          });
+
+          await new Promise((resolve, reject) => {
+            pythonProcess.on('close', (code) => {
+              if (code === 0) {
+                try {
+                  const analysisResult = JSON.parse(output);
+                  
+                  // Convert analysis result to form format
+                  const extractedFields = {
+                    'Extracted Text Preview': analysisResult.extracted_text.substring(0, 500) + '...',
+                    'Text Length': `${analysisResult.text_length} characters`,
+                    'Processing Method': 'OCR-based content analysis',
+                    ...analysisResult.extracted_fields
+                  };
+                  
+                  detectedForms = [{
+                    id: `${docId}_form_1`,
+                    formType: analysisResult.document_type,
+                    confidence: analysisResult.confidence,
+                    pageNumbers: [1],
+                    extractedFields,
+                    status: 'completed',
+                    processingMethod: 'Real OCR Content Analysis',
+                    fullText: analysisResult.extracted_text,
+                    classificationScores: analysisResult.classification_scores
+                  }];
+                  
+                  console.log(`OCR classification: ${analysisResult.document_type} (confidence: ${(analysisResult.confidence * 100).toFixed(0)}%)`);
+                  resolve(detectedForms);
+                } catch (parseError) {
+                  console.error('OCR result parsing error:', parseError);
+                  reject(parseError);
+                }
+              } else {
+                console.error('OCR processing error:', errorOutput);
+                reject(new Error(`OCR processing failed: ${errorOutput}`));
+              }
+            });
+          });
+
+        } catch (ocrError) {
+          console.error('OCR processing failed:', ocrError);
+          
+          // Fallback: Create unknown document entry
+          detectedForms = [{
+            id: `${docId}_form_1`,
+            formType: 'Unknown Document',
+            confidence: 0.5,
+            pageNumbers: [1],
+            extractedFields: {
+              'Processing Status': 'OCR failed - manual review required',
+              'File Name': file.originalname,
+              'File Size': `${(file.size / 1024).toFixed(1)} KB`,
+              'Error': 'Could not extract text content'
+            },
+            status: 'needs_manual_review'
+          }];
+        }
       }
       
       res.json({
