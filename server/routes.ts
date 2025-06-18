@@ -9739,7 +9739,8 @@ Extraction Date: ${new Date().toISOString()}
         return res.status(400).json({ error: 'ingestion_id is required' });
       }
 
-      const pool = await sql.connect(azureConfig);
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
       
       // Get the document content from TF_ingestion_TXT table
       const txtResult = await pool.request()
@@ -9907,7 +9908,8 @@ Extraction Date: ${new Date().toISOString()}
   app.get('/api/forms/progress/:ingestionId', async (req, res) => {
     try {
       const { ingestionId } = req.params;
-      const pool = await sql.connect(azureConfig);
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
       
       const result = await pool.request()
         .input('ingestionId', ingestionId)
@@ -11073,42 +11075,61 @@ For technical support, please reference Document ID: ${ingestionId}`;
       const { connectToAzureSQL } = await import('./azureSqlConnection');
       const pool = await connectToAzureSQL();
 
-      // Drop and recreate table with proper schema
-      await pool.request().query('DROP TABLE IF EXISTS masterdocuments_new');
+      // Check current table structure
+      const columnCheck = await pool.request().query(`
+        SELECT COLUMN_NAME, DATA_TYPE, IS_NULLABLE
+        FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_NAME = 'masterdocuments_new'
+        ORDER BY ORDINAL_POSITION
+      `);
       
-      await pool.request().query(`
-        CREATE TABLE masterdocuments_new (
-          id INT IDENTITY(1,1) PRIMARY KEY,
-          document_code VARCHAR(50) NOT NULL,
-          form_name VARCHAR(255) NOT NULL,
-          is_active BIT NOT NULL DEFAULT 0,
-          created_at DATETIME DEFAULT GETDATE()
-        )
-      `);
+      console.log('Current table structure:', columnCheck.recordset);
+      
+      const hasDocumentCode = columnCheck.recordset.some(col => col.COLUMN_NAME === 'document_code');
+      
+      if (!hasDocumentCode) {
+        // Add document_code column if it doesn't exist
+        await pool.request().query('ALTER TABLE masterdocuments_new ADD document_code VARCHAR(50)');
+        console.log('Added document_code column');
+      }
 
-      // Insert the 5 records with document codes
-      await pool.request().query(`
-        INSERT INTO masterdocuments_new (document_code, form_name, is_active) VALUES 
-        ('CI001', 'Sample Commercial Invoice', 0),
-        ('UNK001', 'New Unknown Document', 0),
-        ('LC001', 'LC Document', 0),
-        ('UNK_DOC', 'Unknown Document Type', 0),
-        ('CI_SAMPLE', 'Commercial Invoice', 0)
-      `);
+      // Insert records only if they don't exist (avoid duplicates)
+      const sampleCodes = ['CI001', 'UNK001', 'LC001', 'UNK_DOC', 'CI_SAMPLE'];
+      
+      for (const code of sampleCodes) {
+        const existing = await pool.request()
+          .input('code', code)
+          .query('SELECT COUNT(*) as count FROM masterdocuments_new WHERE document_code = @code');
+          
+        if (existing.recordset[0].count === 0) {
+          const formName = {
+            'CI001': 'Sample Commercial Invoice',
+            'UNK001': 'New Unknown Document', 
+            'LC001': 'LC Document',
+            'UNK_DOC': 'Unknown Document Type',
+            'CI_SAMPLE': 'Commercial Invoice'
+          }[code];
+          
+          await pool.request()
+            .input('code', code)
+            .input('name', formName)
+            .query('INSERT INTO masterdocuments_new (document_code, form_name, is_active) VALUES (@code, @name, 0)');
+        }
+      }
 
-      // Verify the data was inserted
-      const verifyResult = await pool.request().query('SELECT id, document_code, form_name, is_active, created_at FROM masterdocuments_new ORDER BY id');
+      // Verify the final data
+      const verifyResult = await pool.request().query('SELECT * FROM masterdocuments_new ORDER BY id');
 
       res.json({
         success: true,
-        message: `Successfully inserted ${verifyResult.recordset.length} records into masterdocuments_new`,
+        message: `Successfully processed masterdocuments_new - Total records: ${verifyResult.recordset.length}`,
         data: verifyResult.recordset
       });
 
     } catch (error) {
-      console.error('Error inserting sample data:', error);
+      console.error('Error processing sample data:', error);
       res.status(500).json({ 
-        error: 'Failed to insert sample data',
+        error: 'Failed to process sample data',
         details: (error as Error).message
       });
     }
@@ -11120,15 +11141,33 @@ For technical support, please reference Document ID: ${ingestionId}`;
       const { connectToAzureSQL } = await import('./azureSqlConnection');
       const pool = await connectToAzureSQL();
 
-      const result = await pool.request().query(`
-        SELECT id, document_code, form_name, is_active, created_at 
-        FROM masterdocuments_new 
-        ORDER BY id
+      // First check what columns exist
+      const columnCheck = await pool.request().query(`
+        SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_NAME = 'masterdocuments_new'
       `);
+      
+      const columns = columnCheck.recordset.map(row => row.COLUMN_NAME);
+      const hasDocumentCode = columns.includes('document_code');
+      
+      // Build query based on available columns
+      let selectQuery = 'SELECT ';
+      if (columns.includes('id')) selectQuery += 'id, ';
+      if (hasDocumentCode) selectQuery += 'document_code, ';
+      if (columns.includes('form_name')) selectQuery += 'form_name, ';
+      if (columns.includes('is_active')) selectQuery += 'is_active, ';
+      if (columns.includes('created_at')) selectQuery += 'created_at, ';
+      
+      // Remove trailing comma and space
+      selectQuery = selectQuery.slice(0, -2);
+      selectQuery += ' FROM masterdocuments_new ORDER BY id';
+
+      const result = await pool.request().query(selectQuery);
 
       res.json({
         success: true,
         count: result.recordset.length,
+        columns: columns,
         data: result.recordset
       });
 
