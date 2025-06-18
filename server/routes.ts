@@ -230,9 +230,13 @@ try {
       saveDocumentHistory();
       console.log(`✓ DOCUMENT STORED: ${historyEntry.filename} (${historyEntry.fileSize})`);
 
-      // Process document with multi-page form detection
+      // Process document with LC-aware multi-page form detection
       const result = await new Promise<any>((resolve, reject) => {
-        const pythonProcess = spawn('python3', ['server/multiPageProcessor.py', filePath]);
+        // Use LC analyzer for LC documents, multi-page processor for others
+        const scriptPath = req.file?.originalname?.toLowerCase().includes('lc') || 
+                          req.file?.originalname?.toLowerCase().includes('credit') ? 
+                          'server/lcDocumentAnalyzer.py' : 'server/multiPageProcessor.py';
+        const pythonProcess = spawn('python3', [scriptPath, filePath]);
         
         let output = '';
         let errorOutput = '';
@@ -255,8 +259,9 @@ try {
                 return;
               }
               
-              // Create detected forms array from multi-page processing
-              const detectedForms = analysisResult.detected_forms.map((form: any, index: number) => ({
+              // Create detected forms array from multi-page or LC processing
+              const formsData = analysisResult.detected_forms || analysisResult.constituent_documents || [];
+              const detectedForms = formsData.map((form: any, index: number) => ({
                 id: `${docId}_form_${index + 1}`,
                 formType: form.form_type,
                 confidence: form.confidence,
@@ -272,9 +277,11 @@ try {
                 fullText: form.extracted_text
               }));
               
-              // For history, combine all forms or use the first/primary form
-              const primaryForm = analysisResult.detected_forms[0] || {
+              // For history, use the first/primary form from either processing type
+              const formsArray = analysisResult.detected_forms || analysisResult.constituent_documents || [];
+              const primaryForm = formsArray[0] || {
                 form_type: 'Unknown Document',
+                document_type: 'Unknown Document',
                 confidence: 0.3,
                 extracted_text: 'No content extracted',
                 text_length: 0
@@ -284,7 +291,7 @@ try {
               const historyDoc = {
                 id: docId,
                 filename: req.file?.originalname || 'Unknown',
-                documentType: primaryForm.form_type,
+                documentType: primaryForm.form_type || primaryForm.document_type,
                 confidence: Math.round((primaryForm.confidence || 0) * 100),
                 extractedText: primaryForm.extracted_text,
                 fullText: primaryForm.extracted_text,
@@ -303,12 +310,12 @@ try {
                 documentHistory.unshift(historyDoc);
               }
               saveDocumentHistory();
-              console.log(`✓ Multi-page document processed: ${historyDoc.filename} (${analysisResult.total_pages} pages, ${analysisResult.detected_forms.length} forms) - ${documentHistory.length} total`);
+              console.log(`✓ Multi-page document processed: ${historyDoc.filename} (${analysisResult.total_pages} pages, ${formsArray.length} forms) - ${documentHistory.length} total`);
               
               resolve({
                 docId,
                 detectedForms,
-                totalForms: analysisResult.detected_forms.length,
+                totalForms: formsArray.length,
                 totalPages: analysisResult.total_pages,
                 processingMethod: analysisResult.processing_method,
                 status: 'completed'
