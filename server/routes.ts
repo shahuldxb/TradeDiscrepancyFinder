@@ -11866,42 +11866,16 @@ except Exception as e:
       const randomSuffix = Math.random().toString(36).substring(2, 8);
       const finalBatchName = `${uniqueBatchName}_${randomSuffix}`;
       
-      // First check if any NULL records exist to update
-      const nullCheckResult = await pool.request()
-        .query(`SELECT TOP 1 id FROM instrument_ingestion_new WHERE batch_name IS NULL`);
-      
-      let result;
-      if (nullCheckResult.recordset.length > 0) {
-        // Update existing NULL record
-        const nullId = nullCheckResult.recordset[0].id;
-        result = await pool.request()
-          .input('id', nullId)
-          .input('batchName', finalBatchName)
-          .input('instrumentType', 'LC_Document')
-          .query(`
-            UPDATE instrument_ingestion_new 
-            SET batch_name = @batchName,
-                instrument_type = @instrumentType,
-                created_at = GETDATE()
-            OUTPUT INSERTED.id
-            WHERE id = @id
-          `);
-      } else {
-        // Try regular insert
-        try {
-          result = await pool.request()
-            .input('batchName', finalBatchName)
-            .input('instrumentType', 'LC_Document')
-            .query(`
-              INSERT INTO instrument_ingestion_new 
-              (batch_name, instrument_type, created_at) 
-              OUTPUT INSERTED.id 
-              VALUES (@batchName, @instrumentType, GETDATE())
-            `);
-        } catch (insertError) {
-          throw new Error('Unable to insert record: ' + insertError.message);
-        }
-      }
+      // Simple insert with minimal fields
+      const result = await pool.request()
+        .input('batchName', finalBatchName)
+        .input('instrumentType', 'LC_Document')
+        .query(`
+          INSERT INTO instrument_ingestion_new 
+          (batch_name, instrument_type, created_at) 
+          OUTPUT INSERTED.id 
+          VALUES (@batchName, @instrumentType, GETDATE())
+        `);
 
       const instrumentId = result.recordset[0].id;
       
