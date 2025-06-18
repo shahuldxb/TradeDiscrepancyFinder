@@ -291,9 +291,11 @@ loadDocumentHistory();
     }
   });
 
-  // Document history endpoint
+  // Document history endpoint with file-based loading
   app.get('/api/form-detection/history', async (req, res) => {
     try {
+      // Always load fresh from file
+      loadDocumentHistory();
       console.log(`History requested: ${documentHistory.length} documents found`);
       res.json({
         documents: documentHistory,
