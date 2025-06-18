@@ -78,7 +78,7 @@ export default function DocumentManagementNew() {
   // Upload mutation
   const uploadMutation = useMutation({
     mutationFn: async (formData: FormData) => {
-      const response = await fetch('/api/document-management/upload', {
+      const response = await fetch('/api/document-management/upload-simple', {
         method: 'POST',
         body: formData,
       });
