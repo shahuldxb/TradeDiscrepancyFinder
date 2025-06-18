@@ -293,19 +293,33 @@ async function loadFromAzureDatabase() {
         i.file_type,
         i.file_size,
         i.status,
-        i.extracted_text,
-        i.extracted_data,
         i.created_date,
-        COUNT(p.id) as form_count
+        (SELECT COUNT(*) FROM TF_ingestion_Pdf p WHERE p.ingestion_id = i.ingestion_id) as form_count
       FROM TF_ingestion i
-      LEFT JOIN TF_ingestion_Pdf p ON i.ingestion_id = p.ingestion_id
       WHERE i.status = 'completed'
-      GROUP BY i.ingestion_id, i.original_filename, i.file_type, i.file_size, 
-               i.status, i.extracted_text, i.extracted_data, i.created_date
       ORDER BY i.created_date DESC
     `);
     
-    return result.recordset.map((record: any) => {
+    // Get extracted data and text separately for each record
+    const enrichedResults = await Promise.all(result.recordset.map(async (record: any) => {
+      // Get extracted data
+      const dataResult = await pool.request()
+        .input('ingestionId', record.ingestion_id)
+        .query('SELECT extracted_data FROM TF_ingestion WHERE ingestion_id = @ingestionId');
+      
+      // Get extracted text
+      const textResult = await pool.request()
+        .input('ingestionId', record.ingestion_id)
+        .query('SELECT TOP 1 content FROM TF_ingestion_TXT WHERE ingestion_id = @ingestionId');
+      
+      return {
+        ...record,
+        extracted_data: dataResult.recordset[0]?.extracted_data || '{}',
+        extracted_text: textResult.recordset[0]?.content || ''
+      };
+    }));
+    
+    return enrichedResults.map((record: any) => {
       const extractedData = record.extracted_data ? JSON.parse(record.extracted_data) : {};
       return {
         id: record.ingestion_id,
