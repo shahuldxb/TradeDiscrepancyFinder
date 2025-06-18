@@ -34,39 +34,39 @@ def extract_text_directly(pdf_path: str):
                         text = f"TRADE FINANCE DOCUMENT\nDocument Type: Supporting Document\nPage: {page_num+1}\nReference: DOC-{page_num+1:03d}\nContent: Additional trade finance documentation and supporting materials"
                 
                 if len(text.strip()) > 30:
-                # Simple document type detection
-                text_lower = text.lower()
+                    # Simple document type detection
+                    text_lower = text.lower()
                 
-                if any(term in text_lower for term in ['letter of credit', 'documentary credit']):
-                    doc_type = 'Letter of Credit'
-                    confidence = 0.9
-                elif any(term in text_lower for term in ['commercial invoice', 'invoice']):
-                    doc_type = 'Commercial Invoice'
-                    confidence = 0.8
-                elif any(term in text_lower for term in ['bill of lading', 'shipper', 'consignee']):
-                    doc_type = 'Bill of Lading'
-                    confidence = 0.8
-                elif any(term in text_lower for term in ['certificate of origin', 'country of origin']):
-                    doc_type = 'Certificate of Origin'
-                    confidence = 0.8
-                elif any(term in text_lower for term in ['packing list', 'gross weight']):
-                    doc_type = 'Packing List'
-                    confidence = 0.7
-                elif any(term in text_lower for term in ['insurance', 'marine insurance']):
-                    doc_type = 'Insurance Certificate'
-                    confidence = 0.7
-                else:
-                    doc_type = 'Trade Finance Document'
-                    confidence = 0.6
-                
-                detected_forms.append({
-                    'page_number': page_num + 1,
-                    'document_type': doc_type,
-                    'form_type': doc_type,
-                    'confidence': confidence,
-                    'extracted_text': text.strip(),
-                    'text_length': len(text.strip())
-                })
+                    if any(term in text_lower for term in ['letter of credit', 'documentary credit']):
+                        doc_type = 'Letter of Credit'
+                        confidence = 0.9
+                    elif any(term in text_lower for term in ['commercial invoice', 'invoice']):
+                        doc_type = 'Commercial Invoice'
+                        confidence = 0.8
+                    elif any(term in text_lower for term in ['bill of lading', 'shipper', 'consignee']):
+                        doc_type = 'Bill of Lading'
+                        confidence = 0.8
+                    elif any(term in text_lower for term in ['certificate of origin', 'country of origin']):
+                        doc_type = 'Certificate of Origin'
+                        confidence = 0.8
+                    elif any(term in text_lower for term in ['packing list', 'gross weight']):
+                        doc_type = 'Packing List'
+                        confidence = 0.7
+                    elif any(term in text_lower for term in ['insurance', 'marine insurance']):
+                        doc_type = 'Insurance Certificate'
+                        confidence = 0.7
+                    else:
+                        doc_type = 'Trade Finance Document'
+                        confidence = 0.6
+                    
+                    detected_forms.append({
+                        'page_number': page_num + 1,
+                        'document_type': doc_type,
+                        'form_type': doc_type,
+                        'confidence': confidence,
+                        'extracted_text': text.strip(),
+                        'text_length': len(text.strip())
+                    })
                     
             except Exception as page_error:
                 continue
