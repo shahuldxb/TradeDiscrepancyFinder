@@ -174,31 +174,21 @@ export default function DocumentManagementNew() {
           body: JSON.stringify({
             query: `
               SELECT TOP 10
-                ROW_NUMBER() OVER (ORDER BY f.created_at DESC) as id,
+                f.instrument_id as id,
+                COALESCE(i.batch_name, 'Document_' + CAST(f.instrument_id as varchar)) + ' - ' + 
+                COALESCE(i.document_type, 'LC Document') as document_name,
                 CASE 
-                  WHEN f.field_name LIKE '%Invoice%' OR f.field_name LIKE '%Amount%' OR f.field_name LIKE '%Total%' 
-                  THEN 'Commercial Invoice - ' + COALESCE(i.batch_name, 'Batch_' + CAST(f.instrument_id as varchar))
-                  WHEN f.field_name LIKE '%Lading%' OR f.field_name LIKE '%Vessel%' OR f.field_name LIKE '%Port%' 
-                  THEN 'Bill of Lading - ' + COALESCE(i.batch_name, 'Batch_' + CAST(f.instrument_id as varchar))
-                  WHEN f.field_name LIKE '%Origin%' OR f.field_name LIKE '%Certificate%' 
-                  THEN 'Certificate of Origin - ' + COALESCE(i.batch_name, 'Batch_' + CAST(f.instrument_id as varchar))
-                  WHEN f.field_name LIKE '%Packing%' OR f.field_name LIKE '%Package%' 
-                  THEN 'Packing List - ' + COALESCE(i.batch_name, 'Batch_' + CAST(f.instrument_id as varchar))
-                  ELSE COALESCE(i.document_type, 'Unknown Document') + ' - ' + COALESCE(i.batch_name, 'Batch_' + CAST(f.instrument_id as varchar))
-                END as document_name,
-                CASE 
-                  WHEN COALESCE(f.confidence_score, 0) >= 90 THEN 'passed'
-                  WHEN COALESCE(f.confidence_score, 0) >= 75 THEN 'pending'
+                  WHEN COALESCE(f.confidence_score, 85) >= 90 THEN 'passed'
+                  WHEN COALESCE(f.confidence_score, 85) >= 75 THEN 'pending'
                   ELSE 'failed'
                 END as validation_status,
-                COUNT(f.field_name) as extracted_fields,
-                AVG(COALESCE(f.confidence_score, 85)) as confidence_score,
-                MAX(COALESCE(f.created_at, i.created_at, GETDATE())) as last_updated
+                1 as extracted_fields,
+                COALESCE(f.confidence_score, 85) as confidence_score,
+                COALESCE(f.created_at, i.created_at, GETDATE()) as last_updated
               FROM ingestion_fields_new f
               LEFT JOIN instrument_ingestion_new i ON f.instrument_id = i.id
-              WHERE f.field_name IS NOT NULL AND f.field_name != '' AND f.field_value IS NOT NULL AND f.field_value != ''
-              GROUP BY f.field_name, f.instrument_id, i.batch_name, i.document_type, f.confidence_score
-              ORDER BY MAX(COALESCE(f.created_at, i.created_at, GETDATE())) DESC
+              WHERE f.field_name IS NOT NULL AND f.field_value IS NOT NULL
+              ORDER BY COALESCE(f.created_at, i.created_at, GETDATE()) DESC
             `
           })
         });
@@ -215,13 +205,13 @@ export default function DocumentManagementNew() {
           return [];
         }
         
-        return azureData.map((row: any) => ({
-          id: row.id,
-          document_name: row.document_name,
-          validation_status: row.validation_status,
-          extracted_fields: row.extracted_fields,
-          confidence_score: row.confidence_score,
-          last_updated: row.last_updated
+        return azureData.map((row: any, index: number) => ({
+          id: index + 1,
+          document_name: row.document_name || `Document_${row.id}`,
+          validation_status: row.validation_status || 'pending',
+          extracted_fields: row.extracted_fields || 1,
+          confidence_score: Math.round(row.confidence_score || 85),
+          last_updated: row.last_updated || new Date().toISOString()
         }));
         
       } catch (error) {
@@ -767,112 +757,74 @@ export default function DocumentManagementNew() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {/* Commercial Invoice Fields */}
+                {/* Extracted Fields from Azure SQL Database */}
                 <div className="border rounded-lg p-4">
-                  <h4 className="font-semibold mb-3">Commercial Invoice Fields</h4>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Field Name</TableHead>
-                        <TableHead>Extracted Value</TableHead>
-                        <TableHead>Confidence</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      <TableRow>
-                        <TableCell>Invoice Number</TableCell>
-                        <TableCell>INV-2025-001</TableCell>
-                        <TableCell><span className="text-green-600">95%</span></TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell>Invoice Date</TableCell>
-                        <TableCell>2025-06-18</TableCell>
-                        <TableCell><span className="text-green-600">92%</span></TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell>Total Amount</TableCell>
-                        <TableCell>USD 25,450.00</TableCell>
-                        <TableCell><span className="text-green-600">97%</span></TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell>Seller</TableCell>
-                        <TableCell>ABC Trading Co Ltd</TableCell>
-                        <TableCell><span className="text-green-600">89%</span></TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
+                  <h4 className="font-semibold mb-3">Extracted Fields from Azure SQL Database</h4>
+                  {processedDocuments.length > 0 ? (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Field Name</TableHead>
+                          <TableHead>Extracted Value</TableHead>
+                          <TableHead>Confidence</TableHead>
+                          <TableHead>Batch</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {processedDocuments.slice(0, 10).map((field, index) => (
+                          <TableRow key={index}>
+                            <TableCell className="font-medium">{field.field_name}</TableCell>
+                            <TableCell className="max-w-xs truncate" title={field.field_value}>
+                              {field.field_value}
+                            </TableCell>
+                            <TableCell>
+                              <span className={`font-medium ${
+                                field.confidence_score >= 90 ? 'text-green-600' : 
+                                field.confidence_score >= 75 ? 'text-yellow-600' : 'text-red-600'
+                              }`}>
+                                {field.confidence_score ? `${Math.round(field.confidence_score)}%` : 'N/A'}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-sm text-gray-600">{field.batch_name}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <p>No extracted fields found in Azure SQL database</p>
+                      <p className="text-sm mt-2">Upload and process documents to see validation data</p>
+                    </div>
+                  )}
                 </div>
 
-                {/* Bill of Lading Fields */}
+                {/* Validation Statistics */}
                 <div className="border rounded-lg p-4">
-                  <h4 className="font-semibold mb-3">Bill of Lading Fields</h4>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Field Name</TableHead>
-                        <TableHead>Extracted Value</TableHead>
-                        <TableHead>Confidence</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      <TableRow>
-                        <TableCell>B/L Number</TableCell>
-                        <TableCell>BL-2025-5432</TableCell>
-                        <TableCell><span className="text-green-600">94%</span></TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell>Vessel Name</TableCell>
-                        <TableCell>OCEAN SPIRIT</TableCell>
-                        <TableCell><span className="text-green-600">91%</span></TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell>Port of Loading</TableCell>
-                        <TableCell>Singapore</TableCell>
-                        <TableCell><span className="text-green-600">96%</span></TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell>Port of Discharge</TableCell>
-                        <TableCell>New York</TableCell>
-                        <TableCell><span className="text-green-600">93%</span></TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </div>
-
-                {/* Certificate of Origin Fields */}
-                <div className="border rounded-lg p-4">
-                  <h4 className="font-semibold mb-3">Certificate of Origin Fields</h4>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Field Name</TableHead>
-                        <TableHead>Extracted Value</TableHead>
-                        <TableHead>Confidence</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      <TableRow>
-                        <TableCell>Certificate Number</TableCell>
-                        <TableCell>CO-2025-789</TableCell>
-                        <TableCell><span className="text-green-600">88%</span></TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell>Country of Origin</TableCell>
-                        <TableCell>Singapore</TableCell>
-                        <TableCell><span className="text-green-600">95%</span></TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell>Exporter</TableCell>
-                        <TableCell>ABC Trading Co Ltd</TableCell>
-                        <TableCell><span className="text-green-600">90%</span></TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell>Consignee</TableCell>
-                        <TableCell>XYZ Import Corp</TableCell>
-                        <TableCell><span className="text-yellow-600">87%</span></TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
+                  <h4 className="font-semibold mb-3">Validation Statistics</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-blue-600">{processedDocuments.length}</div>
+                      <div className="text-sm text-gray-600">Total Fields</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-green-600">
+                        {processedDocuments.filter(f => f.confidence_score >= 90).length}
+                      </div>
+                      <div className="text-sm text-gray-600">High Confidence</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-yellow-600">
+                        {processedDocuments.filter(f => f.confidence_score >= 75 && f.confidence_score < 90).length}
+                      </div>
+                      <div className="text-sm text-gray-600">Medium Confidence</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-red-600">
+                        {processedDocuments.filter(f => f.confidence_score < 75).length}
+                      </div>
+                      <div className="text-sm text-gray-600">Low Confidence</div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </CardContent>
