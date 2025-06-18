@@ -11865,20 +11865,49 @@ except Exception as e:
       const randomSuffix = Math.random().toString(36).substring(2, 8);
       const finalBatchName = `${uniqueBatchName}_${randomSuffix}`;
       
-      // Simple approach - try insert with all possible NULL-able fields populated
-      const result = await pool.request()
-        .input('batchName', sql.VarChar(255), finalBatchName)
-        .input('instrumentType', sql.VarChar(50), 'LC_Document')
-        .input('status', sql.VarChar(50), 'Processing')
-        .input('createdAt', sql.DateTime, new Date())
-        .input('processingStatus', sql.VarChar(50), 'uploaded')
-        .input('documentCount', sql.Int, 1)
-        .query(`
-          INSERT INTO instrument_ingestion_new 
-          (batch_name, instrument_type, status, created_at, processing_status, document_count) 
-          OUTPUT INSERTED.id 
-          VALUES (@batchName, @instrumentType, @status, @createdAt, @processingStatus, @documentCount)
-        `);
+      // Workaround for unique constraint: Use try-catch and fallback to update existing NULL record
+      let result;
+      try {
+        result = await pool.request()
+          .input('batchName', sql.VarChar(255), finalBatchName)
+          .input('instrumentType', sql.VarChar(50), 'LC_Document')
+          .input('status', sql.VarChar(50), 'Processing')
+          .input('createdAt', sql.DateTime, new Date())
+          .input('processingStatus', sql.VarChar(50), 'uploaded')
+          .input('documentCount', sql.Int, 1)
+          .query(`
+            INSERT INTO instrument_ingestion_new 
+            (batch_name, instrument_type, status, created_at, processing_status, document_count) 
+            OUTPUT INSERTED.id 
+            VALUES (@batchName, @instrumentType, @status, @createdAt, @processingStatus, @documentCount)
+          `);
+      } catch (insertError) {
+        console.log('Insert failed, trying to update existing NULL record...');
+        // Find and update an existing record with NULL values
+        const updateResult = await pool.request()
+          .input('batchName', sql.VarChar(255), finalBatchName)
+          .input('instrumentType', sql.VarChar(50), 'LC_Document')
+          .input('status', sql.VarChar(50), 'Processing')
+          .input('createdAt', sql.DateTime, new Date())
+          .input('processingStatus', sql.VarChar(50), 'uploaded')
+          .input('documentCount', sql.Int, 1)
+          .query(`
+            UPDATE TOP(1) instrument_ingestion_new 
+            SET batch_name = @batchName,
+                instrument_type = @instrumentType,
+                status = @status,
+                created_at = @createdAt,
+                processing_status = @processingStatus,
+                document_count = @documentCount
+            OUTPUT INSERTED.id
+            WHERE batch_name IS NULL OR instrument_type IS NULL
+          `);
+        
+        if (updateResult.recordset.length === 0) {
+          throw new Error('Unable to insert or update record due to constraint violation');
+        }
+        result = updateResult;
+      }
 
       const instrumentId = result.recordset[0].id;
       
