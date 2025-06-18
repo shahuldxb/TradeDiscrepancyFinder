@@ -31,6 +31,13 @@ interface ProcessedDocument {
 export default function DocumentManagementNew() {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
+  
+  // State variables
+  const [activeTab, setActiveTab] = useState('upload');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [batchName, setBatchName] = useState('');
+  const [processingStatus, setProcessingStatus] = useState<'idle' | 'uploading' | 'processing' | 'completed' | 'error'>('idle');
 
   // Document handling functions
   const handleViewDocument = async (documentType: string, format: 'pdf' | 'text') => {
@@ -124,12 +131,6 @@ export default function DocumentManagementNew() {
       });
     }
   };
-  const queryClient = useQueryClient();
-  
-  const [activeTab, setActiveTab] = useState('upload');
-  const [batchName, setBatchName] = useState('');
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [processingStatus, setProcessingStatus] = useState<'idle' | 'uploading' | 'processing' | 'completed' | 'error'>('idle');
 
   // Fetch statistics with proper parsing
   const { data: stats } = useQuery({
@@ -675,14 +676,14 @@ export default function DocumentManagementNew() {
               <div className="flex justify-center">
                 <Button 
                   onClick={handleFileUpload}
-                  disabled={!selectedFile || processingStatus === 'uploading'}
+                  disabled={!selectedFile || processingStatus === 'processing'}
                   className="w-full max-w-md"
                   size="lg"
                 >
-                  {processingStatus === 'uploading' ? (
+                  {processingStatus === 'processing' ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Uploading...
+                      Processing...
                     </>
                   ) : (
                     <>
@@ -956,8 +957,8 @@ export default function DocumentManagementNew() {
                             </TableCell>
                             <TableCell>
                               <span className={`font-medium ${
-                                field.confidence_score >= 90 ? 'text-green-600' : 
-                                field.confidence_score >= 75 ? 'text-yellow-600' : 'text-red-600'
+                                (field.confidence_score || 0) >= 90 ? 'text-green-600' : 
+                                (field.confidence_score || 0) >= 75 ? 'text-yellow-600' : 'text-red-600'
                               }`}>
                                 {field.confidence_score ? `${Math.round(field.confidence_score)}%` : 'N/A'}
                               </span>
@@ -985,19 +986,19 @@ export default function DocumentManagementNew() {
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold text-green-600">
-                        {processedDocuments.filter(f => f.confidence_score >= 90).length}
+                        {processedDocuments.filter(f => (f.confidence_score || 0) >= 90).length}
                       </div>
                       <div className="text-sm text-gray-600">High Confidence</div>
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold text-yellow-600">
-                        {processedDocuments.filter(f => f.confidence_score >= 75 && f.confidence_score < 90).length}
+                        {processedDocuments.filter(f => (f.confidence_score || 0) >= 75 && (f.confidence_score || 0) < 90).length}
                       </div>
                       <div className="text-sm text-gray-600">Medium Confidence</div>
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold text-red-600">
-                        {processedDocuments.filter(f => f.confidence_score < 75).length}
+                        {processedDocuments.filter(f => (f.confidence_score || 0) < 75).length}
                       </div>
                       <div className="text-sm text-gray-600">Low Confidence</div>
                     </div>
