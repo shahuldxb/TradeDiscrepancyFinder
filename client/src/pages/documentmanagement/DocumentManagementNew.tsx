@@ -203,8 +203,10 @@ export default function DocumentManagementNew() {
       setProcessingStatus('completed');
       queryClient.invalidateQueries({ queryKey: ['/api/document-management/stats'] });
       queryClient.invalidateQueries({ queryKey: ['/api/azure-data/execute-sql'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/azure-data/execute-sql', 'validation-records'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/azure-data/execute-sql', 'registration-records'] });
       toast({
-        title: "Upload Successful",
+        title: "Upload Successful", 
         description: "Document uploaded and processed successfully",
       });
     },
