@@ -11067,6 +11067,50 @@ For technical support, please reference Document ID: ${ingestionId}`;
     }
   });
 
+  // Document Management New - Insert sample data into masterdocuments_new
+  app.post('/api/document-management/insert-sample-data', async (req, res) => {
+    try {
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+
+      // Insert the 5 sample records
+      const sampleData = [
+        { id: 1, form_name: 'Sample Commercial Invoice', is_active: 0 },
+        { id: 2, form_name: 'New Unknown Document', is_active: 0 },
+        { id: 3, form_name: 'LC Document', is_active: 0 },
+        { id: 4, form_name: 'Unknown Document Type', is_active: 0 },
+        { id: 5, form_name: 'Commercial Invoice', is_active: 0 }
+      ];
+
+      let insertedCount = 0;
+      for (const record of sampleData) {
+        await pool.request()
+          .input('id', record.id)
+          .input('form_name', record.form_name)
+          .input('is_active', record.is_active)
+          .query(`
+            IF NOT EXISTS (SELECT 1 FROM masterdocuments_new WHERE id = @id)
+            INSERT INTO masterdocuments_new (form_name, is_active) 
+            VALUES (@form_name, @is_active)
+          `);
+        insertedCount++;
+      }
+
+      res.json({
+        success: true,
+        message: `Successfully inserted ${insertedCount} records into masterdocuments_new`,
+        data: sampleData
+      });
+
+    } catch (error) {
+      console.error('Error inserting sample data:', error);
+      res.status(500).json({ 
+        error: 'Failed to insert sample data',
+        details: (error as Error).message
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
