@@ -470,18 +470,18 @@ This form was automatically extracted from the uploaded document using Azure Doc
                       };
                       
                       return (
-                        <Card key={docType} className="border-l-4 border-l-blue-600 bg-slate-800 text-white">
+                        <Card key={docType} className="border-l-4 border-l-blue-600 bg-white dark:bg-gray-50">
                           <CardHeader>
                             <div className="flex items-center justify-between">
                               <div>
-                                <CardTitle className="text-lg text-white">
+                                <CardTitle className="text-lg text-gray-900 dark:text-gray-800">
                                   {docType} ({pageDisplay})
                                 </CardTitle>
-                                <p className="text-sm text-slate-300 mt-1">
+                                <p className="text-sm text-gray-600 dark:text-gray-700 mt-1">
                                   {descriptions[docType] || 'Trade finance document'}
                                 </p>
                               </div>
-                              <Badge variant="secondary" className="bg-slate-700 text-white">
+                              <Badge variant="secondary" className="bg-blue-100 text-blue-800">
                                 {group.forms.length} page{group.forms.length > 1 ? 's' : ''}
                               </Badge>
                             </div>
@@ -489,23 +489,23 @@ This form was automatically extracted from the uploaded document using Azure Doc
                           <CardContent>
                             <div className="space-y-3">
                               <div className="flex justify-between text-sm">
-                                <span className="text-slate-300">Document Type:</span>
-                                <span className="text-white">{docType}</span>
+                                <span className="text-gray-600 dark:text-gray-700">Document Type:</span>
+                                <span className="text-gray-900 dark:text-gray-800 font-medium">{docType}</span>
                               </div>
                               <div className="flex justify-between text-sm">
-                                <span className="text-slate-300">Page Numbers:</span>
-                                <span className="text-white">{sortedPages.join(', ')}</span>
+                                <span className="text-gray-600 dark:text-gray-700">Page Numbers:</span>
+                                <span className="text-gray-900 dark:text-gray-800 font-medium">{sortedPages.join(', ')}</span>
                               </div>
                               <div className="flex justify-between text-sm">
-                                <span className="text-slate-300">Confidence:</span>
-                                <span className="text-white">{group.confidence}%</span>
+                                <span className="text-gray-600 dark:text-gray-700">Confidence:</span>
+                                <span className="text-gray-900 dark:text-gray-800 font-medium">{group.confidence}%</span>
                               </div>
                             </div>
                             <div className="mt-4 flex space-x-2">
                               <Button 
                                 size="sm" 
                                 variant="outline" 
-                                className="border-slate-600 text-white hover:bg-slate-700"
+                                className="border-blue-300 text-blue-700 hover:bg-blue-50"
                                 onClick={() => {
                                   // Combine all pages for this document type
                                   const combinedForm = {
@@ -522,7 +522,7 @@ This form was automatically extracted from the uploaded document using Azure Doc
                               <Button 
                                 size="sm" 
                                 variant="outline" 
-                                className="border-slate-600 text-white hover:bg-slate-700"
+                                className="border-green-300 text-green-700 hover:bg-green-50"
                                 onClick={() => {
                                   const combinedForm = {
                                     ...group.forms[0],

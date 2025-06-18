@@ -251,9 +251,9 @@ try {
         
         console.log(`📋 Processing: ${req.file?.originalname} | LC Detection: ${isLCDocument}`);
         
-        // Force Fast LC Processor for all documents to test multi-form detection
-        const scriptPath = 'server/fastLCProcessor.py';
-        console.log(`🚀 Using Fast LC Processor: ${scriptPath}`);
+        // Use Real OCR Processor for authentic text extraction
+        const scriptPath = 'server/realOCRProcessor.py';
+        console.log(`🚀 Using Real OCR Processor: ${scriptPath}`);
         const pythonProcess = spawn('python3', [scriptPath, filePath]);
         
         let output = '';
