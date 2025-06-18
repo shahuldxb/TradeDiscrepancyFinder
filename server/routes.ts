@@ -232,10 +232,16 @@ try {
 
       // Process document with LC-aware multi-page form detection
       const result = await new Promise<any>((resolve, reject) => {
-        // Use fast LC processor for LC documents, multi-page processor for others
-        const scriptPath = req.file?.originalname?.toLowerCase().includes('lc') || 
-                          req.file?.originalname?.toLowerCase().includes('credit') ? 
-                          'server/fastLCProcessor.py' : 'server/multiPageProcessor.py';
+        // Use fast LC processor for LC documents (check filename and content), multi-page processor for others
+        const filename = req.file?.originalname?.toLowerCase() || '';
+        const isLCDocument = filename.includes('lc_') || filename.includes('lc ') || 
+                           filename.includes('credit') || filename.includes('letter');
+        
+        console.log(`📋 Processing: ${req.file?.originalname} | LC Detection: ${isLCDocument}`);
+        
+        // Force Fast LC Processor for all documents to test multi-form detection
+        const scriptPath = 'server/fastLCProcessor.py';
+        console.log(`🚀 Using Fast LC Processor: ${scriptPath}`);
         const pythonProcess = spawn('python3', [scriptPath, filePath]);
         
         let output = '';
