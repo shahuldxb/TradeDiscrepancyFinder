@@ -79,8 +79,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const docId = Date.now().toString();
       
-      // Use quick OCR processor for document classification
-      const pythonProcess = spawn('python3', ['server/quickOCR.py', req.file.path], {
+      // Use Fast LC Processor for document classification and constituent document detection
+      const pythonProcess = spawn('python3', ['server/fastLCProcessor.py', req.file.path], {
         stdio: ['pipe', 'pipe', 'pipe'],
         timeout: 10000
       });
@@ -102,26 +102,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
             try {
               const analysisResult = JSON.parse(output);
               
-              const detectedForms = [{
-                id: `${docId}_form_1`,
-                formType: analysisResult.document_type,
-                confidence: analysisResult.confidence,
-                pageNumbers: [1],
+              // Handle multiple detected forms from Fast LC Processor
+              const formsData = analysisResult.detected_forms || [];
+              const detectedForms = formsData.map((form: any, index: number) => ({
+                id: `${docId}_form_${index + 1}`,
+                formType: form.form_type || form.document_type,
+                confidence: form.confidence,
+                pageNumbers: [form.page_number],
                 extractedFields: {
-                  'Full Extracted Text': analysisResult.extracted_text,
-                  'Document Classification': analysisResult.document_type,
-                  'Processing Statistics': `${analysisResult.text_length} characters extracted via OCR`
+                  'Full Extracted Text': form.extracted_text,
+                  'Document Classification': form.form_type || form.document_type,
+                  'Processing Statistics': `${form.text_length} characters extracted from page ${form.page_number}`,
+                  'Page Number': form.page_number.toString()
                 },
                 status: 'completed',
-                processingMethod: 'Real OCR Content Analysis',
-                fullText: analysisResult.extracted_text
-              }];
+                processingMethod: analysisResult.processing_method,
+                fullText: form.extracted_text
+              }));
               
               resolve({
                 docId,
                 detectedForms,
-                totalForms: 1,
-                processingMethod: 'OCR Classification',
+                totalForms: formsData.length,
+                processingMethod: analysisResult.processing_method,
                 status: 'completed'
               });
             } catch (parseError) {
