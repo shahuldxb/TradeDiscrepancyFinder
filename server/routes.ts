@@ -12268,13 +12268,6 @@ if __name__ == "__main__":
         # Extract key fields
         fields = extract_key_fields(extracted_text, doc_type)
         
-        result = {
-            "document_type": doc_type,
-            "confidence": confidence,
-            "extracted_text": extracted_text[:2000],  # Limit text for response
-            "extracted_fields": fields,
-            "text_length": len(extracted_text),
-            "classification_scores": all_scores,
           let output = '';
           let errorOutput = '';
 
@@ -12296,8 +12289,7 @@ if __name__ == "__main__":
                   const extractedFields = {
                     'Extracted Text Preview': analysisResult.extracted_text.substring(0, 500) + '...',
                     'Text Length': `${analysisResult.text_length} characters`,
-                    'Processing Method': 'OCR-based content analysis',
-                    ...analysisResult.extracted_fields
+                    'Processing Method': 'OCR-based content analysis'
                   };
                   
                   detectedForms = [{
@@ -12308,8 +12300,7 @@ if __name__ == "__main__":
                     extractedFields,
                     status: 'completed',
                     processingMethod: 'Real OCR Content Analysis',
-                    fullText: analysisResult.extracted_text,
-                    classificationScores: analysisResult.classification_scores
+                    fullText: analysisResult.extracted_text
                   }];
                   
                   console.log(`OCR classification: ${analysisResult.document_type} (confidence: ${(analysisResult.confidence * 100).toFixed(0)}%)`);
