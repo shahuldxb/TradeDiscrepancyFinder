@@ -112,77 +112,93 @@ export default function ProcessedDocuments() {
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
-                    <CardTitle className="text-lg">{doc.fileName}</CardTitle>
+                    <CardTitle className="text-lg">{doc.batch_name}</CardTitle>
                     <CardDescription className="flex items-center gap-4 text-sm">
                       <span className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        {new Date(doc.createdAt).toLocaleDateString()}
+                        <FileText className="h-4 w-4" />
+                        {doc.file_name}
                       </span>
                       <span className="flex items-center gap-1">
-                        <Hash className="h-3 w-3" />
-                        {doc.characterCount} characters
+                        <Calendar className="h-4 w-4" />
+                        {new Date(doc.created_at).toLocaleDateString()}
                       </span>
                     </CardDescription>
                   </div>
-                  <Badge variant={getStatusBadgeVariant(doc.processingStatus)}>
+                  <Badge variant={doc.processing_status === 'completed' ? 'default' : 'secondary'}>
                     <Clock className="h-3 w-3 mr-1" />
-                    {doc.processingStatus}
+                    {doc.processing_status}
                   </Badge>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="bg-muted/50 rounded-md p-3">
-                    <p className="text-sm text-muted-foreground mb-1">Extracted Text Preview:</p>
-                    <p className="text-sm font-mono leading-relaxed">
-                      {doc.extractedTextPreview}
-                    </p>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Document Type:</span>
+                      <span className="font-medium">{doc.document_type}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">File Size:</span>
+                      <span className="font-medium">{doc.file_size}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Extracted Fields:</span>
+                      <span className="font-medium">{doc.field_count}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Documents:</span>
+                      <span className="font-medium">{doc.total_documents}</span>
+                    </div>
                   </div>
                   
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 pt-2">
                     <Dialog>
                       <DialogTrigger asChild>
                         <Button 
                           variant="outline" 
                           size="sm"
                           onClick={() => setSelectedDocumentId(doc.id)}
-                          disabled={doc.processingStatus !== 'Completed'}
                         >
-                          <Eye className="h-4 w-4 mr-2" />
+                          <Eye className="h-4 w-4 mr-1" />
                           View Full Text
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="max-w-4xl max-h-[80vh]">
+                      <DialogContent className="max-w-3xl max-h-[80vh]">
                         <DialogHeader>
-                          <DialogTitle>Extracted Text - {doc.fileName}</DialogTitle>
+                          <DialogTitle>Extracted Text - {doc.file_name}</DialogTitle>
                           <DialogDescription>
-                            Full text content extracted from the document
+                            Complete OCR extraction from document processing
                           </DialogDescription>
                         </DialogHeader>
-                        <ScrollArea className="h-[60vh] mt-4">
+                        <ScrollArea className="max-h-[60vh] w-full">
                           {isLoadingText ? (
                             <div className="flex items-center justify-center h-32">
-                              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                             </div>
-                          ) : (
-                            <div className="bg-muted/30 rounded-md p-4">
-                              <pre className="whitespace-pre-wrap text-sm font-mono leading-relaxed">
-                                {extractedTextData?.extractedText || 'No text data available'}
+                          ) : extractedTextData ? (
+                            <div className="space-y-4">
+                              <div className="flex justify-between text-sm text-muted-foreground">
+                                <span>Characters: {extractedTextData.characterCount.toLocaleString()}</span>
+                                <span>File: {extractedTextData.fileName}</span>
+                              </div>
+                              <pre className="whitespace-pre-wrap text-sm font-mono bg-muted p-4 rounded">
+                                {extractedTextData.extractedText}
                               </pre>
                             </div>
+                          ) : (
+                            <p className="text-muted-foreground">No extracted text available</p>
                           )}
                         </ScrollArea>
                       </DialogContent>
                     </Dialog>
-
+                    
                     <Button 
                       variant="outline" 
                       size="sm"
-                      onClick={() => handleDownloadText(doc.id, doc.fileName)}
-                      disabled={doc.processingStatus !== 'Completed'}
+                      onClick={() => handleDownloadText(doc.id, doc.file_name)}
                     >
-                      <Download className="h-4 w-4 mr-2" />
-                      Download TXT
+                      <Download className="h-4 w-4 mr-1" />
+                      Download
                     </Button>
                   </div>
                 </div>
