@@ -7,23 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Upload, FileText, Eye, Download, Package, TrendingUp, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { Upload, FileText, Eye, Download, Package, CheckCircle, Clock } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
-
-interface MasterDocument {
-  id: number;
-  document_code: string;
-  form_name: string;
-  is_active: boolean;
-  created_at: string;
-}
-
-interface DocumentManagementStats {
-  totalDocuments: number;
-  activeDocuments: number;
-  pendingDocuments: number;
-  lastUpdated: string;
-}
 
 interface ValidationRecord {
   id: number;
@@ -42,13 +27,6 @@ interface ProcessedDocument {
   confidence_score?: number;
 }
 
-interface RegistrationForm {
-  document_type: string;
-  form_name: string;
-  description: string;
-  is_active: boolean;
-}
-
 export default function DocumentManagementNew() {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -58,12 +36,6 @@ export default function DocumentManagementNew() {
   const [batchName, setBatchName] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [processingStatus, setProcessingStatus] = useState<'idle' | 'uploading' | 'processing' | 'completed' | 'error'>('idle');
-  const [registrationForm, setRegistrationForm] = useState<RegistrationForm>({
-    document_type: '',
-    form_name: '',
-    description: '',
-    is_active: true
-  });
 
   // Fetch statistics
   const { data: stats } = useQuery({
@@ -72,7 +44,7 @@ export default function DocumentManagementNew() {
   });
 
   // Fetch processed documents
-  const { data: processedDocuments = [], isLoading: isProcessedLoading } = useQuery<ProcessedDocument[]>({
+  const { data: processedDocuments = [] } = useQuery<ProcessedDocument[]>({
     queryKey: ['/api/azure-data/execute-sql', 'processed-documents'],
     queryFn: async () => {
       const response = await fetch('/api/azure-data/execute-sql', {
@@ -92,19 +64,8 @@ export default function DocumentManagementNew() {
     }
   });
 
-  // Fetch master documents
-  const { data: documents = [], isLoading: isDocumentsLoading } = useQuery<MasterDocument[]>({
-    queryKey: ['/api/document-management/documents'],
-    queryFn: async () => {
-      const response = await fetch('/api/document-management/documents');
-      if (!response.ok) throw new Error('Failed to fetch documents');
-      const result = await response.json();
-      return result.data || [];
-    }
-  });
-
   // Fetch validation records
-  const { data: validationData = [], refetch: refetchValidation } = useQuery<ValidationRecord[]>({
+  const { data: validationData = [] } = useQuery<ValidationRecord[]>({
     queryKey: ['/api/document-management/validation-records'],
     queryFn: async () => {
       const response = await fetch('/api/document-management/validation-records');
@@ -113,97 +74,92 @@ export default function DocumentManagementNew() {
     }
   });
 
-  const stats: DocumentManagementStats = {
-    totalDocuments: documents.length,
-    activeDocuments: documents.filter(doc => doc.is_active).length,
-    pendingDocuments: documents.filter(doc => !doc.is_active).length,
-    lastUpdated: new Date().toISOString()
-  };
+  // Upload mutation
+  const uploadMutation = useMutation({
+    mutationFn: async (formData: FormData) => {
+      const response = await fetch('/api/document-management/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Upload failed');
+      }
+      
+      return response.json();
+    },
+    onSuccess: (result) => {
+      setProcessingStatus('completed');
+      toast({
+        title: "Upload Successful",
+        description: result.message || "LC document uploaded successfully",
+      });
+      // Reset form
+      setSelectedFile(null);
+      setBatchName('');
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      // Refresh queries
+      queryClient.invalidateQueries({ queryKey: ['/api/document-management/stats'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/document-management/validation-records'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/azure-data/execute-sql', 'processed-documents'] });
+    },
+    onError: (error: Error) => {
+      setProcessingStatus('error');
+      toast({
+        title: "Upload Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
 
-  const handleFileUpload = async (files: FileList) => {
-    if (!files || files.length === 0) return;
-    
+  const handleFileUpload = async () => {
+    if (!selectedFile) {
+      toast({
+        title: "No File Selected",
+        description: "Please select a file to upload",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const finalBatchName = batchName.trim() || `LC_${Date.now()}`;
     setProcessingStatus('uploading');
     
-    try {
-      for (const file of Array.from(files)) {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('batchName', batchName || `batch_${Date.now()}`);
-        
-        const response = await fetch('/api/document-management/upload', {
-          method: 'POST',
-          body: formData
-        });
-        
-        if (response.ok) {
-          const result = await response.json();
-          toast({
-            title: "Success",
-            description: result.message,
-          });
-          
-          // Refresh data after successful upload
-          setTimeout(() => {
-            window.location.reload();
-          }, 1000);
-        } else {
-          throw new Error('Upload failed');
-        }
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "File upload failed",
-        variant: "destructive"
-      });
-    } finally {
-      setProcessingStatus('idle');
-    }
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+    formData.append('batchName', finalBatchName);
+    formData.append('documentType', 'LC Document');
+    
+    uploadMutation.mutate(formData);
   };
 
-  const handleRegisterDocument = async () => {
-    try {
-      const response = await fetch('/api/document-management/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(registrationForm)
-      });
-
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "Document registered successfully"
-        });
-        setRegistrationForm({
-          document_type: '',
-          form_name: '',
-          description: '',
-          is_active: true
-        });
-      } else {
-        throw new Error('Registration failed');
-      }
-    } catch (error) {
+  const handleFileSelect = (files: FileList | null) => {
+    if (files && files.length > 0) {
+      const file = files[0];
+      setSelectedFile(file);
       toast({
-        title: "Error",
-        description: "Failed to register document",
-        variant: "destructive"
+        title: "File Selected",
+        description: `Selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`,
       });
     }
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="container mx-auto p-6 space-y-8">
+      {/* Header */}
+      <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Document Management New</h1>
           <p className="text-muted-foreground">
-            Complete LC document processing workflow: upload → validate → OCR → split → store
+            Manual LC document processing workflow: upload → validate → OCR → extract → store
           </p>
         </div>
         <Badge variant="secondary" className="text-sm">
-          {stats.totalDocuments} Documents
+          {stats?.totalDocuments || 0} Documents
         </Badge>
       </div>
 
@@ -250,7 +206,7 @@ export default function DocumentManagementNew() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Unique Batches</p>
-                <p className="text-2xl font-bold">{new Set(processedDocuments.map((doc: any) => doc.batch_name)).size}</p>
+                <p className="text-2xl font-bold">{new Set(processedDocuments.map(doc => doc.batch_name)).size}</p>
               </div>
               <Package className="h-8 w-8 text-purple-600" />
             </div>
@@ -260,33 +216,28 @@ export default function DocumentManagementNew() {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="upload">Upload & Ingestion</TabsTrigger>
           <TabsTrigger value="validation">Validation Review</TabsTrigger>
           <TabsTrigger value="processed">Processed Documents</TabsTrigger>
-          <TabsTrigger value="registration">Document Registration</TabsTrigger>
         </TabsList>
 
         {/* Upload & Ingestion Tab */}
         <TabsContent value="upload" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Upload & Processing Pipeline</CardTitle>
+              <CardTitle>Manual LC Document Upload</CardTitle>
               <CardDescription>
-                Upload PDF, create batch name, slice & stitch forms with progress tracking
+                Upload LC documents for manual processing and field extraction
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* File Upload Zone */}
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-semibold">Upload LC Documents</h4>
-                  <Badge variant="outline">PDF/Images Supported</Badge>
-                </div>
-                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center space-y-4 hover:border-primary/50 transition-colors">
-                  <Upload className="h-10 w-10 mx-auto text-muted-foreground" />
+                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center space-y-4 hover:border-primary/50 transition-colors">
+                  <Upload className="h-12 w-12 mx-auto text-muted-foreground" />
                   <div className="space-y-2">
-                    <h3 className="font-medium">Upload Documents for Processing</h3>
+                    <h3 className="font-medium">Upload LC Documents</h3>
                     <p className="text-sm text-muted-foreground">
                       Upload LC documents for manual processing and field extraction
                     </p>
@@ -305,7 +256,7 @@ export default function DocumentManagementNew() {
                       variant="outline" 
                       onClick={() => fileInputRef.current?.click()}
                       disabled={processingStatus === 'uploading'}
-                      className="w-full"
+                      className="w-full max-w-sm"
                     >
                       <Upload className="mr-2 h-4 w-4" />
                       Choose Files
@@ -316,6 +267,10 @@ export default function DocumentManagementNew() {
                         Selected: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
                       </div>
                     )}
+                    
+                    <p className="text-xs text-muted-foreground">
+                      Supported formats: PDF, PNG, JPG, TXT (Max 50MB)
+                    </p>
                   </div>
                 </div>
               </div>
@@ -374,7 +329,7 @@ export default function DocumentManagementNew() {
                         <p className="text-sm text-muted-foreground">
                           {processingStatus === 'uploading' 
                             ? 'Files are being uploaded and validated' 
-                            : 'Extracting constituent documents from uploaded files'
+                            : 'Processing LC document for manual handling'
                           }
                         </p>
                       </div>
@@ -382,47 +337,6 @@ export default function DocumentManagementNew() {
                   </CardContent>
                 </Card>
               )}
-
-              {/* Quick Actions */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Button 
-                  onClick={async () => {
-                    try {
-                      const response = await fetch('/api/document-management/test-lc-processing', { method: 'POST' });
-                      const result = await response.json();
-                      toast({
-                        title: result.success ? "Success" : "Error",
-                        description: result.message || result.error,
-                        variant: result.success ? "default" : "destructive"
-                      });
-                      if (result.success) {
-                        setTimeout(() => window.location.reload(), 1000);
-                      }
-                    } catch (error) {
-                      toast({
-                        title: "Error",
-                        description: "Failed to process sample LC document",
-                        variant: "destructive"
-                      });
-                    }
-                  }}
-                  variant="outline"
-                  className="justify-start"
-                  disabled={processingStatus !== 'idle'}
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Process Sample LC Document
-                </Button>
-                
-                <Button 
-                  onClick={() => window.location.reload()}
-                  variant="outline" 
-                  className="justify-start"
-                >
-                  <Eye className="h-4 w-4 mr-2" />
-                  Refresh All Data
-                </Button>
-              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -463,43 +377,11 @@ export default function DocumentManagementNew() {
                       <TableCell>{new Date(record.last_updated).toLocaleDateString()}</TableCell>
                       <TableCell>
                         <div className="flex gap-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => window.open(`/api/document-management/validation-detail/${record.id}`, '_blank')}
-                          >
+                          <Button variant="outline" size="sm">
                             <Eye className="h-4 w-4 mr-1" />
                             View
                           </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={async () => {
-                              try {
-                                const response = await fetch(`/api/document-management/download-validation/${record.id}`);
-                                if (response.ok) {
-                                  const blob = await response.blob();
-                                  const url = window.URL.createObjectURL(blob);
-                                  const a = document.createElement('a');
-                                  a.style.display = 'none';
-                                  a.href = url;
-                                  a.download = `validation_report_${record.id}.json`;
-                                  document.body.appendChild(a);
-                                  a.click();
-                                  window.URL.revokeObjectURL(url);
-                                  document.body.removeChild(a);
-                                } else {
-                                  throw new Error('Download failed');
-                                }
-                              } catch (error) {
-                                toast({
-                                  title: "Error",
-                                  description: "Failed to download validation report",
-                                  variant: "destructive"
-                                });
-                              }
-                            }}
-                          >
+                          <Button variant="outline" size="sm">
                             <Download className="h-4 w-4 mr-1" />
                             Download
                           </Button>
@@ -507,6 +389,13 @@ export default function DocumentManagementNew() {
                       </TableCell>
                     </TableRow>
                   ))}
+                  {validationData.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center text-muted-foreground">
+                        No validation records found. Upload a document to get started.
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
@@ -518,108 +407,38 @@ export default function DocumentManagementNew() {
           <Card>
             <CardHeader>
               <CardTitle>Processed Documents</CardTitle>
-              <CardDescription>View extracted documents and constituent document identification results</CardDescription>
+              <CardDescription>View extracted documents and field extraction results</CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Document Type</TableHead>
                     <TableHead>Field Name</TableHead>
+                    <TableHead>Field Value</TableHead>
                     <TableHead>Batch Name</TableHead>
                     <TableHead>Confidence</TableHead>
                     <TableHead>Date Processed</TableHead>
-                    <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {processedDocuments.map((doc: any, index: number) => (
+                  {processedDocuments.map((doc, index) => (
                     <TableRow key={index}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <FileText className="w-4 h-4 text-blue-600" />
-                          <span className="font-medium">{doc.field_value}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">{doc.field_name}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="text-xs">
-                          {doc.batch_name}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {doc.confidence_score ? (
-                          <div className="flex items-center gap-1">
-                            <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                            <span className="text-sm">{Math.round(doc.confidence_score * 100)}%</span>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground text-sm">N/A</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {new Date(doc.created_at).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => {
-                            toast({
-                              title: "Document Details",
-                              description: `Viewing ${doc.field_name}: ${doc.field_value}`
-                            });
-                          }}
-                        >
-                          <Eye className="w-4 h-4 mr-1" />
-                          View
-                        </Button>
-                      </TableCell>
+                      <TableCell className="font-medium">{doc.field_name}</TableCell>
+                      <TableCell className="max-w-xs truncate">{doc.field_value}</TableCell>
+                      <TableCell>{doc.batch_name}</TableCell>
+                      <TableCell>{doc.confidence_score ? `${(doc.confidence_score * 100).toFixed(1)}%` : 'N/A'}</TableCell>
+                      <TableCell>{new Date(doc.created_at).toLocaleDateString()}</TableCell>
                     </TableRow>
                   ))}
+                  {processedDocuments.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center text-muted-foreground">
+                        No processed documents found. Upload a document to see results here.
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Document Registration Tab */}
-        <TabsContent value="registration" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Document Registration</CardTitle>
-              <CardDescription>Register new document types for processing</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium">Document Type</label>
-                  <Input
-                    placeholder="Enter document type"
-                    value={registrationForm.document_type}
-                    onChange={(e) => setRegistrationForm({...registrationForm, document_type: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Form Name</label>
-                  <Input
-                    placeholder="Enter form name"
-                    value={registrationForm.form_name}
-                    onChange={(e) => setRegistrationForm({...registrationForm, form_name: e.target.value})}
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="text-sm font-medium">Description</label>
-                <Input
-                  placeholder="Enter description"
-                  value={registrationForm.description}
-                  onChange={(e) => setRegistrationForm({...registrationForm, description: e.target.value})}
-                />
-              </div>
-              <Button onClick={handleRegisterDocument} className="w-full">
-                Register Document
-              </Button>
             </CardContent>
           </Card>
         </TabsContent>
