@@ -27,6 +27,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { nanoid } from "nanoid";
+import { spawn } from "child_process";
 
 // Configure multer for file uploads with memory storage
 const upload = multer({
@@ -11860,10 +11861,11 @@ except Exception as e:
 
       const pool = await connectToAzureSQL();
       
-      // Simple insert with just batch name
+      // Simple insert with unique batch name and timestamp
       const result = await pool.request()
         .input('batchName', uniqueBatchName)
-        .query(`INSERT INTO instrument_ingestion_new (batch_name) OUTPUT INSERTED.id VALUES (@batchName)`);
+        .input('createdAt', new Date())
+        .query(`INSERT INTO instrument_ingestion_new (batch_name, created_at) OUTPUT INSERTED.id VALUES (@batchName, @createdAt)`);
 
       const instrumentId = result.recordset[0].id;
       
@@ -11919,7 +11921,15 @@ except Exception as e:
         .input('fieldValue', 'OCR Processing')
         .query(`UPDATE ingestion_fields_new SET field_value = @fieldValue WHERE instrument_id = @instrumentId AND field_name = @fieldName`);
 
-      // Simple OCR using Python
+      // Simple OCR using Python - save to file for download
+      const outputDir = path.join(process.cwd(), 'extracted_texts');
+      if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true });
+      }
+
+      const textFileName = `${fileName.replace(/\.[^/.]+$/, '')}_extracted.txt`;
+      const textFilePath = path.join(outputDir, textFileName);
+
       const pythonProcess = spawn('python3', ['-c', `
 import sys
 import os
@@ -11928,54 +11938,82 @@ try:
         import fitz  # PyMuPDF
         doc = fitz.open('${filePath}')
         text = ""
-        for page in doc:
-            text += page.get_text()
-        print(text[:5000])  # Limit to 5000 characters
+        for page_num, page in enumerate(doc):
+            page_text = page.get_text()
+            text += f"\\n\\n--- PAGE {page_num + 1} ---\\n\\n"
+            text += page_text
+        
+        # Save to file
+        with open('${textFilePath}', 'w', encoding='utf-8') as f:
+            f.write(text)
+        
+        print(f"SUCCESS:{len(text)}")
     else:
-        print("File format not supported for OCR")
+        print("ERROR:File format not supported")
 except Exception as e:
-    print(f"OCR Error: {e}")
+    print(f"ERROR:{e}")
 `]);
 
-      let extractedText = '';
+      let extractedResult = '';
       pythonProcess.stdout.on('data', (data: Buffer) => {
-        extractedText += data.toString();
+        extractedResult += data.toString();
       });
 
       pythonProcess.on('close', async (code: number) => {
         try {
-          if (extractedText.trim()) {
-            // Store extracted text
-            await pool.request()
-              .input('instrumentId', instrumentId)
-              .input('fieldName', 'Extracted_Text')
-              .input('fieldValue', extractedText.substring(0, 4000))
-              .query(`INSERT INTO ingestion_fields_new (instrument_id, field_name, field_value) VALUES (@instrumentId, @fieldName, @fieldValue)`);
+          if (extractedResult.includes('SUCCESS:')) {
+            const charCount = extractedResult.split(':')[1].trim();
+            const extractedText = fs.readFileSync(textFilePath, 'utf-8');
+            
+            // Store extracted text and file info
+            const fields = [
+              { name: 'Extracted_Text', value: extractedText.substring(0, 4000) },
+              { name: 'Character_Count', value: charCount },
+              { name: 'Text_File_Path', value: textFilePath },
+              { name: 'Text_File_Name', value: textFileName },
+              { name: 'Processing_Status', value: 'Completed' }
+            ];
 
-            await pool.request()
-              .input('instrumentId', instrumentId)
-              .input('fieldName', 'Character_Count')
-              .input('fieldValue', extractedText.length.toString())
-              .query(`INSERT INTO ingestion_fields_new (instrument_id, field_name, field_value) VALUES (@instrumentId, @fieldName, @fieldValue)`);
+            for (const field of fields) {
+              try {
+                const existingField = await pool.request()
+                  .input('instrumentId', instrumentId)
+                  .input('fieldName', field.name)
+                  .query(`SELECT id FROM ingestion_fields_new WHERE instrument_id = @instrumentId AND field_name = @fieldName`);
 
-            // Update status to completed
-            await pool.request()
-              .input('instrumentId', instrumentId)
-              .input('fieldName', 'Processing_Status')
-              .input('fieldValue', 'Completed')
-              .query(`UPDATE ingestion_fields_new SET field_value = @fieldValue WHERE instrument_id = @instrumentId AND field_name = @fieldName`);
+                if (existingField.recordset.length > 0) {
+                  await pool.request()
+                    .input('instrumentId', instrumentId)
+                    .input('fieldName', field.name)
+                    .input('fieldValue', field.value)
+                    .query(`UPDATE ingestion_fields_new SET field_value = @fieldValue WHERE instrument_id = @instrumentId AND field_name = @fieldName`);
+                } else {
+                  await pool.request()
+                    .input('instrumentId', instrumentId)
+                    .input('fieldName', field.name)
+                    .input('fieldValue', field.value)
+                    .query(`INSERT INTO ingestion_fields_new (instrument_id, field_name, field_value) VALUES (@instrumentId, @fieldName, @fieldValue)`);
+                }
+              } catch (error) {
+                console.log(`Field operation skipped: ${field.name}`);
+              }
+            }
               
-            console.log(`Document ${fileName} processed successfully - ${extractedText.length} characters extracted`);
+            console.log(`Document ${fileName} processed successfully - ${charCount} characters extracted`);
           } else {
-            throw new Error('No text extracted');
+            throw new Error(`OCR failed: ${extractedResult}`);
           }
         } catch (error) {
           // Update status to failed
-          await pool.request()
-            .input('instrumentId', instrumentId)
-            .input('fieldName', 'Processing_Status')
-            .input('fieldValue', 'Failed')
-            .query(`UPDATE ingestion_fields_new SET field_value = @fieldValue WHERE instrument_id = @instrumentId AND field_name = @fieldName`);
+          try {
+            await pool.request()
+              .input('instrumentId', instrumentId)
+              .input('fieldName', 'Processing_Status')
+              .input('fieldValue', 'Failed')
+              .query(`UPDATE ingestion_fields_new SET field_value = @fieldValue WHERE instrument_id = @instrumentId AND field_name = @fieldName`);
+          } catch (updateError) {
+            console.log('Failed to update error status');
+          }
         }
       });
 
@@ -11983,6 +12021,133 @@ except Exception as e:
       console.error(`Processing failed for ${fileName}:`, error);
     }
   }
+
+  // Download extracted text file
+  app.get('/api/document-management/download-text/:instrumentId', async (req, res) => {
+    try {
+      const instrumentId = parseInt(req.params.instrumentId);
+      const pool = await connectToAzureSQL();
+      
+      const result = await pool.request()
+        .input('instrumentId', instrumentId)
+        .input('fieldName', 'Text_File_Path')
+        .query(`SELECT field_value FROM ingestion_fields_new WHERE instrument_id = @instrumentId AND field_name = @fieldName`);
+
+      if (result.recordset.length === 0) {
+        return res.status(404).json({ error: 'Extracted text file not found' });
+      }
+
+      const filePath = result.recordset[0].field_value;
+      
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ error: 'Text file does not exist on disk' });
+      }
+
+      const fileName = path.basename(filePath);
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      
+      const fileStream = fs.createReadStream(filePath);
+      fileStream.pipe(res);
+
+    } catch (error) {
+      console.error('Download error:', error);
+      res.status(500).json({ error: 'Download failed' });
+    }
+  });
+
+  // Get processed documents for viewing
+  app.get('/api/document-management/processed-documents', async (req, res) => {
+    try {
+      const pool = await connectToAzureSQL();
+      const result = await pool.request()
+        .query(`
+          SELECT DISTINCT 
+            i.id,
+            i.batch_name,
+            i.created_at,
+            f1.field_value as file_name,
+            f2.field_value as processing_status,
+            f3.field_value as character_count,
+            f4.field_value as extracted_text_preview
+          FROM instrument_ingestion_new i
+          LEFT JOIN ingestion_fields_new f1 ON i.id = f1.instrument_id AND f1.field_name = 'File_Name'
+          LEFT JOIN ingestion_fields_new f2 ON i.id = f2.instrument_id AND f2.field_name = 'Processing_Status'
+          LEFT JOIN ingestion_fields_new f3 ON i.id = f3.instrument_id AND f3.field_name = 'Character_Count'
+          LEFT JOIN ingestion_fields_new f4 ON i.id = f4.instrument_id AND f4.field_name = 'Extracted_Text'
+          WHERE f1.field_value IS NOT NULL
+          ORDER BY i.created_at DESC
+        `);
+
+      const documents = result.recordset.map(record => ({
+        id: record.id,
+        batchName: record.batch_name,
+        fileName: record.file_name,
+        processingStatus: record.processing_status || 'Unknown',
+        characterCount: record.character_count || '0',
+        extractedTextPreview: record.extracted_text_preview ? record.extracted_text_preview.substring(0, 200) + '...' : 'No text extracted',
+        createdAt: record.created_at
+      }));
+
+      res.json(documents);
+    } catch (error) {
+      console.error('Error fetching processed documents:', error);
+      res.status(500).json({ error: 'Failed to fetch documents' });
+    }
+  });
+
+  // Get full extracted text for viewing
+  app.get('/api/document-management/extracted-text/:instrumentId', async (req, res) => {
+    try {
+      const instrumentId = parseInt(req.params.instrumentId);
+      const pool = await connectToAzureSQL();
+      
+      const result = await pool.request()
+        .input('instrumentId', instrumentId)
+        .query(`
+          SELECT 
+            f1.field_value as extracted_text,
+            f2.field_value as character_count,
+            f3.field_value as file_name
+          FROM ingestion_fields_new f1
+          LEFT JOIN ingestion_fields_new f2 ON f1.instrument_id = f2.instrument_id AND f2.field_name = 'Character_Count'
+          LEFT JOIN ingestion_fields_new f3 ON f1.instrument_id = f3.instrument_id AND f3.field_name = 'File_Name'
+          WHERE f1.instrument_id = @instrumentId AND f1.field_name = 'Extracted_Text'
+        `);
+
+      if (result.recordset.length === 0) {
+        return res.status(404).json({ error: 'Extracted text not found' });
+      }
+
+      const record = result.recordset[0];
+      
+      // Try to get full text from file if available
+      const filePathResult = await pool.request()
+        .input('instrumentId', instrumentId)
+        .input('fieldName', 'Text_File_Path')
+        .query(`SELECT field_value FROM ingestion_fields_new WHERE instrument_id = @instrumentId AND field_name = @fieldName`);
+
+      let fullText = record.extracted_text;
+      
+      if (filePathResult.recordset.length > 0 && fs.existsSync(filePathResult.recordset[0].field_value)) {
+        try {
+          fullText = fs.readFileSync(filePathResult.recordset[0].field_value, 'utf-8');
+        } catch (error) {
+          console.log('Could not read full text file, using database text');
+        }
+      }
+
+      res.json({
+        extractedText: fullText,
+        characterCount: parseInt(record.character_count || '0'),
+        fileName: record.file_name
+      });
+
+    } catch (error) {
+      console.error('Error fetching extracted text:', error);
+      res.status(500).json({ error: 'Failed to fetch extracted text' });
+    }
+  });
 
   // Get validation records for Validation Review tab
   app.get('/api/document-management/validation-records', async (req, res) => {
