@@ -286,57 +286,105 @@ async function loadFromAzureDatabase() {
     const { connectToAzureSQL } = await import('./azureSqlConnection');
     const pool = await connectToAzureSQL();
     
+    // Simple query without NTEXT columns in ORDER BY
     const result = await pool.request().query(`
-      SELECT 
-        i.ingestion_id,
-        i.original_filename,
-        i.file_type,
-        i.file_size,
-        i.status,
-        i.created_date,
-        (SELECT COUNT(*) FROM TF_ingestion_Pdf p WHERE p.ingestion_id = i.ingestion_id) as form_count
-      FROM TF_ingestion i
-      WHERE i.status = 'completed'
-      ORDER BY i.created_date DESC
+      SELECT TOP 20
+        ingestion_id,
+        original_filename,
+        file_type,
+        file_size,
+        status,
+        created_date
+      FROM TF_ingestion
+      WHERE status = 'completed'
+      ORDER BY id DESC
     `);
     
-    // Get extracted data and text separately for each record
-    const enrichedResults = await Promise.all(result.recordset.map(async (record: any) => {
-      // Get extracted data
-      const dataResult = await pool.request()
-        .input('ingestionId', record.ingestion_id)
-        .query('SELECT extracted_data FROM TF_ingestion WHERE ingestion_id = @ingestionId');
-      
-      // Get extracted text
-      const textResult = await pool.request()
-        .input('ingestionId', record.ingestion_id)
-        .query('SELECT TOP 1 content FROM TF_ingestion_TXT WHERE ingestion_id = @ingestionId');
-      
-      return {
-        ...record,
-        extracted_data: dataResult.recordset[0]?.extracted_data || '{}',
-        extracted_text: textResult.recordset[0]?.content || ''
-      };
-    }));
+    if (result.recordset.length === 0) {
+      console.log('No completed documents found in database');
+      await pool.close();
+      return [];
+    }
     
-    return enrichedResults.map((record: any) => {
-      const extractedData = record.extracted_data ? JSON.parse(record.extracted_data) : {};
-      return {
-        id: record.ingestion_id,
-        filename: record.original_filename,
-        uploadDate: record.created_date,
-        processingMethod: extractedData.processingMethod || 'Direct OCR Text Extraction',
-        totalForms: record.form_count || extractedData.totalForms || 1,
-        fileSize: record.file_size,
-        documentType: extractedData.detectedForms?.[0]?.formType || 'Unknown Document',
-        confidence: extractedData.detectedForms?.[0]?.confidence ? Math.round(extractedData.detectedForms[0].confidence * 100) : 85,
-        extractedText: record.extracted_text,
-        fullText: record.extracted_text,
-        processedAt: record.created_date,
-        docId: record.ingestion_id,
-        totalPages: extractedData.totalPages || 1
-      };
-    });
+    // Process each record to get additional data
+    const documents = [];
+    for (const record of result.recordset) {
+      try {
+        // Get extracted data
+        const dataResult = await pool.request()
+          .input('ingestionId', record.ingestion_id)
+          .query('SELECT extracted_data FROM TF_ingestion WHERE ingestion_id = @ingestionId');
+        
+        // Get extracted text
+        const textResult = await pool.request()
+          .input('ingestionId', record.ingestion_id)
+          .query('SELECT TOP 1 content FROM TF_ingestion_TXT WHERE ingestion_id = @ingestionId');
+        
+        // Get form count
+        const formResult = await pool.request()
+          .input('ingestionId', record.ingestion_id)
+          .query('SELECT COUNT(*) as count FROM TF_ingestion_Pdf WHERE ingestion_id = @ingestionId');
+        
+        const extractedData = dataResult.recordset[0]?.extracted_data ? 
+          JSON.parse(dataResult.recordset[0].extracted_data) : {};
+        
+        const extractedText = textResult.recordset[0]?.content || '';
+        const formCount = formResult.recordset[0]?.count || 1;
+        
+        documents.push({
+          id: record.ingestion_id,
+          filename: record.original_filename,
+          uploadDate: record.created_date,
+          processingMethod: extractedData.processingMethod || 'Direct OCR Text Extraction',
+          totalForms: formCount || extractedData.totalForms || 1,
+          fileSize: record.file_size,
+          documentType: extractedData.detectedForms?.[0]?.formType || 'Unknown Document',
+          confidence: extractedData.detectedForms?.[0]?.confidence ? 
+            Math.round(extractedData.detectedForms[0].confidence * 100) : 85,
+          extractedText: extractedText,
+          fullText: extractedText,
+          processedAt: record.created_date,
+          docId: record.ingestion_id,
+          totalPages: extractedData.totalPages || 1,
+          detectedForms: extractedData.detectedForms?.map((form: any, index: number) => ({
+            id: `${record.ingestion_id}_form_${index + 1}`,
+            formType: form.formType,
+            confidence: form.confidence,
+            pageNumbers: [form.pageNumber || index + 1],
+            extractedFields: {
+              'Full Extracted Text': extractedText,
+              'Document Classification': form.formType,
+              'Processing Statistics': `${extractedText.length} characters extracted`,
+              'Page Number': (form.pageNumber || index + 1).toString()
+            },
+            status: 'completed',
+            processingMethod: 'Direct OCR Text Extraction',
+            fullText: extractedText
+          })) || [{
+            id: `${record.ingestion_id}_form_1`,
+            formType: extractedData.detectedForms?.[0]?.formType || 'Unknown Document',
+            confidence: extractedData.detectedForms?.[0]?.confidence || 0.85,
+            pageNumbers: [1],
+            extractedFields: {
+              'Full Extracted Text': extractedText,
+              'Document Classification': extractedData.detectedForms?.[0]?.formType || 'Unknown Document',
+              'Processing Statistics': `${extractedText.length} characters extracted`,
+              'Page Number': '1'
+            },
+            status: 'completed',
+            processingMethod: 'Direct OCR Text Extraction',
+            fullText: extractedText
+          }]
+        });
+        
+      } catch (recordError) {
+        console.error(`Error processing record ${record.ingestion_id}:`, recordError);
+      }
+    }
+    
+    await pool.close();
+    console.log(`Loaded ${documents.length} documents from Azure database`);
+    return documents;
     
   } catch (error) {
     console.error('Error loading from Azure database:', error);
