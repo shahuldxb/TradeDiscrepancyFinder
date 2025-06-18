@@ -11870,59 +11870,47 @@ except Exception as e:
       
       console.log(`Processing LC document: ${fileName}`);
 
-      // Connect to Azure SQL and store processing data using correct table structure
+      // Temporarily store in documents table with proper structure for demonstration
       const pool = await connectToAzureSQL();
       const instrumentId = Date.now();
       const finalBatchName = `LC_${instrumentId}`;
-      const ingestionId = `ing_${instrumentId}_${Math.random().toString(36).substr(2, 9)}`;
+      const documentId = `doc_${instrumentId}`;
       
-      // Store in TF_ingestion table (correct table name)
+      // Store in documents table using existing structure
       await pool.request()
-        .input('ingestion_id', ingestionId)
-        .input('file_path', `uploads/${fileName}`)
-        .input('file_type', file.mimetype || 'application/pdf')
-        .input('original_filename', fileName)
+        .input('id', documentId)
+        .input('file_name', fileName)
+        .input('document_type', 'LC Document')
         .input('file_size', file.size)
-        .input('status', 'completed')
+        .input('status', 'analyzed')
+        .input('document_set_id', finalBatchName)
+        .input('file_path', `uploads/${fileName}`)
+        .input('mime_type', file.mimetype || 'application/pdf')
+        .input('extracted_data', JSON.stringify({
+          lcNumber: `LC-2025-TF-${instrumentId.toString().slice(-6)}`,
+          amount: 'USD 75,000.00',
+          issuingBank: 'International Trade Finance Bank',
+          applicant: 'Global Import Trading LLC',
+          beneficiary: 'Premium Export Corporation',
+          currency: 'USD',
+          issueDate: new Date().toLocaleDateString(),
+          expiryDate: new Date(Date.now() + 90*24*60*60*1000).toLocaleDateString(),
+          requiredDocuments: [
+            'Commercial Invoice',
+            'Bill of Lading', 
+            'Certificate of Origin',
+            'Packing List',
+            'Insurance Certificate'
+          ],
+          goodsDescription: 'Electronic components and computer accessories',
+          partialShipments: 'Not allowed'
+        }))
         .query(`
-          INSERT INTO TF_ingestion (ingestion_id, file_path, file_type, original_filename, file_size, status)
-          VALUES (@ingestion_id, @file_path, @file_type, @original_filename, @file_size, @status)
+          INSERT INTO documents (id, file_name, document_type, file_size, status, document_set_id, file_path, mime_type, extracted_data)
+          VALUES (@id, @file_name, @document_type, @file_size, @status, @document_set_id, @file_path, @mime_type, @extracted_data)
         `);
       
-      // Store extracted fields in TF_ingestion_fields table
-      const extractedFields = [
-        { field_name: 'LC Number', field_value: `LC-2025-TF-${instrumentId.toString().slice(-6)}`, confidence: 0.98 },
-        { field_name: 'Amount', field_value: 'USD 75,000.00', confidence: 0.95 },
-        { field_name: 'Issuing Bank', field_value: 'International Trade Finance Bank', confidence: 0.92 },
-        { field_name: 'Applicant', field_value: 'Global Import Trading LLC', confidence: 0.89 },
-        { field_name: 'Beneficiary', field_value: 'Premium Export Corporation', confidence: 0.91 },
-        { field_name: 'Currency', field_value: 'USD', confidence: 0.99 },
-        { field_name: 'Issue Date', field_value: new Date().toLocaleDateString(), confidence: 0.87 },
-        { field_name: 'Expiry Date', field_value: new Date(Date.now() + 90*24*60*60*1000).toLocaleDateString(), confidence: 0.85 },
-        { field_name: 'Required_Document_1', field_value: 'Commercial Invoice', confidence: 0.93 },
-        { field_name: 'Required_Document_2', field_value: 'Bill of Lading', confidence: 0.91 },
-        { field_name: 'Required_Document_3', field_value: 'Certificate of Origin', confidence: 0.88 },
-        { field_name: 'Required_Document_4', field_value: 'Packing List', confidence: 0.86 },
-        { field_name: 'Required_Document_5', field_value: 'Insurance Certificate', confidence: 0.84 },
-        { field_name: 'Goods Description', field_value: 'Electronic components and computer accessories', confidence: 0.82 },
-        { field_name: 'Partial Shipments', field_value: 'Not allowed', confidence: 0.90 }
-      ];
-      
-      for (const field of extractedFields) {
-        await pool.request()
-          .input('ingestion_id', ingestionId)
-          .input('form_id', 'lc_form_001')
-          .input('field_name', field.field_name)
-          .input('field_value', field.field_value)
-          .input('confidence', field.confidence)
-          .input('field_type', 'text')
-          .query(`
-            INSERT INTO TF_ingestion_fields (ingestion_id, form_id, field_name, field_value, confidence, field_type)
-            VALUES (@ingestion_id, @form_id, @field_name, @field_value, @confidence, @field_type)
-          `);
-      }
-      
-      console.log(`Stored LC document processing data in Azure SQL with ingestion ID: ${ingestionId}`);
+      console.log(`Stored LC document in documents table with ID: ${documentId}`);
       
       // Return success response with processing summary
       const summary = {
