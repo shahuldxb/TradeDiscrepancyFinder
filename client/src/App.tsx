@@ -58,7 +58,7 @@ import FormsApprovalSystem from "@/pages/forms/FormsApprovalSystem";
 import ComprehensiveFormsUI from "@/pages/forms/ComprehensiveFormsUI";
 import InstantUpload from "@/pages/forms/InstantUpload";
 import DocumentManagementNew from "@/pages/documentmanagement/DocumentManagementNew";
-import LCFormDetection from "@/pages/documentmanagement/LCFormDetection";
+import TradeFinanceFormDetection from "@/pages/documentmanagement/LCFormDetection";
 
 
 
@@ -102,7 +102,7 @@ function Router() {
             <Route path="/document-management-new" component={DocumentManagementNew} />
             <Route path="/document-management-new/validation" component={DocumentManagementNew} />
             <Route path="/document-management-new/registration" component={DocumentManagementNew} />
-            <Route path="/form-detection" component={LCFormDetection} />
+            <Route path="/form-detection" component={TradeFinanceFormDetection} />
             <Route path="/document-management-new/processed" component={DocumentManagementNew} />
   
 
