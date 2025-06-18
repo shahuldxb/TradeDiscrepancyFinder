@@ -11950,7 +11950,6 @@ SPECIAL CONDITIONS:
       };
       
       res.json(summary);
-
     } catch (error) {
       console.error('Upload error:', error);
       res.status(500).json({ 
@@ -12048,68 +12047,52 @@ End of LC Document`;
     }
   }
 
-  // Get processed documents
+  
+  // Get processed documents from uploaded files
   app.get('/api/document-management/processed-documents', async (req, res) => {
     try {
-      // Return sample data for now
-      const sampleDocuments = [
-        // Get real uploaded files from uploads directory
-        const fs = require('fs');
-        const path = require('path');
+      const fs = require('fs');
+      const path = require('path');
+      const documents = [];
+      
+      const uploadsDir = 'uploads';
+      const extractedDir = 'extracted_texts';
+      
+      if (fs.existsSync(uploadsDir)) {
+        const uploadedFiles = fs.readdirSync(uploadsDir).filter((f: string) => f.endsWith('.pdf'));
         
-        const uploadsDir = 'uploads';
-        const extractedDir = 'extracted_texts';
-        
-        if (fs.existsSync(uploadsDir)) {
-          const uploadedFiles = fs.readdirSync(uploadsDir).filter(f => f.endsWith('.pdf'));
+        uploadedFiles.slice(-10).forEach((file: string, index: number) => {
+          const stats = fs.statSync(path.join(uploadsDir, file));
+          const hasExtractedText = fs.existsSync(extractedDir) && 
+            fs.readdirSync(extractedDir).some((f: string) => f.endsWith('.txt'));
           
-          uploadedFiles.slice(-10).forEach((file, index) => {
-            const stats = fs.statSync(path.join(uploadsDir, file));
-            const hasExtractedText = fs.existsSync(extractedDir) && 
-              fs.readdirSync(extractedDir).some(f => f.endsWith('.txt'));
-            
-            return {
-              id: index + 100,
-              batch_name: `LC_${file.replace('.pdf', '').slice(-8)}`,
-              document_type: file.includes('lc') ? "Letter of Credit" : "Trade Document",
-              processing_status: hasExtractedText ? "completed" : "processing",
-              total_documents: 1,
-              created_at: stats.mtime.toISOString(),
-              field_count: hasExtractedText ? 15 : 0,
-              file_name: file,
-              file_size: Math.round(stats.size / 1024) + " KB"
-            };
-          })[0] || {
-            id: 1,
-            batch_name: 'LC_2025_001',
-            document_type: 'Letter of Credit',
-            processing_status: 'completed',
-            total_documents: 3,
-            created_at: new Date().toISOString(),
-            field_count: 25
-          };
-        } else {
-          return {
-            id: 1,
-            batch_name: 'LC_2025_001',
-            document_type: 'Letter of Credit',
-            processing_status: 'completed',
-            total_documents: 3,
-            created_at: new Date().toISOString(),
-            field_count: 25
-          };
-        }
-      }, {
-        id: 2,
-        batch_name: 'CI_2025_002',
-        document_type: 'Commercial Invoice',
-        processing_status: 'processing',
-        total_documents: 1,
-        created_at: new Date(Date.now() - 3600000).toISOString(),
-        field_count: 12
-      ];
+          documents.push({
+            id: index + 100,
+            batch_name: `LC_${file.replace('.pdf', '').slice(-8)}`,
+            document_type: file.includes('lc') ? "Letter of Credit" : "Trade Document",
+            processing_status: hasExtractedText ? "completed" : "processing",
+            total_documents: 1,
+            created_at: stats.mtime.toISOString(),
+            field_count: hasExtractedText ? 15 : 0,
+            file_name: file,
+            file_size: Math.round(stats.size / 1024) + " KB"
+          });
+        });
+      }
+      
+      if (documents.length === 0) {
+        documents.push({
+          id: 1,
+          batch_name: 'LC_2025_001',
+          document_type: 'Letter of Credit',
+          processing_status: 'completed',
+          total_documents: 3,
+          created_at: new Date().toISOString(),
+          field_count: 25
+        });
+      }
 
-      res.json(sampleDocuments);
+      res.json(documents);
     } catch (error) {
       console.error('Error fetching processed documents:', error);
       res.status(500).json({ error: 'Failed to fetch processed documents' });
@@ -12319,7 +12302,7 @@ This credit is available by negotiation against presentation of documents comply
   });
 
   // Add simple upload endpoint
-  createSimpleUpload(app);
+  // Simple upload functionality integrated above
 
   const httpServer = createServer(app);
   return httpServer;
