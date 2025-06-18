@@ -7,8 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
-import { Upload, FileText, Database, Settings, Check, X, Clock, Eye, Download, Plus, Play, Pause } from 'lucide-react';
+import { Upload, FileText, Database, Settings, Check, X, Clock, Eye, Download, Plus, Play, Pause, FileCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useQuery } from '@tanstack/react-query';
 
 interface MasterDocument {
   id: number;
