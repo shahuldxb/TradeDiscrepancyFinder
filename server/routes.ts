@@ -155,42 +155,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-// Document history storage - simple in-memory solution that persists to file
+// Document history storage with synchronous file operations
 let documentHistory: any[] = [];
 
 // Load existing history on startup
-try {
-  if (fs.existsSync('document_history.json')) {
-    const data = fs.readFileSync('document_history.json', 'utf8');
-    documentHistory = JSON.parse(data);
-    console.log(`Loaded ${documentHistory.length} documents from history`);
+function loadDocumentHistory() {
+  try {
+    const historyPath = path.join(process.cwd(), 'document_history.json');
+    if (fs.existsSync(historyPath)) {
+      const data = fs.readFileSync(historyPath, 'utf8');
+      documentHistory = JSON.parse(data) || [];
+      console.log(`Loaded ${documentHistory.length} documents from history`);
+    } else {
+      documentHistory = [];
+      console.log('No existing document history found, starting fresh');
+    }
+  } catch (error) {
+    console.error('Error loading document history:', error);
+    documentHistory = [];
   }
-} catch (error) {
-  console.error('Error loading document history:', error);
-  documentHistory = [];
 }
 
-// Save history to file
+// Save history to file with error handling
 function saveDocumentHistory() {
   try {
-    fs.writeFileSync('document_history.json', JSON.stringify(documentHistory, null, 2));
+    const historyPath = path.join(process.cwd(), 'document_history.json');
+    fs.writeFileSync(historyPath, JSON.stringify(documentHistory, null, 2));
+    console.log(`Document history saved: ${documentHistory.length} documents`);
   } catch (error) {
     console.error('Error saving document history:', error);
   }
 }
 
-  // Form detection upload endpoint with history storage
+// Initialize history on module load
+loadDocumentHistory();
+
+  // Form detection upload endpoint with immediate history storage
   app.post('/api/form-detection/upload', upload.single('file'), async (req, res) => {
+    console.log('=== UPLOAD ENDPOINT CALLED ===');
     try {
       if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
       }
 
+      console.log('=== UPLOAD STARTED ===');
       const docId = Date.now().toString();
       const filePath = req.file.path;
 
-      // Store document in history immediately before processing
-      const initialHistoryEntry = {
+      // Store document in history immediately - MUST work
+      const historyEntry = {
         id: docId,
         filename: req.file.originalname,
         documentType: 'Processing...',
@@ -201,9 +214,11 @@ function saveDocumentHistory() {
         docId: docId
       };
       
-      documentHistory.unshift(initialHistoryEntry);
+      // Add to memory and save immediately
+      documentHistory.unshift(historyEntry);
+      console.log(`Before save: ${documentHistory.length} documents in memory`);
       saveDocumentHistory();
-      console.log(`✓ Document added to history during upload: ${initialHistoryEntry.filename}, total: ${documentHistory.length}`);
+      console.log(`✓ DOCUMENT STORED: ${historyEntry.filename} (${historyEntry.fileSize})`);
 
       // Process document with OCR
       const result = await new Promise<any>((resolve, reject) => {
