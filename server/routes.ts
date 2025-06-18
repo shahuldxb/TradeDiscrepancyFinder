@@ -90,20 +90,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       pythonProcess.stdout.on('data', (data: Buffer) => {
         output += data.toString();
+        console.log('Python stdout:', data.toString());
       });
 
       pythonProcess.stderr.on('data', (data: Buffer) => {
         errorOutput += data.toString();
+        console.log('Python stderr:', data.toString());
       });
 
       const result = await new Promise((resolve, reject) => {
         pythonProcess.on('close', (code: number) => {
+          console.log(`Python process exited with code: ${code}`);
+          console.log(`Output received: ${output}`);
+          console.log(`Error output: ${errorOutput}`);
+          
           if (code === 0) {
             try {
               const analysisResult = JSON.parse(output);
+              console.log('Parsed analysis result:', JSON.stringify(analysisResult, null, 2));
               
               // Handle multiple detected forms from Fast LC Processor
               const formsData = analysisResult.detected_forms || [];
+              console.log(`Forms data array length: ${formsData.length}`);
+              
               const detectedForms = formsData.map((form: any, index: number) => ({
                 id: `${docId}_form_${index + 1}`,
                 formType: form.form_type || form.document_type,
