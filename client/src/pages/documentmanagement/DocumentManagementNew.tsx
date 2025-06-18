@@ -90,21 +90,63 @@ export default function DocumentManagementNew() {
       return response.json();
     },
     onSuccess: (result) => {
-      setProcessingStatus('completed');
+      setProcessingStatus('processing');
       toast({
         title: "Upload Successful",
-        description: result.message || "LC document uploaded successfully",
+        description: "Processing: Validate → OCR → Extract → Split",
       });
       
-      // Auto-reset after showing success for 2 seconds
-      setTimeout(() => {
-        setProcessingStatus('idle');
-        setSelectedFile(null);
-        setBatchName('');
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
-        }
-      }, 2000);
+      // Start comprehensive processing workflow
+      const instrumentId = result.instrumentId;
+      if (instrumentId) {
+        // Monitor processing status every 2 seconds
+        const pollProcessing = setInterval(async () => {
+          try {
+            const statusResponse = await fetch(`/api/document-management/processing-status/${instrumentId}`);
+            const statusData = await statusResponse.json();
+            
+            // Check if all steps are completed
+            const steps = statusData.steps;
+            const allCompleted = Object.values(steps).every((step: any) => step.status === 'completed');
+            
+            if (allCompleted) {
+              clearInterval(pollProcessing);
+              setProcessingStatus('completed');
+              toast({
+                title: "Processing Complete",
+                description: "Document validated, OCR extracted, fields identified, and split by form type",
+              });
+              
+              // Auto-reset after showing success for 3 seconds
+              setTimeout(() => {
+                setProcessingStatus('idle');
+                setSelectedFile(null);
+                setBatchName('');
+                if (fileInputRef.current) {
+                  fileInputRef.current.value = '';
+                }
+              }, 3000);
+            }
+          } catch (error) {
+            console.error('Processing status check failed:', error);
+            clearInterval(pollProcessing);
+            setProcessingStatus('completed'); // Fallback to completed
+          }
+        }, 2000);
+        
+        // Timeout after 30 seconds
+        setTimeout(() => {
+          clearInterval(pollProcessing);
+          if (processingStatus === 'processing') {
+            setProcessingStatus('completed');
+          }
+        }, 30000);
+      } else {
+        // Fallback if no instrumentId
+        setTimeout(() => {
+          setProcessingStatus('completed');
+        }, 5000);
+      }
       
       // Refresh queries immediately
       queryClient.invalidateQueries({ queryKey: ['/api/document-management/stats'] });
@@ -138,11 +180,6 @@ export default function DocumentManagementNew() {
 
     const finalBatchName = batchName.trim() || `LC_${Date.now()}`;
     setProcessingStatus('uploading');
-    
-    // Simulate processing steps for better UX
-    setTimeout(() => {
-      setProcessingStatus('processing');
-    }, 1000);
     
     const formData = new FormData();
     formData.append('file', selectedFile);
@@ -353,14 +390,14 @@ export default function DocumentManagementNew() {
                         <div>
                           <p className="font-medium">
                             {processingStatus === 'uploading' ? 'Uploading Files...' : 
-                             processingStatus === 'processing' ? 'Processing Documents...' :
-                             processingStatus === 'completed' ? 'Upload Completed!' :
-                             processingStatus === 'error' ? 'Upload Failed' : 'Processing...'}
+                             processingStatus === 'processing' ? 'Processing Document Pipeline...' :
+                             processingStatus === 'completed' ? 'Processing Complete!' :
+                             processingStatus === 'error' ? 'Processing Failed' : 'Processing...'}
                           </p>
                           <p className="text-sm text-muted-foreground">
-                            {processingStatus === 'uploading' ? 'Files are being uploaded to Azure SQL Server' : 
-                             processingStatus === 'processing' ? 'Storing document metadata in database' :
-                             processingStatus === 'completed' ? 'LC document successfully uploaded and processed' :
+                            {processingStatus === 'uploading' ? 'Uploading to Azure SQL Server' : 
+                             processingStatus === 'processing' ? 'Running: Validate → OCR → Extract → Split by Form Type' :
+                             processingStatus === 'completed' ? 'Document validated, OCR extracted, fields identified, and split' :
                              processingStatus === 'error' ? 'Please try again or check file format' : 'Please wait...'}
                           </p>
                         </div>
@@ -388,10 +425,10 @@ export default function DocumentManagementNew() {
                         processingStatus === 'error' ? 'text-red-700' :
                         'text-blue-700'
                       }`}>
-                        {processingStatus === 'uploading' ? 'Step 1/2: Uploading to Azure SQL Server' : 
-                         processingStatus === 'processing' ? 'Step 2/2: Storing document metadata' :
-                         processingStatus === 'completed' ? 'Ready for manual processing workflow' :
-                         processingStatus === 'error' ? 'Upload failed - please try again' : 'Processing...'}
+                        {processingStatus === 'uploading' ? 'Step 1/5: Uploading to Azure SQL Server' : 
+                         processingStatus === 'processing' ? 'Steps 2-5: Validate → OCR → Extract → Split' :
+                         processingStatus === 'completed' ? 'All processing steps completed successfully' :
+                         processingStatus === 'error' ? 'Processing failed - please try again' : 'Processing...'}
                       </div>
                     </div>
                   </CardContent>

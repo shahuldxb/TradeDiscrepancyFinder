@@ -14,7 +14,7 @@ import {
   insertCustomTaskSchema,
   insertCustomCrewSchema
 } from "@shared/schema";
-import { processDocument } from "./documentProcessor";
+// Remove unused import - DocumentProcessor is imported dynamically in routes
 import { crewAI, processDocumentSetWithAgents } from "./crewai";
 import { runDiscrepancyAnalysis, getDiscrepancies } from "./discrepancyEngine";
 import { azureDataService } from "./azureDataService";
@@ -11766,6 +11766,53 @@ except Exception as e:
   // Document Management New - Upload Endpoint
   const { connectToAzureSQL } = await import('./azureSqlConnection');
 
+  // Get processing status for a specific document
+  app.get('/api/document-management/processing-status/:instrumentId', async (req, res) => {
+    try {
+      const pool = await connectToAzureSQL();
+      const instrumentId = req.params.instrumentId;
+      
+      // Get processing steps from database
+      const result = await pool.request()
+        .input('instrumentId', instrumentId)
+        .query(`
+          SELECT field_name, field_value 
+          FROM ingestion_fields_new 
+          WHERE instrument_id = @instrumentId 
+          AND field_name LIKE '%Status%'
+          ORDER BY id ASC
+        `);
+      
+      const steps = {
+        validate: { status: 'pending', progress: 0, message: 'Validating document format' },
+        ocr: { status: 'pending', progress: 0, message: 'Extracting text with OCR' },
+        extract: { status: 'pending', progress: 0, message: 'Extracting structured fields' },
+        split: { status: 'pending', progress: 0, message: 'Splitting by form type' }
+      };
+      
+      // Update steps based on database records
+      result.recordset.forEach(record => {
+        if (record.field_name === 'Validation_Status' && record.field_value === 'Passed') {
+          steps.validate = { status: 'completed', progress: 100, message: 'Document validation completed' };
+        }
+        if (record.field_name === 'OCR_Character_Count') {
+          steps.ocr = { status: 'completed', progress: 100, message: `OCR completed - ${record.field_value} characters extracted` };
+        }
+        if (record.field_name === 'Document_Type') {
+          steps.extract = { status: 'completed', progress: 100, message: `Identified as: ${record.field_value}` };
+        }
+        if (record.field_name === 'Split_Status' || record.field_name.startsWith('Required_Document_')) {
+          steps.split = { status: 'completed', progress: 100, message: 'Document splitting completed' };
+        }
+      });
+      
+      res.json({ steps });
+    } catch (error) {
+      console.error('Error fetching processing status:', error);
+      res.status(500).json({ error: 'Failed to fetch processing status' });
+    }
+  });
+
   // Get recent uploads - try database first, fallback to file system
   app.get('/api/document-management/recent-uploads', async (req, res) => {
     try {
@@ -11773,7 +11820,7 @@ except Exception as e:
       
       // Try to get uploads from Azure SQL database
       const result = await pool.request().query(`
-        SELECT TOP 10 id, batch_name, created_at
+        SELECT TOP 10 id, batch_name, file_name, file_size, created_at
         FROM instrument_ingestion_new 
         ORDER BY id DESC
       `);
@@ -11782,39 +11829,15 @@ except Exception as e:
         const uploads = result.recordset.map(record => ({
           id: record.id,
           batch_name: record.batch_name,
-          file_name: record.batch_name || 'LC Document',
-          file_size: 2714751, // Default size from your uploaded file
+          file_name: record.file_name || 'LC Document',
+          file_size: record.file_size || 0,
           created_at: record.created_at || new Date().toISOString(),
           processing_status: 'completed'
         }));
         
         res.json(uploads);
       } else {
-        // Fallback to file system if no database records
-        const fs = await import('fs');
-        const path = await import('path');
-        
-        const uploadsDir = './uploads';
-        const files = fs.readdirSync(uploadsDir);
-        
-        const recentUploads = files
-          .filter(file => file.includes('1750225') || file.includes('lc'))
-          .map(file => {
-            const filePath = path.join(uploadsDir, file);
-            const stats = fs.statSync(filePath);
-            return {
-              id: file.replace(/\D/g, '').slice(0, 8),
-              batch_name: file.includes('lc') ? `LC_${file.split('_')[0]}` : 'Document',
-              file_name: file,
-              file_size: stats.size,
-              created_at: stats.mtime.toISOString(),
-              processing_status: 'completed'
-            };
-          })
-          .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-          .slice(0, 10);
-
-        res.json(recentUploads);
+        res.json([]);
       }
     } catch (error) {
       console.error('Error fetching recent uploads:', error);
@@ -11828,72 +11851,55 @@ except Exception as e:
         return res.status(400).json({ error: 'No file uploaded' });
       }
 
-      const file = req.file;
-      const fileName = file.originalname;
-      const batchName = req.body.batchName || `LC_${Date.now()}`;
-
-      console.log(`Processing uploaded file: ${fileName}, batch: ${batchName}`);
-
+      const { DocumentProcessor } = await import('./documentProcessor');
       const pool = await connectToAzureSQL();
       
-      // Insert into instrument_ingestion_new table with unique batch name
-      let instrumentId = Date.now(); // Use timestamp as unique ID
-      const uniqueBatchName = `${batchName}_${instrumentId}`;
+      const file = req.file;
+      const fileName = file.originalname;
+      const batchName = req.body.batchName || `batch_${Date.now()}`;
+      const uniqueBatchName = `${batchName}_${Date.now()}`;
       
-      try {
-        const insertResult = await pool.request()
-          .input('batchName', uniqueBatchName)
-          .query(`INSERT INTO instrument_ingestion_new (batch_name) OUTPUT INSERTED.id VALUES (@batchName)`);
-        instrumentId = insertResult.recordset[0].id;
-        console.log(`Created instrument record with ID: ${instrumentId}, batch: ${uniqueBatchName}`);
-      } catch (insertError) {
-        console.log('Main table insert failed:', (insertError as Error).message);
-        // Use timestamp as fallback ID if insert fails
-        console.log(`Using fallback ID: ${instrumentId}`);
-      }
+      console.log(`Processing upload: ${fileName} (${file.size} bytes) - Batch: ${uniqueBatchName}`);
 
-      // Try to add basic fields to show the document was processed
-      const basicFields = [
-        { name: 'Document_Type', value: 'LC Document' },
-        { name: 'File_Name', value: fileName },
-        { name: 'Batch_Name', value: batchName },
-        { name: 'Upload_Status', value: 'Completed' }
-      ];
+      // Insert into instrument_ingestion_new table
+      const result = await pool.request()
+        .input('batchName', uniqueBatchName)
+        .input('fileName', fileName)
+        .input('fileSize', file.size)
+        .input('fileType', file.mimetype)
+        .input('filePath', file.path)
+        .query(`
+          INSERT INTO instrument_ingestion_new (batch_name, file_name, file_size, file_type, file_path, created_at) 
+          OUTPUT INSERTED.id
+          VALUES (@batchName, @fileName, @fileSize, @fileType, @filePath, GETDATE())
+        `);
 
-      let fieldsAdded = 0;
-      for (const field of basicFields) {
-        try {
-          await pool.request()
-            .input('instrumentId', instrumentId)
-            .input('fieldName', field.name)
-            .input('fieldValue', field.value)
-            .query(`INSERT INTO ingestion_fields_new (instrument_id, field_name, field_value) VALUES (@instrumentId, @fieldName, @fieldValue)`);
-          fieldsAdded++;
-        } catch (fieldError) {
-          console.log(`Field insert skipped: ${field.name} - ${(fieldError as Error).message}`);
-        }
-      }
+      const instrumentId = result.recordset[0].id;
+      console.log(`Document stored with ID: ${instrumentId}`);
 
-      console.log(`Successfully added ${fieldsAdded} fields for document ${fileName}`);
+      // Start comprehensive document processing
+      const processor = new DocumentProcessor(file.path, fileName, uniqueBatchName, instrumentId);
+      
+      // Process asynchronously and return immediate response
+      processor.processDocument().catch(error => {
+        console.error('Document processing failed:', error);
+      });
 
       res.json({
         success: true,
-        message: `LC document uploaded successfully: ${fileName}`,
-        data: {
-          instrumentId,
-          batchName,
-          fileName,
-          fileSize: file.size,
-          fieldsAdded,
-          status: 'completed'
-        }
+        message: `LC document uploaded successfully and processing started`,
+        instrumentId,
+        batchName: uniqueBatchName,
+        fileName,
+        fileSize: file.size,
+        processingSteps: processor.getSteps()
       });
 
     } catch (error) {
       console.error('Upload error:', error);
       res.status(500).json({ 
-        error: 'Failed to upload and process file',
-        details: (error as Error).message
+        error: 'Upload failed', 
+        details: (error as Error).message 
       });
     }
   });
