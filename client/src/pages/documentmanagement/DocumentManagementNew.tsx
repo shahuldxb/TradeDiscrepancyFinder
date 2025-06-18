@@ -564,65 +564,26 @@ export default function DocumentManagementNew() {
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="upload">Upload & Ingestion</TabsTrigger>
-          <TabsTrigger value="validation">Validation Review</TabsTrigger>
-          <TabsTrigger value="registration">Document Registration</TabsTrigger>
-          <TabsTrigger value="lc-documents">LC Documents</TabsTrigger>
+          <TabsTrigger value="upload" className="flex items-center gap-2">
+            <Upload className="w-4 h-4" />
+            Upload & Ingestion
+          </TabsTrigger>
+          <TabsTrigger value="validation" className="flex items-center gap-2">
+            <Check className="w-4 h-4" />
+            Validation Review
+          </TabsTrigger>
+          <TabsTrigger value="registration" className="flex items-center gap-2">
+            <FileText className="w-4 h-4" />
+            Document Registration
+          </TabsTrigger>
+          <TabsTrigger value="processed" className="flex items-center gap-2">
+            <Package className="w-4 h-4" />
+            Processed Documents
+          </TabsTrigger>
         </TabsList>
 
-
-
-        <TabsContent value="documents" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Master Documents</CardTitle>
-              <div className="flex justify-between items-center">
-                <p className="text-sm text-muted-foreground">
-                  Manage document type definitions and configurations
-                </p>
-                <Button onClick={fetchDocuments} disabled={loading} size="sm">
-                  Refresh
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="text-center py-8">Loading documents...</div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>ID</TableHead>
-                      <TableHead>Document Code</TableHead>
-                      <TableHead>Form Name</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Created</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {documents.map((doc) => (
-                      <TableRow key={doc.id}>
-                        <TableCell>{doc.id}</TableCell>
-                        <TableCell>
-                          <code className="bg-muted px-2 py-1 rounded text-sm">
-                            {doc.document_code || 'N/A'}
-                          </code>
-                        </TableCell>
-                        <TableCell className="font-medium">{doc.form_name}</TableCell>
-                        <TableCell>{getStatusBadge(doc.is_active)}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {formatDate(doc.created_at)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
         <TabsContent value="upload" className="space-y-4">
+
           {/* Upload & Ingestion Screen */}
           <Card>
             <CardHeader>
@@ -770,7 +731,6 @@ export default function DocumentManagementNew() {
         </TabsContent>
 
         <TabsContent value="validation" className="space-y-4">
-          {/* Validation Review Screen */}
           <Card>
             <CardHeader>
               <CardTitle>Validation Review</CardTitle>
@@ -779,24 +739,55 @@ export default function DocumentManagementNew() {
               </p>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8 space-y-4">
-                <Database className="h-12 w-12 mx-auto text-muted-foreground" />
-                <div className="space-y-2">
-                  <h3 className="text-lg font-semibold">Document Validation</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Table of all ingested docs with validation status and links to results
-                  </p>
+              {validationRecords.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Document Name</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Fields Extracted</TableHead>
+                      <TableHead>Confidence</TableHead>
+                      <TableHead>Last Updated</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {validationRecords.map((record: any) => (
+                      <TableRow key={record.id}>
+                        <TableCell className="font-medium">{record.document_name}</TableCell>
+                        <TableCell>
+                          <Badge variant={record.validation_status === 'passed' ? 'default' : 
+                                        record.validation_status === 'failed' ? 'destructive' : 'secondary'}>
+                            {record.validation_status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{record.extracted_fields}</TableCell>
+                        <TableCell>{record.confidence_score}%</TableCell>
+                        <TableCell>{new Date(record.last_updated).toLocaleDateString()}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button size="sm" variant="outline">
+                              <Eye className="h-4 w-4 mr-1" />
+                              Review
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Check className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <h3 className="font-medium mb-2">No Validation Records</h3>
+                  <p>Process some documents first to see validation results</p>
                 </div>
-                <Button variant="outline">
-                  Load Validation Results
-                </Button>
-              </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="registration" className="space-y-4">
-          {/* Document Registration Screen */}
           <Card>
             <CardHeader>
               <CardTitle>Document Registration</CardTitle>
@@ -805,43 +796,56 @@ export default function DocumentManagementNew() {
               </p>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8 space-y-4">
-                <Settings className="h-12 w-12 mx-auto text-muted-foreground" />
-                <div className="space-y-2">
-                  <h3 className="text-lg font-semibold">Form Registration</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Upload known form, extract key-value pairs, and manage approval
-                  </p>
+              {documents.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>ID</TableHead>
+                      <TableHead>Document Code</TableHead>
+                      <TableHead>Form Name</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Created</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {documents.map((doc: any) => (
+                      <TableRow key={doc.id}>
+                        <TableCell>{doc.id}</TableCell>
+                        <TableCell>
+                          <code className="bg-muted px-2 py-1 rounded text-sm">
+                            {doc.document_code || 'N/A'}
+                          </code>
+                        </TableCell>
+                        <TableCell className="font-medium">{doc.form_name}</TableCell>
+                        <TableCell>{getStatusBadge(doc.is_active)}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {formatDate(doc.created_at)}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button size="sm" variant="outline">
+                              <Settings className="h-4 w-4 mr-1" />
+                              Configure
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-12 text-muted-foreground">
+                  <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <h3 className="font-medium mb-2">No Document Types</h3>
+                  <p>Register document types to manage their processing configurations</p>
                 </div>
-                <Button 
-                  onClick={async () => {
-                    try {
-                      const response = await fetch('/api/document-management/test-lc-processing', { method: 'POST' });
-                      const result = await response.json();
-                      toast({
-                        title: result.success ? "Success" : "Error",
-                        description: result.message || result.error,
-                        variant: result.success ? "default" : "destructive"
-                      });
-                    } catch (error) {
-                      toast({
-                        title: "Error",
-                        description: "Failed to process LC document",
-                        variant: "destructive"
-                      });
-                    }
-                  }}
-                  variant="outline"
-                >
-                  Test LC Processing
-                </Button>
-              </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* LC Documents Tab */}
-        <TabsContent value="lc-documents" className="space-y-6">
+        <TabsContent value="processed" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
