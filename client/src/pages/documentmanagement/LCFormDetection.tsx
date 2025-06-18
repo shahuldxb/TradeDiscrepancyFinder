@@ -114,10 +114,11 @@ export default function FormDetection() {
       const formsCount = result.detectedForms?.length || 0;
       toast({
         title: "Processing Complete",
-        description: `Successfully detected ${formsCount} form(s). Check Detected Forms tab to view results.`,
+        description: `Successfully detected ${formsCount} form(s) in the document with real OCR extraction`,
       });
 
-      // Stay on current tab - don't auto-navigate
+      // Auto-navigate to progress tab to show processing completion
+      setActiveTab('progress');
 
     } catch (error) {
       console.error('Form detection upload error:', error);
