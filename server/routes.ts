@@ -48,14 +48,20 @@ const upload = multer({
     // Allow only specific file types for Forms Recognizer
     const allowedMimes = [
       'image/jpeg', 'image/png', 'image/gif', 'image/webp',
-      'application/pdf', 'text/plain', 'text/markdown',
+      'application/pdf', 'text/plain', 'text/markdown', 'text/x-markdown',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/msword'
+      'application/msword', 'application/octet-stream'
     ];
-    if (allowedMimes.includes(file.mimetype)) {
+    
+    // Also check file extension for common cases
+    const allowedExtensions = ['.pdf', '.jpg', '.jpeg', '.png', '.gif', '.txt', '.md', '.doc', '.docx'];
+    const fileExtension = file.originalname.toLowerCase().substring(file.originalname.lastIndexOf('.'));
+    
+    if (allowedMimes.includes(file.mimetype) || allowedExtensions.includes(fileExtension)) {
       cb(null, true);
     } else {
-      cb(new Error('Invalid file type. Only PDF, JPEG, PNG, GIF, TXT, MD, and DOC files are allowed.'));
+      console.log(`Rejected file: ${file.originalname}, MIME: ${file.mimetype}, Extension: ${fileExtension}`);
+      cb(new Error(`Invalid file type. Only PDF, JPEG, PNG, GIF, TXT, MD, and DOC files are allowed. Received: ${file.mimetype}`));
     }
   }
 });

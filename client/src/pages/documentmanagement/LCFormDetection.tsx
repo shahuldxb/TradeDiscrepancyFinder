@@ -152,11 +152,20 @@ function LCFormDetection() {
         body: formData
       });
       
-      if (!uploadResponse.ok) throw new Error('Upload failed');
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json().catch(() => ({ error: 'Upload failed' }));
+        throw new Error(errorData.error || errorData.message || `Upload failed with status ${uploadResponse.status}`);
+      }
       
       const uploadResult = await uploadResponse.json();
       const docId = uploadResult.documentId;
       setUploadedDocId(docId);
+      
+      // Set detected forms immediately from upload response
+      if (uploadResult.detectedForms) {
+        setDetectedForms(uploadResult.detectedForms);
+      }
+      
       updateProcessingStep('upload', 'completed', 100, 'Document uploaded successfully');
 
       // Step 2-5: Process the document
@@ -173,20 +182,14 @@ function LCFormDetection() {
       updateProcessingStep('splitting', 'completed', 100, 'Documents split');
 
       updateProcessingStep('grouping', 'processing', 80);
+      await new Promise(resolve => setTimeout(resolve, 800));
       
-      const processResponse = await fetch(`/api/lc-form-detection/process/${docId}`, {
-        method: 'POST'
-      });
-      
-      if (!processResponse.ok) throw new Error('Processing failed');
-      
-      const processResult = await processResponse.json();
-      setDetectedForms(processResult.detectedForms);
-      updateProcessingStep('grouping', 'completed', 100, `${processResult.formsDetected} forms grouped and classified`);
+      const formsCount = uploadResult.detectedForms?.length || 0;
+      updateProcessingStep('grouping', 'completed', 100, `${formsCount} forms grouped and classified`);
 
       toast({
         title: "Processing Complete",
-        description: `Successfully detected and split ${processResult.formsDetected} forms from the LC document`,
+        description: `Successfully detected and split ${formsCount} forms from the LC document`,
       });
 
     } catch (error) {
