@@ -26,7 +26,8 @@ import {
   GitBranch,
   BarChart3,
   CheckCircle,
-  Folder
+  Folder,
+  Scissors
 } from "lucide-react";
 
 const navigationItems = [

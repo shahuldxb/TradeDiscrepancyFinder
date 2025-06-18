@@ -12050,41 +12050,127 @@ End of LC Document`;
   
   // Get processed documents from uploaded files
   app.get('/api/document-management/processed-documents', (req, res) => {
-    res.json([
-      {
-        id: 100,
-        batch_name: "LC_27310092",
-        document_type: "Letter of Credit",
-        processing_status: "completed",
-        total_documents: 1,
-        created_at: "2025-06-18T06:48:00.000Z",
-        field_count: 15,
-        file_name: "lc_1750227310092.pdf",
-        file_size: "2734 KB"
-      },
-      {
-        id: 101,
-        batch_name: "LC_21925806",
-        document_type: "Letter of Credit", 
-        processing_status: "completed",
-        total_documents: 1,
-        created_at: "2025-06-18T05:30:00.000Z",
-        field_count: 12,
-        file_name: "lc_1750221925806.pdf",
-        file_size: "2156 KB"
-      },
-      {
-        id: 102,
-        batch_name: "LC_77118267",
-        document_type: "Letter of Credit",
-        processing_status: "completed", 
-        total_documents: 1,
-        created_at: "2025-06-17T15:25:00.000Z",
-        field_count: 18,
-        file_name: "lc_1750177118267.pdf",
-        file_size: "1892 KB"
+    res.json([]);
+  });
+
+  // LC Form Detection API endpoints
+  app.post('/api/lc-form-detection/upload', upload.single('file'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
       }
-    ]);
+
+      const file = req.file;
+      const docId = `lc_${Date.now()}`;
+      
+      // Simulate file processing
+      res.json({
+        success: true,
+        documentId: docId,
+        fileName: file.originalname,
+        fileSize: file.size,
+        message: 'LC document uploaded successfully'
+      });
+
+    } catch (error) {
+      console.error('Upload error:', error);
+      res.status(500).json({ error: 'Failed to upload LC document' });
+    }
+  });
+
+  app.post('/api/lc-form-detection/process/:docId', async (req, res) => {
+    try {
+      const { docId } = req.params;
+      
+      // Simulate OCR and form detection processing
+      const detectedForms = [
+        {
+          id: `${docId}_form_1`,
+          formType: 'Commercial Invoice',
+          confidence: 0.92,
+          pageNumbers: [2, 3],
+          extractedFields: {
+            'Invoice Number': 'INV-2025-001',
+            'Date': '2025-06-18',
+            'Amount': 'USD 125,000.00',
+            'Seller': 'ABC Export Ltd',
+            'Buyer': 'XYZ Import Corp'
+          },
+          status: 'completed'
+        },
+        {
+          id: `${docId}_form_2`,
+          formType: 'Bill of Lading',
+          confidence: 0.88,
+          pageNumbers: [4, 5],
+          extractedFields: {
+            'B/L Number': 'BL-2025-456',
+            'Vessel': 'MV Ocean Trader',
+            'Port of Loading': 'Shanghai',
+            'Port of Discharge': 'Southampton',
+            'Container Number': 'TELU1234567'
+          },
+          status: 'completed'
+        },
+        {
+          id: `${docId}_form_3`,
+          formType: 'Certificate of Origin',
+          confidence: 0.85,
+          pageNumbers: [6],
+          extractedFields: {
+            'Certificate Number': 'CO-2025-789',
+            'Country of Origin': 'China',
+            'Exporter': 'ABC Export Ltd',
+            'Consignee': 'XYZ Import Corp'
+          },
+          status: 'completed'
+        },
+        {
+          id: `${docId}_form_4`,
+          formType: 'Packing List',
+          confidence: 0.90,
+          pageNumbers: [7],
+          extractedFields: {
+            'List Number': 'PL-2025-321',
+            'Total Packages': '50 Cartons',
+            'Gross Weight': '2,500 KG',
+            'Net Weight': '2,200 KG'
+          },
+          status: 'completed'
+        },
+        {
+          id: `${docId}_form_5`,
+          formType: 'Insurance Certificate',
+          confidence: 0.87,
+          pageNumbers: [8],
+          extractedFields: {
+            'Policy Number': 'INS-2025-654',
+            'Insured Amount': 'USD 137,500.00',
+            'Coverage': '110% of Invoice Value',
+            'Insurer': 'Global Marine Insurance'
+          },
+          status: 'completed'
+        }
+      ];
+
+      res.json({
+        success: true,
+        documentId: docId,
+        formsDetected: detectedForms.length,
+        detectedForms: detectedForms,
+        processingSteps: [
+          { id: 'upload', name: 'Upload LC Document', status: 'completed', progress: 100 },
+          { id: 'ocr', name: 'OCR Processing', status: 'completed', progress: 100 },
+          { id: 'detection', name: 'Form Detection', status: 'completed', progress: 100 },
+          { id: 'splitting', name: 'Document Splitting', status: 'completed', progress: 100 },
+          { id: 'grouping', name: 'Form Grouping', status: 'completed', progress: 100 }
+        ]
+      });
+
+    } catch (error) {
+      console.error('Processing error:', error);
+      res.status(500).json({ error: 'Failed to process LC document' });
+    }
   });
 
   // Download extracted text file
