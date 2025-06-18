@@ -12102,84 +12102,15 @@ End of LC Document`;
 
       const file = req.file;
       const docId = `lc_${Date.now()}`;
-      const fileName = file.originalname?.toLowerCase() || '';
       let detectedForms = [];
       
-      console.log(`Processing document: ${fileName} (${file.size} bytes)`);
+      console.log(`Processing document: ${file.originalname} (${file.size} bytes)`);
       
-      // Check for specialized document types first
-      if (fileName.includes('multimodal') || fileName.includes('transport')) {
-        try {
-          console.log('Detected MTD document, using specialized processor...');
-          
-          // Use specialized MTD processor for accurate extraction
-          const { spawn } = await import('child_process');
-          const pythonProcess = spawn('python', [
-            'server/multimodalTransportProcessor.py',
-            file.path
-          ], {
-            stdio: ['pipe', 'pipe', 'pipe']
-          });
-
-          let output = '';
-          let errorOutput = '';
-
-          pythonProcess.stdout.on('data', (data) => {
-            output += data.toString();
-          });
-
-          pythonProcess.stderr.on('data', (data) => {
-            errorOutput += data.toString();
-          });
-
-          await new Promise((resolve, reject) => {
-            pythonProcess.on('close', (code) => {
-              if (code === 0) {
-                try {
-                  const mtdResult = JSON.parse(output);
-                  
-                  // Convert MTD result to form format
-                  const extractedFields = {};
-                  for (const [fieldName, fieldData] of Object.entries(mtdResult.extracted_fields || {})) {
-                    const fieldValue = typeof fieldData === 'object' ? fieldData.value : fieldData;
-                    extractedFields[fieldName] = fieldValue || 'Not extracted';
-                  }
-                  
-                  detectedForms = [{
-                    id: `${docId}_mtd_1`,
-                    formType: 'Multimodal Transport Document',
-                    confidence: (mtdResult.confidence_average || 86) / 100,
-                    pageNumbers: [1, 2],
-                    extractedFields,
-                    status: 'completed',
-                    processingMethod: 'Enhanced MTD Processing'
-                  }];
-                  
-                  console.log(`MTD processing completed: ${Object.keys(extractedFields).length} fields extracted`);
-                  resolve(detectedForms);
-                } catch (parseError) {
-                  console.error('MTD parsing error:', parseError);
-                  reject(parseError);
-                }
-              } else {
-                console.error('MTD processing error:', errorOutput);
-                reject(new Error(`MTD processing failed: ${errorOutput}`));
-              }
-            });
-          });
-
-        } catch (mtdError) {
-          console.error('MTD processing failed:', mtdError);
-          // Continue with standard processing
-        }
-      }
-      
-      // If no specialized processing was done, perform OCR-based document classification
-      if (detectedForms.length === 0) {
-        console.log('Performing OCR-based document classification...');
+      // Always perform OCR-based document classification for all documents
+      console.log('Performing OCR-based document classification...');
         
-        try {
-          // Use Python OCR and classification script for real document analysis
+      try {
+        // Use Python OCR and classification script for real document analysis
           const { spawn } = await import('child_process');
           const pythonProcess = spawn('python', [
             '-c', `
@@ -12404,24 +12335,23 @@ if __name__ == "__main__":
             });
           });
 
-        } catch (ocrError) {
-          console.error('OCR processing failed:', ocrError);
-          
-          // Fallback: Create unknown document entry
-          detectedForms = [{
-            id: `${docId}_form_1`,
-            formType: 'Unknown Document',
-            confidence: 0.5,
-            pageNumbers: [1],
-            extractedFields: {
-              'Processing Status': 'OCR failed - manual review required',
-              'File Name': file.originalname,
-              'File Size': `${(file.size / 1024).toFixed(1)} KB`,
-              'Error': 'Could not extract text content'
-            },
-            status: 'needs_manual_review'
-          }];
-        }
+      } catch (ocrError) {
+        console.error('OCR processing failed:', ocrError);
+        
+        // Fallback: Create unknown document entry
+        detectedForms = [{
+          id: `${docId}_form_1`,
+          formType: 'Unknown Document',
+          confidence: 0.5,
+          pageNumbers: [1],
+          extractedFields: {
+            'Processing Status': 'OCR failed - manual review required',
+            'File Name': file.originalname,
+            'File Size': `${(file.size / 1024).toFixed(1)} KB`,
+            'Error': 'Could not extract text content'
+          },
+          status: 'needs_manual_review'
+        }];
       }
       
       res.json({
