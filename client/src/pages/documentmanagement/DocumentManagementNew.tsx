@@ -1,15 +1,13 @@
-import { useState, useEffect, useRef } from 'react';
-import { useLocation } from 'wouter';
+import { useState, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Progress } from '@/components/ui/progress';
-import { Upload, FileText, Database, Settings, Check, X, Clock, Eye, Download, Plus, Play, Pause, FileCheck, Package, ExternalLink } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { useQuery } from '@tanstack/react-query';
+import { Upload, FileText, Eye, Download, Package, TrendingUp, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 
 interface MasterDocument {
   id: number;
@@ -24,21 +22,6 @@ interface DocumentManagementStats {
   activeDocuments: number;
   pendingDocuments: number;
   lastUpdated: string;
-}
-
-interface ProcessingForm {
-  name: string;
-  status: string;
-  progress: number;
-  pages: number;
-  type: string;
-  currentStep?: string;
-}
-
-interface ProcessingStep {
-  name: string;
-  status: 'pending' | 'processing' | 'completed' | 'error';
-  progress: number;
 }
 
 interface ValidationRecord {
@@ -66,32 +49,12 @@ interface RegistrationForm {
 }
 
 export default function DocumentManagementNew() {
-  const [location] = useLocation();
+  const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [activeTab, setActiveTab] = useState(() => {
-    if (location.includes('/validation')) return 'validation';
-    if (location.includes('/registration')) return 'registration';
-    return 'upload';
-  });
-  const [documents, setDocuments] = useState<MasterDocument[]>([]);
-  const [stats, setStats] = useState<DocumentManagementStats>({
-    totalDocuments: 0,
-    activeDocuments: 0,
-    pendingDocuments: 0,
-    lastUpdated: new Date().toISOString()
-  });
-  const [loading, setLoading] = useState(false);
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  
+  const [activeTab, setActiveTab] = useState('upload');
   const [batchName, setBatchName] = useState('');
-  const [processingForms, setProcessingForms] = useState<ProcessingForm[]>([]);
-  const [processingSteps, setProcessingSteps] = useState<ProcessingStep[]>([
-    { name: 'Upload', status: 'pending', progress: 0 },
-    { name: 'Validate', status: 'pending', progress: 0 },
-    { name: 'OCR', status: 'pending', progress: 0 },
-    { name: 'Extract', status: 'pending', progress: 0 },
-    { name: 'Split', status: 'pending', progress: 0 },
-    { name: 'Store', status: 'pending', progress: 0 }
-  ]);
+  const [processingStatus, setProcessingStatus] = useState<'idle' | 'uploading' | 'processing' | 'completed' | 'error'>('idle');
   const [validationRecords, setValidationRecords] = useState<ValidationRecord[]>([]);
   const [registrationForm, setRegistrationForm] = useState<RegistrationForm>({
     document_type: '',
@@ -100,7 +63,7 @@ export default function DocumentManagementNew() {
     is_active: true
   });
 
-  // Fetch processed documents for the new tab
+  // Fetch processed documents
   const { data: processedDocuments = [], isLoading: isProcessedLoading } = useQuery<ProcessedDocument[]>({
     queryKey: ['/api/azure-data/execute-sql', 'processed-documents'],
     queryFn: async () => {
@@ -121,341 +84,80 @@ export default function DocumentManagementNew() {
       return result.data || [];
     }
   });
-  const { toast } = useToast();
 
-  // Fetch LC constituent document data
-  const { data: lcDocuments = [], isLoading: loadingDocuments } = useQuery({
-    queryKey: ['/api/lc-documents'],
+  // Fetch master documents
+  const { data: documents = [], isLoading: isDocumentsLoading } = useQuery<MasterDocument[]>({
+    queryKey: ['/api/document-management/documents'],
     queryFn: async () => {
-      const response = await fetch('/api/azure-data/execute-sql', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query: `SELECT f.field_name, f.field_value, i.batch_name, f.created_at 
-                   FROM ingestion_fields_new f 
-                   INNER JOIN instrument_ingestion_new i ON f.instrument_id = i.id 
-                   WHERE f.field_name LIKE 'Required_Document%' OR f.field_name IN ('Total_Required_Documents', 'LC_Document_Type') 
-                   ORDER BY f.created_at DESC`
-        })
-      });
+      const response = await fetch('/api/document-management/documents');
+      if (!response.ok) throw new Error('Failed to fetch documents');
       const result = await response.json();
-      return result.recordset || [];
+      return result.data || [];
     }
   });
 
-  // Update active tab based on route changes
-  useEffect(() => {
-    if (location.includes('/validation')) {
-      setActiveTab('validation');
-    } else if (location.includes('/registration')) {
-      setActiveTab('registration');
-    } else if (location.includes('/processed')) {
-      setActiveTab('processed');
-    } else {
-      setActiveTab('upload');
-    }
-  }, [location]);
-
-  const fetchDocuments = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch('/api/document-management/masterdocuments');
-      const data = await response.json();
-      
-      if (data.success) {
-        setDocuments(data.data);
-        
-        // Calculate stats
-        const activeCount = data.data.filter((doc: MasterDocument) => doc.is_active).length;
-        const pendingCount = data.data.filter((doc: MasterDocument) => !doc.is_active).length;
-        
-        setStats({
-          totalDocuments: data.count,
-          activeDocuments: activeCount,
-          pendingDocuments: pendingCount,
-          lastUpdated: new Date().toISOString()
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching documents:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch document data",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const insertSampleData = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch('/api/document-management/insert-sample-data', {
-        method: 'POST'
-      });
-      const data = await response.json();
-      
-      if (data.success) {
-        toast({
-          title: "Success",
-          description: data.message,
-          variant: "default"
-        });
-        fetchDocuments(); // Refresh data
-      } else {
-        throw new Error(data.details || 'Failed to insert sample data');
-      }
-    } catch (error) {
-      console.error('Error inserting sample data:', error);
-      toast({
-        title: "Error",
-        description: (error as Error).message,
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchDocuments();
-    fetchValidationRecords();
-  }, []);
-
-  const fetchValidationRecords = async () => {
-    try {
+  // Fetch validation records
+  const { data: validationData = [], refetch: refetchValidation } = useQuery<ValidationRecord[]>({
+    queryKey: ['/api/document-management/validation-records'],
+    queryFn: async () => {
       const response = await fetch('/api/document-management/validation-records');
-      if (response.ok) {
-        const data = await response.json();
-        setValidationRecords(data);
+      if (!response.ok) throw new Error('Failed to fetch validation records');
+      return response.json();
+    }
+  });
+
+  const stats: DocumentManagementStats = {
+    totalDocuments: documents.length,
+    activeDocuments: documents.filter(doc => doc.is_active).length,
+    pendingDocuments: documents.filter(doc => !doc.is_active).length,
+    lastUpdated: new Date().toISOString()
+  };
+
+  const handleFileUpload = async (files: FileList) => {
+    if (!files || files.length === 0) return;
+    
+    setProcessingStatus('uploading');
+    
+    try {
+      for (const file of Array.from(files)) {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('batchName', batchName || `batch_${Date.now()}`);
+        
+        const response = await fetch('/api/document-management/upload', {
+          method: 'POST',
+          body: formData
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          toast({
+            title: "Success",
+            description: result.message,
+          });
+          
+          // Refresh data after successful upload
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
+        } else {
+          throw new Error('Upload failed');
+        }
       }
     } catch (error) {
-      console.error('Error fetching validation records:', error);
-    }
-  };
-
-  const handlePdfUpload = async (files: FileList | null) => {
-    if (!files || files.length === 0) return;
-
-    const uploadedFiles: ProcessingForm[] = Array.from(files).map((file, index) => ({
-      name: file.name,
-      status: 'uploaded',
-      progress: 0,
-      pages: Math.floor(Math.random() * 10) + 1, // Simulate pages
-      type: 'unknown'
-    }));
-
-    setProcessingForms(uploadedFiles);
-    
-    // Start processing simulation
-    for (let i = 0; i < processingSteps.length; i++) {
-      await simulateProcessingStep(i);
-    }
-  };
-
-  const simulateProcessingStep = async (stepIndex: number) => {
-    // Update step status to processing
-    setProcessingSteps(prev => prev.map((step, index) => 
-      index === stepIndex 
-        ? { ...step, status: 'processing' as const }
-        : step
-    ));
-
-    // Simulate progress
-    for (let progress = 0; progress <= 100; progress += 20) {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setProcessingSteps(prev => prev.map((step, index) => 
-        index === stepIndex 
-          ? { ...step, progress }
-          : step
-      ));
-    }
-
-    // Mark as completed
-    setProcessingSteps(prev => prev.map((step, index) => 
-      index === stepIndex 
-        ? { ...step, status: 'completed' as const, progress: 100 }
-        : step
-    ));
-  };
-
-  const generateBatchName = () => {
-    const timestamp = new Date().toISOString().slice(0, 19).replace(/[-T:]/g, '');
-    setBatchName(`BATCH_${timestamp}`);
-  };
-
-  const startProcessing = async () => {
-    if (!batchName) {
       toast({
         title: "Error",
-        description: "Please enter a batch name before starting processing",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (uploadedFiles.length === 0) {
-      toast({
-        title: "Error", 
-        description: "Please select files before starting processing",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setLoading(true);
-    toast({
-      title: "Processing Started",
-      description: `Starting document processing for batch: ${batchName}`,
-    });
-    
-    // Reset processing steps
-    setProcessingSteps(prev => prev.map(step => ({
-      ...step,
-      status: 'pending' as const,
-      progress: 0
-    })));
-
-    try {
-      // Step 1: Upload files
-      await processStep(0, "Uploading files to server");
-      await uploadFilesToServer();
-      
-      // Step 2: Validate documents  
-      await processStep(1, "Validating document structure");
-      
-      // Step 3: OCR Processing
-      await processStep(2, "Performing OCR text extraction");
-      
-      // Step 4: Extract data
-      await processStep(3, "Extracting structured data");
-      
-      // Step 5: Split documents
-      await processStep(4, "Splitting multi-form documents");
-      
-      // Step 6: Store results
-      await processStep(5, "Storing processed documents");
-
-      toast({
-        title: "Processing Complete",
-        description: "All documents have been processed successfully",
-      });
-      
-    } catch (error) {
-      toast({
-        title: "Processing Error",
-        description: "Failed to process documents. Please try again.",
-        variant: "destructive",
+        description: "File upload failed",
+        variant: "destructive"
       });
     } finally {
-      setLoading(false);
+      setProcessingStatus('idle');
     }
   };
 
-  const processStep = async (stepIndex: number, description: string) => {
-    // Mark as processing
-    setProcessingSteps(prev => prev.map((step, index) => 
-      index === stepIndex 
-        ? { ...step, status: 'processing' as const, progress: 10 }
-        : step
-    ));
-
-    // Simulate progress
-    for (let progress = 20; progress <= 90; progress += 20) {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setProcessingSteps(prev => prev.map((step, index) => 
-        index === stepIndex 
-          ? { ...step, progress }
-          : step
-      ));
-    }
-
-    // Complete step
-    setProcessingSteps(prev => prev.map((step, index) => 
-      index === stepIndex 
-        ? { ...step, status: 'completed' as const, progress: 100 }
-        : step
-    ));
-  };
-
-  const uploadFilesToServer = async () => {
-    const formData = new FormData();
-    formData.append('batchName', batchName);
-    
-    uploadedFiles.forEach((file, index) => {
-      formData.append(`files`, file);
-    });
-
-    const response = await fetch('/api/document-management/upload-and-process', {
-      method: 'POST',
-      body: formData
-    });
-
-    if (!response.ok) {
-      throw new Error('Upload failed');
-    }
-
-    const result = await response.json();
-    console.log('Upload result:', result);
-    
-    // Set processing forms based on uploaded files
-    setProcessingForms(uploadedFiles.map((file, index) => ({
-      name: file.name,
-      status: 'processing',
-      progress: 0,
-      pages: 1, // Will be updated after processing
-      type: 'Unknown',
-      currentStep: 'upload'
-    })));
-
-    return result;
-  };
-
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || []);
-    if (files.length > 0) {
-      setUploadedFiles(files);
-      toast({
-        title: "Files Selected",
-        description: `${files.length} file(s) selected for processing`,
-      });
-    }
-  };
-
-  const handleDragOver = (event: React.DragEvent) => {
-    event.preventDefault();
-  };
-
-  const handleDrop = (event: React.DragEvent) => {
-    event.preventDefault();
-    const files = Array.from(event.dataTransfer.files);
-    if (files.length > 0) {
-      setUploadedFiles(files);
-      toast({
-        title: "Files Dropped",
-        description: `${files.length} file(s) ready for processing`,
-      });
-    }
-  };
-
-  const resetUpload = () => {
-    setProcessingForms([]);
-    setUploadedFiles([]);
-    setBatchName('');
-    setProcessingSteps(prev => prev.map(step => ({
-      ...step,
-      status: 'pending' as const,
-      progress: 0
-    })));
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const handleRegistrationSubmit = async () => {
+  const handleRegisterDocument = async () => {
     try {
-      const response = await fetch('/api/document-management/register-document', {
+      const response = await fetch('/api/document-management/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(registrationForm)
@@ -464,7 +166,7 @@ export default function DocumentManagementNew() {
       if (response.ok) {
         toast({
           title: "Success",
-          description: "Document registered successfully",
+          description: "Document registered successfully"
         });
         setRegistrationForm({
           document_type: '',
@@ -472,125 +174,100 @@ export default function DocumentManagementNew() {
           description: '',
           is_active: true
         });
-        fetchDocuments();
+      } else {
+        throw new Error('Registration failed');
       }
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to register document",
-        variant: "destructive",
+        variant: "destructive"
       });
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  const getStatusBadge = (isActive: boolean) => {
-    if (isActive) {
-      return <Badge variant="default" className="bg-green-500"><Check className="w-3 h-3 mr-1" />Active</Badge>;
-    } else {
-      return <Badge variant="secondary"><Clock className="w-3 h-3 mr-1" />Inactive</Badge>;
     }
   };
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Document Management New</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage master document definitions and document processing workflow
+          <h1 className="text-3xl font-bold tracking-tight">Document Management New</h1>
+          <p className="text-muted-foreground">
+            Complete LC document processing workflow: upload → validate → OCR → split → store
           </p>
         </div>
-        <Button onClick={insertSampleData} disabled={loading} variant="outline">
-          <Database className="w-4 h-4 mr-2" />
-          Insert Sample Data
-        </Button>
+        <Badge variant="secondary" className="text-sm">
+          {stats.totalDocuments} Documents
+        </Badge>
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Documents</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalDocuments}</div>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Total Documents</p>
+                <p className="text-2xl font-bold">{stats.totalDocuments}</p>
+              </div>
+              <FileText className="h-8 w-8 text-blue-600" />
+            </div>
           </CardContent>
         </Card>
         
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Documents</CardTitle>
-            <Check className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.activeDocuments}</div>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Active Documents</p>
+                <p className="text-2xl font-bold">{stats.activeDocuments}</p>
+              </div>
+              <CheckCircle className="h-8 w-8 text-green-600" />
+            </div>
           </CardContent>
         </Card>
         
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Inactive Documents</CardTitle>
-            <Clock className="h-4 w-4 text-orange-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{stats.pendingDocuments}</div>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Pending Documents</p>
+                <p className="text-2xl font-bold">{stats.pendingDocuments}</p>
+              </div>
+              <Clock className="h-8 w-8 text-orange-600" />
+            </div>
           </CardContent>
         </Card>
         
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Last Updated</CardTitle>
-            <Settings className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-sm text-muted-foreground">
-              {formatDate(stats.lastUpdated)}
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Unique Batches</p>
+                <p className="text-2xl font-bold">{new Set(processedDocuments.map((doc: any) => doc.batch_name)).size}</p>
+              </div>
+              <Package className="h-8 w-8 text-purple-600" />
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Main Content Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="upload" className="flex items-center gap-2">
-            <Upload className="w-4 h-4" />
-            Upload & Ingestion
-          </TabsTrigger>
-          <TabsTrigger value="validation" className="flex items-center gap-2">
-            <Check className="w-4 h-4" />
-            Validation Review
-          </TabsTrigger>
-          <TabsTrigger value="registration" className="flex items-center gap-2">
-            <FileText className="w-4 h-4" />
-            Document Registration
-          </TabsTrigger>
-          <TabsTrigger value="processed" className="flex items-center gap-2">
-            <Package className="w-4 h-4" />
-            Processed Documents
-          </TabsTrigger>
+          <TabsTrigger value="upload">Upload & Ingestion</TabsTrigger>
+          <TabsTrigger value="validation">Validation Review</TabsTrigger>
+          <TabsTrigger value="processed">Processed Documents</TabsTrigger>
+          <TabsTrigger value="registration">Document Registration</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="upload" className="space-y-4">
-
-          {/* Upload & Ingestion Screen */}
+        {/* Upload & Ingestion Tab */}
+        <TabsContent value="upload" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Upload & Ingestion</CardTitle>
-              <p className="text-sm text-muted-foreground">
+              <CardTitle>Upload & Processing Pipeline</CardTitle>
+              <CardDescription>
                 Upload PDF, create batch name, slice & stitch forms with progress tracking
-              </p>
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* File Upload Zone */}
@@ -613,46 +290,9 @@ export default function DocumentManagementNew() {
                     multiple
                     className="hidden"
                     id="document-upload"
-                    onChange={async (e) => {
-                      const files = e.target.files;
-                      if (!files || files.length === 0) return;
-                      
-                      setProcessingStatus('uploading');
-                      
-                      try {
-                        for (const file of files) {
-                          const formData = new FormData();
-                          formData.append('file', file);
-                          formData.append('batchName', batchName || `batch_${Date.now()}`);
-                          
-                          const response = await fetch('/api/document-management/upload', {
-                            method: 'POST',
-                            body: formData
-                          });
-                          
-                          if (response.ok) {
-                            const result = await response.json();
-                            toast({
-                              title: "Success",
-                              description: result.message,
-                            });
-                            
-                            // Refresh data after successful upload
-                            setTimeout(() => {
-                              window.location.reload();
-                            }, 1000);
-                          } else {
-                            throw new Error('Upload failed');
-                          }
-                        }
-                      } catch (error) {
-                        toast({
-                          title: "Error",
-                          description: "File upload failed",
-                          variant: "destructive"
-                        });
-                      } finally {
-                        setProcessingStatus('idle');
+                    onChange={(e) => {
+                      if (e.target.files) {
+                        handleFileUpload(e.target.files);
                       }
                     }}
                   />
@@ -749,367 +389,92 @@ export default function DocumentManagementNew() {
                   Refresh All Data
                 </Button>
               </div>
-                  <Input
-                    placeholder="Enter batch name (e.g., LC_BATCH_001)"
-                    value={batchName}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBatchName(e.target.value)}
-                    className="flex-1"
-                  />
-                  <Button onClick={generateBatchName} variant="outline">
-                    Generate
-                  </Button>
-                </div>
-              </div>
-
-              {/* Processing Steps Progress */}
-              {processingForms.length > 0 && (
-                <div className="space-y-4">
-                  <h4 className="font-semibold">Processing Pipeline</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {processingSteps.map((step, index) => (
-                      <Card key={index} className="p-3">
-                        <div className="space-y-2">
-                          <div className="flex justify-between items-center">
-                            <span className="font-medium text-sm">{step.name}</span>
-                            <Badge 
-                              variant={
-                                step.status === 'completed' ? 'default' : 
-                                step.status === 'processing' ? 'secondary' : 
-                                'outline'
-                              }
-                              className="text-xs"
-                            >
-                              {step.status}
-                            </Badge>
-                          </div>
-                          <div className="space-y-1">
-                            <div className="flex justify-between text-xs">
-                              <span>Progress</span>
-                              <span>{step.progress}%</span>
-                            </div>
-                            <div className="w-full bg-gray-200 rounded-full h-1.5">
-                              <div
-                                className={`h-1.5 rounded-full transition-all duration-300 ${
-                                  step.status === 'completed' ? 'bg-green-600' :
-                                  step.status === 'processing' ? 'bg-blue-600' :
-                                  'bg-gray-400'
-                                }`}
-                                style={{ width: `${step.progress}%` }}
-                              ></div>
-                            </div>
-                          </div>
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Individual Forms Progress */}
-              {processingForms.length > 0 && (
-                <div className="space-y-4">
-                  <h4 className="font-semibold">Uploaded Documents</h4>
-                  <div className="space-y-3">
-                    {processingForms.map((form, index) => (
-                      <Card key={index} className="p-4">
-                        <div className="space-y-3">
-                          <div className="flex justify-between items-center">
-                            <span className="font-medium">{form.name}</span>
-                            <Badge variant={form.status === 'completed' ? 'default' : 'secondary'}>
-                              {form.status}
-                            </Badge>
-                          </div>
-                          <div className="grid grid-cols-2 gap-4 text-sm">
-                            <div>
-                              <span className="text-muted-foreground">Estimated Pages:</span> {form.pages}
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground">Form Type:</span> {form.type}
-                            </div>
-                          </div>
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex space-x-2">
-                <Button 
-                  onClick={startProcessing} 
-                  disabled={!batchName || processingForms.length === 0}
-                  className="flex-1"
-                >
-                  Start Processing Pipeline
-                </Button>
-                <Button variant="outline" onClick={resetUpload}>
-                  Reset
-                </Button>
-              </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="validation" className="space-y-4">
+        {/* Validation Review Tab */}
+        <TabsContent value="validation" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>Validation Review</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Review ingested documents with validation status and results
-              </p>
+              <CardDescription>Review document validation results and download reports</CardDescription>
             </CardHeader>
             <CardContent>
-              {validationRecords.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Document Name</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Fields Extracted</TableHead>
-                      <TableHead>Confidence</TableHead>
-                      <TableHead>Last Updated</TableHead>
-                      <TableHead>Actions</TableHead>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Document Name</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Fields Extracted</TableHead>
+                    <TableHead>Confidence</TableHead>
+                    <TableHead>Last Updated</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {validationData.map((record) => (
+                    <TableRow key={record.id}>
+                      <TableCell className="font-medium">{record.document_name}</TableCell>
+                      <TableCell>
+                        <Badge 
+                          variant={record.validation_status === 'passed' ? 'default' : 
+                                  record.validation_status === 'failed' ? 'destructive' : 'secondary'}
+                        >
+                          {record.validation_status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{record.extracted_fields}</TableCell>
+                      <TableCell>{record.confidence_score}%</TableCell>
+                      <TableCell>{new Date(record.last_updated).toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => window.open(`/api/document-management/validation-detail/${record.id}`, '_blank')}
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            View
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={async () => {
+                              try {
+                                const response = await fetch(`/api/document-management/download-validation/${record.id}`);
+                                if (response.ok) {
+                                  const blob = await response.blob();
+                                  const url = window.URL.createObjectURL(blob);
+                                  const a = document.createElement('a');
+                                  a.style.display = 'none';
+                                  a.href = url;
+                                  a.download = `validation_report_${record.id}.json`;
+                                  document.body.appendChild(a);
+                                  a.click();
+                                  window.URL.revokeObjectURL(url);
+                                  document.body.removeChild(a);
+                                } else {
+                                  throw new Error('Download failed');
+                                }
+                              } catch (error) {
+                                toast({
+                                  title: "Error",
+                                  description: "Failed to download validation report",
+                                  variant: "destructive"
+                                });
+                              }
+                            }}
+                          >
+                            <Download className="h-4 w-4 mr-1" />
+                            Download
+                          </Button>
+                        </div>
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {validationRecords.map((record: any) => (
-                      <TableRow key={record.id}>
-                        <TableCell className="font-medium">{record.document_name}</TableCell>
-                        <TableCell>
-                          <Badge variant={record.validation_status === 'passed' ? 'default' : 
-                                        record.validation_status === 'failed' ? 'destructive' : 'secondary'}>
-                            {record.validation_status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{record.extracted_fields}</TableCell>
-                        <TableCell>{record.confidence_score}%</TableCell>
-                        <TableCell>{new Date(record.last_updated).toLocaleDateString()}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => {
-                                // View validation details in a modal or new tab
-                                window.open(`/api/document-management/validation-detail/${record.id}`, '_blank');
-                              }}
-                            >
-                              <Eye className="h-4 w-4 mr-1" />
-                              Review
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              variant="ghost"
-                              onClick={() => {
-                                // Download validation report
-                                window.open(`/api/document-management/download-validation/${record.id}`, '_blank');
-                              }}
-                            >
-                              <Download className="h-4 w-4 mr-1" />
-                              Download
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="text-center py-12 text-muted-foreground">
-                  <Check className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <h3 className="font-medium mb-2">No Validation Records</h3>
-                  <p>Process some documents first to see validation results</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="registration" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Document Registration</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Load single form, view extracted attributes, approve or edit
-              </p>
-            </CardHeader>
-            <CardContent>
-              {documents.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>ID</TableHead>
-                      <TableHead>Document Code</TableHead>
-                      <TableHead>Form Name</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Created</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {documents.map((doc: any) => (
-                      <TableRow key={doc.id}>
-                        <TableCell>{doc.id}</TableCell>
-                        <TableCell>
-                          <code className="bg-muted px-2 py-1 rounded text-sm">
-                            {doc.document_code || 'N/A'}
-                          </code>
-                        </TableCell>
-                        <TableCell className="font-medium">{doc.form_name}</TableCell>
-                        <TableCell>{getStatusBadge(doc.is_active)}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {formatDate(doc.created_at)}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button size="sm" variant="outline">
-                              <Settings className="h-4 w-4 mr-1" />
-                              Configure
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="text-center py-12 text-muted-foreground">
-                  <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <h3 className="font-medium mb-2">No Document Types</h3>
-                  <p>Register document types to manage their processing configurations</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="processed" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                LC Constituent Documents
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Individual documents identified within Letter of Credit documents
-              </p>
-            </CardHeader>
-            <CardContent>
-              {loadingDocuments ? (
-                <div className="flex items-center justify-center py-8">
-                  <Clock className="h-6 w-6 animate-spin mr-2" />
-                  Loading LC documents...
-                </div>
-              ) : lcDocuments.length > 0 ? (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <Card>
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-medium text-muted-foreground">Total LC Documents</p>
-                            <p className="text-2xl font-bold">{lcDocuments.filter(doc => doc.field_name === 'LC_Document_Type').length}</p>
-                          </div>
-                          <FileText className="h-8 w-8 text-blue-500" />
-                        </div>
-                      </CardContent>
-                    </Card>
-                    <Card>
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-medium text-muted-foreground">Constituent Documents</p>
-                            <p className="text-2xl font-bold">{lcDocuments.filter(doc => doc.field_name.startsWith('Required_Document')).length}</p>
-                          </div>
-                          <FileCheck className="h-8 w-8 text-green-500" />
-                        </div>
-                      </CardContent>
-                    </Card>
-                    <Card>
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-medium text-muted-foreground">Processing Batches</p>
-                            <p className="text-2xl font-bold">{new Set(lcDocuments.map(doc => doc.batch_name)).size}</p>
-                          </div>
-                          <Database className="h-8 w-8 text-purple-500" />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Field Name</TableHead>
-                        <TableHead>Document Type</TableHead>
-                        <TableHead>Batch Name</TableHead>
-                        <TableHead>Created Date</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {lcDocuments.map((doc: any, index: number) => (
-                        <TableRow key={index}>
-                          <TableCell className="font-medium">{doc.field_name}</TableCell>
-                          <TableCell>
-                            <Badge variant={doc.field_name === 'LC_Document_Type' ? 'default' : 'secondary'}>
-                              {doc.field_value}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{doc.batch_name}</TableCell>
-                          <TableCell>{new Date(doc.created_at).toLocaleDateString()}</TableCell>
-                          <TableCell>
-                            <div className="flex gap-2">
-                              <Button size="sm" variant="outline">
-                                <Eye className="h-4 w-4 mr-1" />
-                                View
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                onClick={() => {
-                                  window.open('/api/document-management/download-lc-documents', '_blank');
-                                }}
-                              >
-                                <Download className="h-4 w-4 mr-1" />
-                                Export CSV
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-medium mb-2">No LC Documents Found</h3>
-                  <p className="text-muted-foreground mb-4">
-                    No constituent documents have been identified from LC documents yet.
-                  </p>
-                  <div className="flex gap-2">
-                    <Button onClick={() => {
-                      fetch('/api/document-management/test-lc-processing', { method: 'POST' })
-                        .then(() => window.location.reload());
-                    }}>
-                      <Upload className="h-4 w-4 mr-2" />
-                      Test LC Processing
-                    </Button>
-                    <Button 
-                      variant="outline"
-                      onClick={() => {
-                        window.open('/api/document-management/download-lc-documents', '_blank');
-                      }}
-                    >
-                      <Download className="h-4 w-4 mr-2" />
-                      Download Sample CSV
-                    </Button>
-                  </div>
-                </div>
-              )}
+                  ))}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
         </TabsContent>
@@ -1118,169 +483,109 @@ export default function DocumentManagementNew() {
         <TabsContent value="processed" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Package className="w-5 h-5" />
-                Processed Documents
-              </CardTitle>
-              <CardDescription>
-                View and download identified documents from processed uploads. Multi-page documents are automatically split and categorized.
-              </CardDescription>
+              <CardTitle>Processed Documents</CardTitle>
+              <CardDescription>View extracted documents and constituent document identification results</CardDescription>
             </CardHeader>
             <CardContent>
-              {isProcessedLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                  <span className="ml-2">Loading processed documents...</span>
-                </div>
-              ) : processedDocuments.length === 0 ? (
-                <div className="text-center py-8">
-                  <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No processed documents found</p>
-                  <p className="text-sm text-muted-foreground mt-2">Upload documents in the Upload & Ingestion tab to see them here</p>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {/* Statistics */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Card className="border-l-4 border-l-blue-500">
-                      <CardContent className="p-4">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Document Type</TableHead>
+                    <TableHead>Field Name</TableHead>
+                    <TableHead>Batch Name</TableHead>
+                    <TableHead>Confidence</TableHead>
+                    <TableHead>Date Processed</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {processedDocuments.map((doc: any, index: number) => (
+                    <TableRow key={index}>
+                      <TableCell>
                         <div className="flex items-center gap-2">
-                          <FileText className="w-5 h-5 text-blue-600" />
-                          <div>
-                            <p className="text-sm font-medium text-muted-foreground">Total Documents</p>
-                            <p className="text-2xl font-bold">{processedDocuments.length}</p>
-                          </div>
+                          <FileText className="w-4 h-4 text-blue-600" />
+                          <span className="font-medium">{doc.field_value}</span>
                         </div>
-                      </CardContent>
-                    </Card>
-                    <Card className="border-l-4 border-l-green-500">
-                      <CardContent className="p-4">
-                        <div className="flex items-center gap-2">
-                          <Package className="w-5 h-5 text-green-600" />
-                          <div>
-                            <p className="text-sm font-medium text-muted-foreground">Unique Batches</p>
-                            <p className="text-2xl font-bold">{new Set(processedDocuments.map((doc: ProcessedDocument) => doc.batch_name)).size}</p>
+                      </TableCell>
+                      <TableCell className="font-mono text-sm">{doc.field_name}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-xs">
+                          {doc.batch_name}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {doc.confidence_score ? (
+                          <div className="flex items-center gap-1">
+                            <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                            <span className="text-sm">{Math.round(doc.confidence_score * 100)}%</span>
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                    <Card className="border-l-4 border-l-purple-500">
-                      <CardContent className="p-4">
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-5 h-5 text-purple-600" />
-                          <div>
-                            <p className="text-sm font-medium text-muted-foreground">Latest Processing</p>
-                            <p className="text-sm font-bold">
-                              {processedDocuments.length > 0 ? new Date(processedDocuments[0].created_at).toLocaleDateString() : 'N/A'}
-                            </p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">N/A</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {new Date(doc.created_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => {
+                            toast({
+                              title: "Document Details",
+                              description: `Viewing ${doc.field_name}: ${doc.field_value}`
+                            });
+                          }}
+                        >
+                          <Eye className="w-4 h-4 mr-1" />
+                          View
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-                  {/* Documents Table */}
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between">
-                      <div>
-                        <CardTitle>Identified Documents</CardTitle>
-                        <CardDescription>Documents extracted and identified from uploaded files</CardDescription>
-                      </div>
-                      <Button 
-                        onClick={() => window.open('/api/document-management/download-lc-documents', '_blank')}
-                        variant="outline"
-                        size="sm"
-                      >
-                        <Download className="w-4 h-4 mr-2" />
-                        Download CSV
-                      </Button>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="rounded-md border">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Document Type</TableHead>
-                              <TableHead>Field Name</TableHead>
-                              <TableHead>Batch Name</TableHead>
-                              <TableHead>Confidence</TableHead>
-                              <TableHead>Date Processed</TableHead>
-                              <TableHead>Actions</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {processedDocuments.map((doc: ProcessedDocument, index: number) => (
-                              <TableRow key={index}>
-                                <TableCell>
-                                  <div className="flex items-center gap-2">
-                                    <FileText className="w-4 h-4 text-blue-600" />
-                                    <span className="font-medium">{doc.field_value}</span>
-                                  </div>
-                                </TableCell>
-                                <TableCell className="font-mono text-sm">{doc.field_name}</TableCell>
-                                <TableCell>
-                                  <Badge variant="outline" className="text-xs">
-                                    {doc.batch_name}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell>
-                                  {doc.confidence_score ? (
-                                    <div className="flex items-center gap-1">
-                                      <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                                      <span className="text-sm">{doc.confidence_score}%</span>
-                                    </div>
-                                  ) : (
-                                    <span className="text-muted-foreground text-sm">N/A</span>
-                                  )}
-                                </TableCell>
-                                <TableCell className="text-sm text-muted-foreground">
-                                  {new Date(doc.created_at).toLocaleDateString()}
-                                </TableCell>
-                                <TableCell>
-                                  <div className="flex gap-2">
-                                    <Button 
-                                      size="sm" 
-                                      variant="outline"
-                                      onClick={() => {
-                                        // Show document details
-                                        toast({
-                                          title: "Document Details",
-                                          description: `Viewing ${doc.field_name}: ${doc.field_value}`
-                                        });
-                                      }}
-                                    >
-                                      <Eye className="w-4 h-4 mr-1" />
-                                      View
-                                    </Button>
-                                    <Button 
-                                      size="sm" 
-                                      variant="ghost"
-                                      onClick={() => {
-                                        // Download document data
-                                        const dataStr = JSON.stringify(doc, null, 2);
-                                        const dataBlob = new Blob([dataStr], {type: 'application/json'});
-                                        const url = URL.createObjectURL(dataBlob);
-                                        const link = document.createElement('a');
-                                        link.href = url;
-                                        link.download = `${doc.field_name}_${doc.batch_name}.json`;
-                                        link.click();
-                                        URL.revokeObjectURL(url);
-                                      }}
-                                    >
-                                      <Download className="w-4 h-4 mr-1" />
-                                      Export
-                                    </Button>
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    </CardContent>
-                  </Card>
+        {/* Document Registration Tab */}
+        <TabsContent value="registration" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Document Registration</CardTitle>
+              <CardDescription>Register new document types for processing</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium">Document Type</label>
+                  <Input
+                    placeholder="Enter document type"
+                    value={registrationForm.document_type}
+                    onChange={(e) => setRegistrationForm({...registrationForm, document_type: e.target.value})}
+                  />
                 </div>
-              )}
+                <div>
+                  <label className="text-sm font-medium">Form Name</label>
+                  <Input
+                    placeholder="Enter form name"
+                    value={registrationForm.form_name}
+                    onChange={(e) => setRegistrationForm({...registrationForm, form_name: e.target.value})}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Description</label>
+                <Input
+                  placeholder="Enter description"
+                  value={registrationForm.description}
+                  onChange={(e) => setRegistrationForm({...registrationForm, description: e.target.value})}
+                />
+              </div>
+              <Button onClick={handleRegisterDocument} className="w-full">
+                Register Document
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>
