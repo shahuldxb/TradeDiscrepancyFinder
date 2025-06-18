@@ -93,6 +93,26 @@ export default function DocumentManagementNew() {
   });
   const { toast } = useToast();
 
+  // Fetch LC constituent document data
+  const { data: lcDocuments = [], isLoading: loadingDocuments } = useQuery({
+    queryKey: ['/api/lc-documents'],
+    queryFn: async () => {
+      const response = await fetch('/api/azure-data/execute-sql', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: `SELECT f.field_name, f.field_value, i.batch_name, f.created_at 
+                   FROM ingestion_fields_new f 
+                   INNER JOIN instrument_ingestion_new i ON f.instrument_id = i.id 
+                   WHERE f.field_name LIKE 'Required_Document%' OR f.field_name IN ('Total_Required_Documents', 'LC_Document_Type') 
+                   ORDER BY f.created_at DESC`
+        })
+      });
+      const result = await response.json();
+      return result.recordset || [];
+    }
+  });
+
   // Update active tab based on route changes
   useEffect(() => {
     if (location.includes('/validation')) {
@@ -511,10 +531,11 @@ export default function DocumentManagementNew() {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="upload">Upload & Ingestion</TabsTrigger>
           <TabsTrigger value="validation">Validation Review</TabsTrigger>
           <TabsTrigger value="registration">Document Registration</TabsTrigger>
+          <TabsTrigger value="lc-documents">LC Documents</TabsTrigger>
         </TabsList>
 
 
@@ -783,6 +804,120 @@ export default function DocumentManagementNew() {
                   Test LC Processing
                 </Button>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* LC Documents Tab */}
+        <TabsContent value="lc-documents" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                LC Constituent Documents
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Individual documents identified within Letter of Credit documents
+              </p>
+            </CardHeader>
+            <CardContent>
+              {loadingDocuments ? (
+                <div className="flex items-center justify-center py-8">
+                  <Clock className="h-6 w-6 animate-spin mr-2" />
+                  Loading LC documents...
+                </div>
+              ) : lcDocuments.length > 0 ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Total LC Documents</p>
+                            <p className="text-2xl font-bold">{lcDocuments.filter(doc => doc.field_name === 'LC_Document_Type').length}</p>
+                          </div>
+                          <FileText className="h-8 w-8 text-blue-500" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Constituent Documents</p>
+                            <p className="text-2xl font-bold">{lcDocuments.filter(doc => doc.field_name.startsWith('Required_Document')).length}</p>
+                          </div>
+                          <FileCheck className="h-8 w-8 text-green-500" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Processing Batches</p>
+                            <p className="text-2xl font-bold">{new Set(lcDocuments.map(doc => doc.batch_name)).size}</p>
+                          </div>
+                          <Database className="h-8 w-8 text-purple-500" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Field Name</TableHead>
+                        <TableHead>Document Type</TableHead>
+                        <TableHead>Batch Name</TableHead>
+                        <TableHead>Created Date</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {lcDocuments.map((doc, index) => (
+                        <TableRow key={index}>
+                          <TableCell className="font-medium">{doc.field_name}</TableCell>
+                          <TableCell>
+                            <Badge variant={doc.field_name === 'LC_Document_Type' ? 'default' : 'secondary'}>
+                              {doc.field_value}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{doc.batch_name}</TableCell>
+                          <TableCell>{new Date(doc.created_at).toLocaleDateString()}</TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button size="sm" variant="outline">
+                                <Eye className="h-4 w-4 mr-1" />
+                                View
+                              </Button>
+                              <Button size="sm" variant="outline">
+                                <Download className="h-4 w-4 mr-1" />
+                                Export
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium mb-2">No LC Documents Found</h3>
+                  <p className="text-muted-foreground mb-4">
+                    No constituent documents have been identified from LC documents yet.
+                  </p>
+                  <Button onClick={() => {
+                    fetch('/api/document-management/test-lc-processing', { method: 'POST' })
+                      .then(() => window.location.reload());
+                  }}>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Test LC Processing
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
