@@ -11070,27 +11070,13 @@ For technical support, please reference Document ID: ${ingestionId}`;
   // Document Management New - Insert sample data into masterdocuments_new
   app.post('/api/document-management/insert-sample-data', async (req, res) => {
     try {
-      const sql = require('mssql');
-      
-      const azureConfig = {
-        server: process.env.AZURE_SQL_SERVER,
-        database: process.env.AZURE_SQL_DATABASE,
-        user: 'tf_genie',
-        password: process.env.AZURE_SQL_PASSWORD,
-        options: {
-          encrypt: true,
-          trustServerCertificate: false,
-          requestTimeout: 300000,
-          connectionTimeout: 30000
-        }
-      };
-
-      await sql.connect(azureConfig);
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
 
       // Drop and recreate table with proper schema
-      await sql.query('DROP TABLE IF EXISTS masterdocuments_new');
+      await pool.request().query('DROP TABLE IF EXISTS masterdocuments_new');
       
-      await sql.query(`
+      await pool.request().query(`
         CREATE TABLE masterdocuments_new (
           id INT IDENTITY(1,1) PRIMARY KEY,
           document_code VARCHAR(50) NOT NULL,
@@ -11101,7 +11087,7 @@ For technical support, please reference Document ID: ${ingestionId}`;
       `);
 
       // Insert the 5 records with document codes
-      const insertResult = await sql.query(`
+      await pool.request().query(`
         INSERT INTO masterdocuments_new (document_code, form_name, is_active) VALUES 
         ('CI001', 'Sample Commercial Invoice', 0),
         ('UNK001', 'New Unknown Document', 0),
@@ -11111,9 +11097,7 @@ For technical support, please reference Document ID: ${ingestionId}`;
       `);
 
       // Verify the data was inserted
-      const verifyResult = await sql.query('SELECT id, document_code, form_name, is_active, created_at FROM masterdocuments_new ORDER BY id');
-      
-      await sql.close();
+      const verifyResult = await pool.request().query('SELECT id, document_code, form_name, is_active, created_at FROM masterdocuments_new ORDER BY id');
 
       res.json({
         success: true,
@@ -11133,30 +11117,14 @@ For technical support, please reference Document ID: ${ingestionId}`;
   // Document Management New - View masterdocuments_new data
   app.get('/api/document-management/masterdocuments', async (req, res) => {
     try {
-      const sql = require('mssql');
-      
-      const azureConfig = {
-        server: process.env.AZURE_SQL_SERVER,
-        database: process.env.AZURE_SQL_DATABASE,
-        user: 'tf_genie',
-        password: process.env.AZURE_SQL_PASSWORD,
-        options: {
-          encrypt: true,
-          trustServerCertificate: false,
-          requestTimeout: 300000,
-          connectionTimeout: 30000
-        }
-      };
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
 
-      await sql.connect(azureConfig);
-
-      const result = await sql.query(`
+      const result = await pool.request().query(`
         SELECT id, document_code, form_name, is_active, created_at 
         FROM masterdocuments_new 
         ORDER BY id
       `);
-
-      await sql.close();
 
       res.json({
         success: true,
