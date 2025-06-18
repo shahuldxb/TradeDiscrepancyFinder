@@ -164,8 +164,9 @@ function loadDocumentHistory() {
     const historyPath = path.join(process.cwd(), 'document_history.json');
     if (fs.existsSync(historyPath)) {
       const data = fs.readFileSync(historyPath, 'utf8');
-      documentHistory = JSON.parse(data) || [];
-      console.log(`Loaded ${documentHistory.length} documents from history`);
+      const parsedData = JSON.parse(data);
+      documentHistory = Array.isArray(parsedData) ? parsedData : [];
+      console.log(`✓ Loaded ${documentHistory.length} documents from history file`);
     } else {
       documentHistory = [];
       console.log('No existing document history found, starting fresh');
@@ -187,8 +188,13 @@ function saveDocumentHistory() {
   }
 }
 
-// Initialize history on module load
-loadDocumentHistory();
+// Initialize history on module load - ensure it runs
+try {
+  loadDocumentHistory();
+  console.log('Document history initialization complete');
+} catch (error) {
+  console.error('Failed to initialize document history:', error);
+}
 
   // Form detection upload endpoint with immediate history storage
   app.post('/api/form-detection/upload', upload.single('file'), async (req, res) => {
@@ -240,18 +246,21 @@ loadDocumentHistory();
             try {
               const analysisResult = JSON.parse(output);
               
-              // Update history with processing results
-              const historyIndex = documentHistory.findIndex(doc => doc.docId === docId);
-              if (historyIndex !== -1) {
-                documentHistory[historyIndex] = {
-                  ...documentHistory[historyIndex],
-                  documentType: analysisResult.document_type,
-                  confidence: Math.round((analysisResult.confidence || 0) * 100),
-                  extractedText: analysisResult.extracted_text,
-                };
-                saveDocumentHistory();
-                console.log(`✓ Document history updated with OCR results: ${analysisResult.document_type}, confidence: ${analysisResult.confidence}`);
-              }
+              // Store complete processing result in document history
+              const historyDoc = {
+                id: docId,
+                filename: req.file?.originalname || 'Unknown',
+                documentType: analysisResult.document_type,
+                confidence: Math.round((analysisResult.confidence || 0) * 100),
+                extractedText: analysisResult.extracted_text.substring(0, 500) + '...',
+                fileSize: req.file ? `${(req.file.size / 1024 / 1024).toFixed(2)} MB` : 'Unknown',
+                processedAt: new Date().toISOString(),
+                docId: docId
+              };
+              
+              documentHistory.unshift(historyDoc);
+              saveDocumentHistory();
+              console.log(`✓ Document stored in history: ${historyDoc.filename} (${historyDoc.documentType}) - ${documentHistory.length} total`);
               
               const detectedForms = [{
                 id: `${docId}_form_1`,
