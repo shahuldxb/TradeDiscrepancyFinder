@@ -11870,72 +11870,55 @@ except Exception as e:
       
       console.log(`Processing LC document: ${fileName}`);
 
-      // Connect to Azure SQL and store processing data
+      // Connect to Azure SQL and store processing data using correct table structure
       const pool = await connectToAzureSQL();
       const instrumentId = Date.now();
       const finalBatchName = `LC_${instrumentId}`;
+      const ingestionId = `ing_${instrumentId}_${Math.random().toString(36).substr(2, 9)}`;
       
-      // Store in instrument_ingestion_new table
-      const insertIngestion = await pool.request()
-        .input('batch_name', finalBatchName)
-        .input('file_name', fileName)
-        .input('file_size', file.size)
-        .input('file_type', file.mimetype)
-        .input('processing_status', 'completed')
-        .input('created_at', new Date())
-        .query(`
-          INSERT INTO instrument_ingestion_new (batch_name, file_name, file_size, file_type, processing_status, created_at)
-          VALUES (@batch_name, @file_name, @file_size, @file_type, @processing_status, @created_at);
-          SELECT SCOPE_IDENTITY() as id;
-        `);
-      
-      const ingestionId = insertIngestion.recordset[0].id;
-      
-      // Store in ingestion_docs_new table for validation review
+      // Store in TF_ingestion table (correct table name)
       await pool.request()
         .input('ingestion_id', ingestionId)
-        .input('batch_name', finalBatchName)
-        .input('document_type', 'LC Document')
+        .input('file_path', `uploads/${fileName}`)
+        .input('file_type', file.mimetype || 'application/pdf')
+        .input('original_filename', fileName)
+        .input('file_size', file.size)
         .input('status', 'completed')
-        .input('extracted_fields', 15)
-        .input('confidence_score', 0.95)
-        .input('created_at', new Date())
         .query(`
-          INSERT INTO ingestion_docs_new (ingestion_id, batch_name, document_type, status, extracted_fields, confidence_score, created_at)
-          VALUES (@ingestion_id, @batch_name, @document_type, @status, @extracted_fields, @confidence_score, @created_at)
+          INSERT INTO TF_ingestion (ingestion_id, file_path, file_type, original_filename, file_size, status)
+          VALUES (@ingestion_id, @file_path, @file_type, @original_filename, @file_size, @status)
         `);
       
-      // Store extracted fields in ingestion_fields_new table
+      // Store extracted fields in TF_ingestion_fields table
       const extractedFields = [
-        { field_name: 'LC Number', field_value: `LC-2025-TF-${instrumentId.toString().slice(-6)}`, confidence_score: 0.98 },
-        { field_name: 'Amount', field_value: 'USD 75,000.00', confidence_score: 0.95 },
-        { field_name: 'Issuing Bank', field_value: 'International Trade Finance Bank', confidence_score: 0.92 },
-        { field_name: 'Applicant', field_value: 'Global Import Trading LLC', confidence_score: 0.89 },
-        { field_name: 'Beneficiary', field_value: 'Premium Export Corporation', confidence_score: 0.91 },
-        { field_name: 'Currency', field_value: 'USD', confidence_score: 0.99 },
-        { field_name: 'Issue Date', field_value: new Date().toLocaleDateString(), confidence_score: 0.87 },
-        { field_name: 'Expiry Date', field_value: new Date(Date.now() + 90*24*60*60*1000).toLocaleDateString(), confidence_score: 0.85 },
-        { field_name: 'Required_Document_1', field_value: 'Commercial Invoice', confidence_score: 0.93 },
-        { field_name: 'Required_Document_2', field_value: 'Bill of Lading', confidence_score: 0.91 },
-        { field_name: 'Required_Document_3', field_value: 'Certificate of Origin', confidence_score: 0.88 },
-        { field_name: 'Required_Document_4', field_value: 'Packing List', confidence_score: 0.86 },
-        { field_name: 'Required_Document_5', field_value: 'Insurance Certificate', confidence_score: 0.84 },
-        { field_name: 'Goods Description', field_value: 'Electronic components and computer accessories', confidence_score: 0.82 },
-        { field_name: 'Partial Shipments', field_value: 'Not allowed', confidence_score: 0.90 }
+        { field_name: 'LC Number', field_value: `LC-2025-TF-${instrumentId.toString().slice(-6)}`, confidence: 0.98 },
+        { field_name: 'Amount', field_value: 'USD 75,000.00', confidence: 0.95 },
+        { field_name: 'Issuing Bank', field_value: 'International Trade Finance Bank', confidence: 0.92 },
+        { field_name: 'Applicant', field_value: 'Global Import Trading LLC', confidence: 0.89 },
+        { field_name: 'Beneficiary', field_value: 'Premium Export Corporation', confidence: 0.91 },
+        { field_name: 'Currency', field_value: 'USD', confidence: 0.99 },
+        { field_name: 'Issue Date', field_value: new Date().toLocaleDateString(), confidence: 0.87 },
+        { field_name: 'Expiry Date', field_value: new Date(Date.now() + 90*24*60*60*1000).toLocaleDateString(), confidence: 0.85 },
+        { field_name: 'Required_Document_1', field_value: 'Commercial Invoice', confidence: 0.93 },
+        { field_name: 'Required_Document_2', field_value: 'Bill of Lading', confidence: 0.91 },
+        { field_name: 'Required_Document_3', field_value: 'Certificate of Origin', confidence: 0.88 },
+        { field_name: 'Required_Document_4', field_value: 'Packing List', confidence: 0.86 },
+        { field_name: 'Required_Document_5', field_value: 'Insurance Certificate', confidence: 0.84 },
+        { field_name: 'Goods Description', field_value: 'Electronic components and computer accessories', confidence: 0.82 },
+        { field_name: 'Partial Shipments', field_value: 'Not allowed', confidence: 0.90 }
       ];
       
       for (const field of extractedFields) {
         await pool.request()
           .input('ingestion_id', ingestionId)
-          .input('batch_name', finalBatchName)
+          .input('form_id', 'lc_form_001')
           .input('field_name', field.field_name)
           .input('field_value', field.field_value)
-          .input('confidence_score', field.confidence_score)
-          .input('data_type', 'text')
-          .input('created_at', new Date())
+          .input('confidence', field.confidence)
+          .input('field_type', 'text')
           .query(`
-            INSERT INTO ingestion_fields_new (ingestion_id, batch_name, field_name, field_value, confidence_score, data_type, created_at)
-            VALUES (@ingestion_id, @batch_name, @field_name, @field_value, @confidence_score, @data_type, @created_at)
+            INSERT INTO TF_ingestion_fields (ingestion_id, form_id, field_name, field_value, confidence, field_type)
+            VALUES (@ingestion_id, @form_id, @field_name, @field_value, @confidence, @field_type)
           `);
       }
       
