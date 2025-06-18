@@ -190,6 +190,11 @@ const navigationItems = [
         href: "/document-management/compliance",
         description: "Document compliance verification",
       },
+      {
+        name: "LC Form Detection",
+        href: "/lc-form-detection",
+        description: "LC document form detection and splitting",
+      },
     ],
   },
   {
