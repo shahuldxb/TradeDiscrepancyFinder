@@ -11069,6 +11069,58 @@ For technical support, please reference Document ID: ${ingestionId}`;
     }
   });
 
+  // Document Management New - Test LC processing endpoint
+  app.post('/api/document-management/test-lc-processing', async (req, res) => {
+    try {
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+
+      // Process the existing LC file
+      const lcFilePath = 'uploads/lc_1750221925806.pdf';
+      const batchName = `LC_TEST_${Date.now()}`;
+      
+      // Create ingestion record
+      const result = await pool.request()
+        .input('batch_name', batchName)
+        .input('original_name', 'lc_1750221925806.pdf')
+        .input('file_path', lcFilePath)
+        .input('file_size', 0)
+        .input('mime_type', 'application/pdf')
+        .query(`
+          INSERT INTO instrument_ingestion_new 
+          (batch_name, original_filename, file_path, file_size, mime_type, status, created_at)
+          OUTPUT INSERTED.*
+          VALUES (@batch_name, @original_name, @file_path, @file_size, @mime_type, 'uploaded', GETDATE())
+        `);
+
+      const documentId = result.recordset[0].id;
+      
+      // Process through workflow
+      const mockFile = {
+        originalname: 'lc_1750221925806.pdf',
+        path: lcFilePath,
+        size: 0,
+        mimetype: 'application/pdf'
+      };
+      
+      await processDocumentWorkflow(documentId, mockFile as any, pool);
+
+      res.json({
+        success: true,
+        message: 'LC document processed successfully',
+        documentId,
+        batchName
+      });
+
+    } catch (error) {
+      console.error('Error testing LC processing:', error);
+      res.status(500).json({ 
+        error: 'Failed to process LC document',
+        details: (error as Error).message
+      });
+    }
+  });
+
   // Document Management New - Upload and process documents
   app.post('/api/document-management/upload-and-process', upload.array('files'), async (req, res) => {
     try {
@@ -11178,7 +11230,7 @@ For technical support, please reference Document ID: ${ingestionId}`;
           VALUES (@document_id, @extracted_text, @confidence, GETDATE())
         `);
 
-      // Step 5: Extract fields
+      // Step 5: Extract fields and document list
       const extractedFields = await extractDocumentFields(ocrResult.text, documentType);
       
       for (const field of extractedFields) {
@@ -11187,6 +11239,34 @@ For technical support, please reference Document ID: ${ingestionId}`;
           .input('field_name', field.name)
           .input('field_value', field.value)
           .input('confidence', field.confidence)
+          .query(`
+            INSERT INTO ingestion_fields_new (instrument_id, field_name, field_value, confidence_score, created_at)
+            VALUES (@document_id, @field_name, @field_value, @confidence, GETDATE())
+          `);
+      }
+
+      // Step 6: If LC document, extract and store individual document requirements
+      if (documentType.includes('LC Document')) {
+        const documentsInLC = extractDocumentsFromLC(ocrResult.text);
+        
+        for (let i = 0; i < documentsInLC.length; i++) {
+          await pool.request()
+            .input('document_id', documentId)
+            .input('field_name', `Required_Document_${i + 1}`)
+            .input('field_value', documentsInLC[i])
+            .input('confidence', 0.85)
+            .query(`
+              INSERT INTO ingestion_fields_new (instrument_id, field_name, field_value, confidence_score, created_at)
+              VALUES (@document_id, @field_name, @field_value, @confidence, GETDATE())
+            `);
+        }
+
+        // Store document count
+        await pool.request()
+          .input('document_id', documentId)
+          .input('field_name', 'Required_Documents_Count')
+          .input('field_value', documentsInLC.length.toString())
+          .input('confidence', 0.9)
           .query(`
             INSERT INTO ingestion_fields_new (instrument_id, field_name, field_value, confidence_score, created_at)
             VALUES (@document_id, @field_name, @field_value, @confidence, GETDATE())
@@ -11223,6 +11303,7 @@ For technical support, please reference Document ID: ${ingestionId}`;
   }
 
   async function performOCRExtraction(filePath: string): Promise<{text: string, confidence: number}> {
+    const { spawn } = require('child_process');
     return new Promise((resolve, reject) => {
       const pythonProcess = spawn('python', ['-c', `
 import sys
@@ -11256,7 +11337,10 @@ try:
     # Calculate confidence based on text length and clarity
     confidence = min(0.95, max(0.5, len(cleaned_text) / 1000))
     
-    print(f"RESULT:{{'text': '{cleaned_text[:2000]}...', 'confidence': {confidence}}}")
+    # Escape single quotes and limit text length for JSON
+    safe_text = cleaned_text.replace("'", "\\\\'")[:1500]
+    
+    print(f"RESULT:{{'text': '{safe_text}', 'confidence': {confidence}}}")
     
 except Exception as e:
     print(f"ERROR: {str(e)}")
@@ -11298,11 +11382,17 @@ except Exception as e:
     const lowercaseText = text.toLowerCase();
     const lowercaseFilename = filename.toLowerCase();
     
-    // LC Document patterns
+    // First check if this is an LC document
     if (lowercaseText.includes('letter of credit') || 
         lowercaseText.includes('documentary credit') ||
         lowercaseFilename.includes('lc') ||
         lowercaseText.includes('mt700')) {
+      
+      // Extract documents list from LC
+      const documentsInLC = extractDocumentsFromLC(text);
+      if (documentsInLC.length > 0) {
+        return `LC Document (Contains: ${documentsInLC.join(', ')})`;
+      }
       return 'LC Document';
     }
     
@@ -11333,6 +11423,72 @@ except Exception as e:
     }
     
     return 'Unknown Document';
+  }
+
+  function extractDocumentsFromLC(text: string): string[] {
+    const documents: string[] = [];
+    const lowercaseText = text.toLowerCase();
+    
+    // Common document patterns in LC
+    const documentPatterns = [
+      { pattern: /commercial\s+invoice/gi, type: 'Commercial Invoice' },
+      { pattern: /bill\s+of\s+lading/gi, type: 'Bill of Lading' },
+      { pattern: /certificate\s+of\s+origin/gi, type: 'Certificate of Origin' },
+      { pattern: /packing\s+list/gi, type: 'Packing List' },
+      { pattern: /insurance\s+policy/gi, type: 'Insurance Policy' },
+      { pattern: /insurance\s+certificate/gi, type: 'Insurance Certificate' },
+      { pattern: /inspection\s+certificate/gi, type: 'Inspection Certificate' },
+      { pattern: /weight\s+certificate/gi, type: 'Weight Certificate' },
+      { pattern: /quality\s+certificate/gi, type: 'Quality Certificate' },
+      { pattern: /phytosanitary\s+certificate/gi, type: 'Phytosanitary Certificate' },
+      { pattern: /health\s+certificate/gi, type: 'Health Certificate' },
+      { pattern: /beneficiary[\'s]*\s+certificate/gi, type: 'Beneficiary Certificate' },
+      { pattern: /shipping\s+advice/gi, type: 'Shipping Advice' },
+      { pattern: /delivery\s+order/gi, type: 'Delivery Order' },
+      { pattern: /customs\s+declaration/gi, type: 'Customs Declaration' }
+    ];
+    
+    // Look for document requirements section
+    const docSections = [
+      /documents?\s+required/gi,
+      /required\s+documents?/gi,
+      /documents?\s+to\s+be\s+presented/gi,
+      /presentation\s+of\s+documents?/gi,
+      /documents?\s+against\s+acceptance/gi,
+      /documents?\s+against\s+payment/gi
+    ];
+    
+    // Extract documents from LC text
+    for (const { pattern, type } of documentPatterns) {
+      const matches = text.match(pattern);
+      if (matches && matches.length > 0) {
+        if (!documents.includes(type)) {
+          documents.push(type);
+        }
+      }
+    }
+    
+    // Also look for numbered or bulleted document lists
+    const lines = text.split('\n');
+    for (const line of lines) {
+      const trimmedLine = line.trim().toLowerCase();
+      
+      // Skip if line is too short or doesn't look like a document requirement
+      if (trimmedLine.length < 5) continue;
+      
+      // Look for patterns like "1. Commercial Invoice" or "- Bill of Lading"
+      if (trimmedLine.match(/^[\d\-\*\+•]\s*/) || trimmedLine.includes('signed by')) {
+        for (const { pattern, type } of documentPatterns) {
+          if (pattern.test(line)) {
+            if (!documents.includes(type)) {
+              documents.push(type);
+            }
+          }
+        }
+      }
+    }
+    
+    return documents;
   }
 
   async function extractDocumentFields(text: string, documentType: string): Promise<Array<{name: string, value: string, confidence: number}>> {
