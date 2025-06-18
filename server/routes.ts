@@ -189,6 +189,22 @@ function saveDocumentHistory() {
       const docId = Date.now().toString();
       const filePath = req.file.path;
 
+      // Store document in history immediately before processing
+      const initialHistoryEntry = {
+        id: docId,
+        filename: req.file.originalname,
+        documentType: 'Processing...',
+        confidence: 0,
+        extractedText: 'Document uploaded, processing in progress...',
+        fileSize: `${(req.file.size / 1024 / 1024).toFixed(2)} MB`,
+        processedAt: new Date().toISOString(),
+        docId: docId
+      };
+      
+      documentHistory.unshift(initialHistoryEntry);
+      saveDocumentHistory();
+      console.log(`✓ Document added to history during upload: ${initialHistoryEntry.filename}, total: ${documentHistory.length}`);
+
       // Process document with OCR
       const result = await new Promise<any>((resolve, reject) => {
         const pythonProcess = spawn('python3', ['server/quickOCR.py', filePath]);
@@ -209,22 +225,18 @@ function saveDocumentHistory() {
             try {
               const analysisResult = JSON.parse(output);
               
-              // Store in history
-              const historyEntry = {
-                id: docId,
-                filename: req.file?.originalname || 'Unknown',
-                documentType: analysisResult.document_type,
-                confidence: Math.round((analysisResult.confidence || 0) * 100),
-                extractedText: analysisResult.extracted_text,
-                fileSize: req.file ? `${(req.file.size / 1024 / 1024).toFixed(2)} MB` : 'Unknown',
-                processedAt: new Date().toISOString(),
-                docId: docId
-              };
-              
-              // Store in document history
-              documentHistory.unshift(historyEntry);
-              saveDocumentHistory();
-              console.log(`Document stored in history: ${historyEntry.filename}, total: ${documentHistory.length}`);
+              // Update history with processing results
+              const historyIndex = documentHistory.findIndex(doc => doc.docId === docId);
+              if (historyIndex !== -1) {
+                documentHistory[historyIndex] = {
+                  ...documentHistory[historyIndex],
+                  documentType: analysisResult.document_type,
+                  confidence: Math.round((analysisResult.confidence || 0) * 100),
+                  extractedText: analysisResult.extracted_text,
+                };
+                saveDocumentHistory();
+                console.log(`✓ Document history updated with OCR results: ${analysisResult.document_type}, confidence: ${analysisResult.confidence}`);
+              }
               
               const detectedForms = [{
                 id: `${docId}_form_1`,
