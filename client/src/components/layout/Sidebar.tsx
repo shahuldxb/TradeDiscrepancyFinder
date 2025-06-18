@@ -148,6 +148,11 @@ const navigationItems = [
         href: "/document-management-new/registration",
         description: "Step 7-12: Form registration and approval",
       },
+      {
+        name: "LC Form Detection",
+        href: "/lc-form-detection",
+        description: "LC document form detection and splitting",
+      },
     ],
   },
   {
@@ -189,11 +194,6 @@ const navigationItems = [
         name: "Compliance Check",
         href: "/document-management/compliance",
         description: "Document compliance verification",
-      },
-      {
-        name: "LC Form Detection", 
-        href: "/lc-form-detection",
-        description: "LC document form detection and splitting",
       },
     ],
   },
