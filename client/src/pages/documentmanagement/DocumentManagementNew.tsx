@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Upload, FileText, Eye, Download, Package, TrendingUp, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { apiRequest } from '@/lib/queryClient';
 
 interface MasterDocument {
   id: number;
@@ -51,16 +52,23 @@ interface RegistrationForm {
 export default function DocumentManagementNew() {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
   
   const [activeTab, setActiveTab] = useState('upload');
   const [batchName, setBatchName] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [processingStatus, setProcessingStatus] = useState<'idle' | 'uploading' | 'processing' | 'completed' | 'error'>('idle');
-  const [validationRecords, setValidationRecords] = useState<ValidationRecord[]>([]);
   const [registrationForm, setRegistrationForm] = useState<RegistrationForm>({
     document_type: '',
     form_name: '',
     description: '',
     is_active: true
+  });
+
+  // Fetch statistics
+  const { data: stats } = useQuery({
+    queryKey: ['/api/document-management/stats'],
+    queryFn: () => apiRequest('/api/document-management/stats'),
   });
 
   // Fetch processed documents
@@ -75,7 +83,6 @@ export default function DocumentManagementNew() {
             SELECT f.field_name, f.field_value, i.batch_name, f.created_at, f.confidence_score
             FROM ingestion_fields_new f 
             INNER JOIN instrument_ingestion_new i ON f.instrument_id = i.id 
-            WHERE f.field_name LIKE 'Required_Document%' OR f.field_name IN ('Total_Required_Documents', 'LC_Document_Type') 
             ORDER BY f.created_at DESC
           `
         })
@@ -207,7 +214,7 @@ export default function DocumentManagementNew() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Documents</p>
-                <p className="text-2xl font-bold">{stats.totalDocuments}</p>
+                <p className="text-2xl font-bold">{stats?.totalDocuments || 0}</p>
               </div>
               <FileText className="h-8 w-8 text-blue-600" />
             </div>
@@ -219,7 +226,7 @@ export default function DocumentManagementNew() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Active Documents</p>
-                <p className="text-2xl font-bold">{stats.activeDocuments}</p>
+                <p className="text-2xl font-bold">{stats?.activeDocuments || 0}</p>
               </div>
               <CheckCircle className="h-8 w-8 text-green-600" />
             </div>
@@ -231,7 +238,7 @@ export default function DocumentManagementNew() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Pending Documents</p>
-                <p className="text-2xl font-bold">{stats.pendingDocuments}</p>
+                <p className="text-2xl font-bold">{stats?.pendingDocuments || 0}</p>
               </div>
               <Clock className="h-8 w-8 text-orange-600" />
             </div>
@@ -281,30 +288,35 @@ export default function DocumentManagementNew() {
                   <div className="space-y-2">
                     <h3 className="font-medium">Upload Documents for Processing</h3>
                     <p className="text-sm text-muted-foreground">
-                      Upload LC documents to automatically identify constituent documents
+                      Upload LC documents for manual processing and field extraction
                     </p>
                   </div>
                   <input
+                    ref={fileInputRef}
                     type="file"
-                    accept=".pdf,.png,.jpg,.jpeg"
-                    multiple
+                    accept=".pdf,.png,.jpg,.jpeg,.txt"
                     className="hidden"
                     id="document-upload"
-                    onChange={(e) => {
-                      if (e.target.files) {
-                        handleFileUpload(e.target.files);
-                      }
-                    }}
+                    onChange={(e) => handleFileSelect(e.target.files)}
                   />
-                  <label htmlFor="document-upload">
+                  <div className="space-y-2">
                     <Button 
+                      type="button"
                       variant="outline" 
-                      className="cursor-pointer"
+                      onClick={() => fileInputRef.current?.click()}
                       disabled={processingStatus === 'uploading'}
+                      className="w-full"
                     >
-                      {processingStatus === 'uploading' ? 'Uploading...' : 'Choose Files'}
+                      <Upload className="mr-2 h-4 w-4" />
+                      Choose Files
                     </Button>
-                  </label>
+                    
+                    {selectedFile && (
+                      <div className="text-sm text-center text-muted-foreground">
+                        Selected: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -319,12 +331,34 @@ export default function DocumentManagementNew() {
                     className="flex-1"
                   />
                   <Button 
-                    onClick={() => setBatchName(`batch_${Date.now()}`)}
+                    onClick={() => setBatchName(`LC_batch_${Date.now()}`)}
                     variant="outline"
                   >
                     Generate
                   </Button>
                 </div>
+              </div>
+
+              {/* Upload Button */}
+              <div className="flex justify-center">
+                <Button 
+                  onClick={handleFileUpload}
+                  disabled={!selectedFile || processingStatus === 'uploading'}
+                  className="w-full max-w-md"
+                  size="lg"
+                >
+                  {processingStatus === 'uploading' ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="mr-2 h-4 w-4" />
+                      Upload LC Document
+                    </>
+                  )}
+                </Button>
               </div>
 
               {/* Processing Status */}
