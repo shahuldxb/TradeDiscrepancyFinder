@@ -267,6 +267,8 @@ try {
               
               // Create detected forms array from multi-page or LC processing
               const formsData = analysisResult.detected_forms || analysisResult.constituent_documents || [];
+              console.log(`📋 Forms data length: ${formsData.length}`);
+              
               const detectedForms = formsData.map((form: any, index: number) => ({
                 id: `${docId}_form_${index + 1}`,
                 formType: form.form_type || form.document_type,
@@ -274,7 +276,7 @@ try {
                 pageNumbers: [form.page_number],
                 extractedFields: {
                   'Full Extracted Text': form.extracted_text,
-                  'Document Classification': form.form_type,
+                  'Document Classification': form.form_type || form.document_type,
                   'Processing Statistics': `${form.text_length} characters extracted from page ${form.page_number}`,
                   'Page Number': form.page_number.toString()
                 },
@@ -282,6 +284,8 @@ try {
                 processingMethod: analysisResult.processing_method,
                 fullText: form.extracted_text
               }));
+              
+              console.log(`📊 Detected ${detectedForms.length} forms from analysis`);
               
               // For history, use the first/primary form from either processing type
               const formsArray = analysisResult.detected_forms || analysisResult.constituent_documents || [];
@@ -305,7 +309,7 @@ try {
                 processedAt: new Date().toISOString(),
                 docId: docId,
                 totalPages: analysisResult.total_pages,
-                totalForms: analysisResult.detected_forms.length
+                totalForms: formsData.length
               };
               
               // Replace the initial entry with complete processing result
@@ -330,6 +334,7 @@ try {
               reject(parseError);
             }
           } else {
+            console.error(`❌ Python process failed with code ${code}: ${errorOutput}`);
             reject(new Error(`Multi-page processing failed: ${errorOutput}`));
           }
         });
