@@ -159,41 +159,13 @@ export default function DocumentManagementNew() {
     }
   });
 
-  // Fetch validation records from Azure SQL database
+  // Fetch validation records from API
   const { data: validationData = [] } = useQuery<ValidationRecord[]>({
-    queryKey: ['/api/azure-data/execute-sql', 'validation-records'],
+    queryKey: ['/api/document-management/validation-records'],
     queryFn: async () => {
-      // Use sample validation data for demonstration since database tables are being configured
-      const result = {
-        success: true,
-        data: [
-          {
-            id: 'doc_1750236800001',
-            document_name: 'lc_1750129784697.pdf',
-            validation_status: 'passed',
-            extracted_fields: 15,
-            confidence_score: 0.95,
-            last_updated: new Date().toLocaleString()
-          },
-          {
-            id: 'doc_1750236800002', 
-            document_name: 'commercial_invoice_sample.pdf',
-            validation_status: 'passed',
-            extracted_fields: 12,
-            confidence_score: 0.92,
-            last_updated: new Date(Date.now() - 86400000).toLocaleString()
-          },
-          {
-            id: 'doc_1750236800003',
-            document_name: 'bill_of_lading_demo.pdf', 
-            validation_status: 'pending',
-            extracted_fields: 8,
-            confidence_score: 0.87,
-            last_updated: new Date(Date.now() - 172800000).toLocaleString()
-          }
-        ]
-      };
-      return result.data || [];
+      const response = await fetch('/api/document-management/validation-records');
+      if (!response.ok) throw new Error('Failed to fetch validation records');
+      return await response.json();
     }
   });
 
