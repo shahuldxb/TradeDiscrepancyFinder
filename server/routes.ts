@@ -12128,15 +12128,6 @@ def extract_text_from_pdf(file_path):
         for page in doc:
             text = page.get_text()
             full_text += text + "\\n"
-        doc.close()
-        return full_text.strip()
-    except:
-        return ""
-
-def classify_document_content(text):
-    text_lower = text.lower()
-    
-    # Document type patterns based on actual content
         } catch (error) {
           console.error('Form detection error:', error);
           reject(error);
@@ -12153,91 +12144,92 @@ def classify_document_content(text):
       };
     }
   }
-        'Packing List': [
-            r'\\bpacking\\s+list\\b',
-            r'\\bpackages?\\b.*\\bnumber\\b',
-            r'\\bnet\\s+weight\\b',
-            r'\\bgross\\s+weight\\b',
-            r'\\bmeasurement\\b|\\bcbm\\b'
-        ],
-        'Insurance Certificate': [
-            r'\\binsurance\\b.*\\bcertificate\\b',
-            r'\\bpolicy\\b.*\\bnumber\\b',
-            r'\\binsured\\b.*\\bamount\\b',
-            r'\\bcoverage\\b',
-            r'\\binsurer\\b|\\binsurance\\s+company\\b'
-        ],
-        'Letter of Credit': [
-            r'\\bletter\\s+of\\s+credit\\b',
-            r'\\bdocumentary\\s+credit\\b',
-            r'\\blc\\s+number\\b',
-            r'\\bissuing\\s+bank\\b',
-            r'\\bapplicant\\b.*\\bbeneficiary\\b'
-        ]
-    }
-    
-    scores = {}
-    for doc_type, type_patterns in patterns.items():
-        score = 0
-        matches = []
-        for pattern in type_patterns:
-            if re.search(pattern, text_lower):
-                score += 1
-                matches.append(pattern)
-        scores[doc_type] = {
-            'score': score, 
-            'total_patterns': len(type_patterns),
-            'confidence': score / len(type_patterns),
-            'matches': matches
-        }
-    
-    # Find best match
-    best_type = max(scores.keys(), key=lambda x: scores[x]['confidence'])
-    return best_type, scores[best_type]['confidence'], scores
 
-def extract_key_fields(text, doc_type):
-    fields = {}
-    text_lower = text.lower()
-    
-    if doc_type == 'Commercial Invoice':
-        # Extract invoice specific fields
-        invoice_num = re.search(r'invoice\\s+no[.:]*\\s*([A-Z0-9\\-/]+)', text, re.IGNORECASE)
-        if invoice_num:
-            fields['Invoice Number'] = invoice_num.group(1)
-            
-        amount = re.search(r'total\\s+amount[:\\s]*([A-Z]{3}\\s*[\\d,\\.]+)', text, re.IGNORECASE)
-        if amount:
-            fields['Total Amount'] = amount.group(1)
-            
-        date = re.search(r'invoice\\s+date[:\\s]*(\\d{1,2}[/-]\\d{1,2}[/-]\\d{2,4})', text, re.IGNORECASE)
-        if date:
-            fields['Invoice Date'] = date.group(1)
-    
-    elif doc_type == 'Bill of Lading':
-        # Extract B/L specific fields
-        bl_num = re.search(r'b/l\\s+no[.:]*\\s*([A-Z0-9\\-/]+)', text, re.IGNORECASE)
-        if bl_num:
-            fields['B/L Number'] = bl_num.group(1)
-            
-        vessel = re.search(r'vessel[:\\s]*([A-Z\\s]+)', text, re.IGNORECASE)
-        if vessel:
-            fields['Vessel Name'] = vessel.group(1).strip()
-            
-        pol = re.search(r'port\\s+of\\s+loading[:\\s]*([A-Z\\s,]+)', text, re.IGNORECASE)
-        if pol:
-            fields['Port of Loading'] = pol.group(1).strip()
-    
-    elif doc_type == 'Certificate of Origin':
-        # Extract COO specific fields
-        cert_num = re.search(r'certificate\\s+no[.:]*\\s*([A-Z0-9\\-/]+)', text, re.IGNORECASE)
-        if cert_num:
-            fields['Certificate Number'] = cert_num.group(1)
-            
-        country = re.search(r'country\\s+of\\s+origin[:\\s]*([A-Z\\s]+)', text, re.IGNORECASE)
-        if country:
-            fields['Country of Origin'] = country.group(1).strip()
-    
-    return fields
+  // Form Detection API endpoint for real OCR-based document processing
+  app.post('/api/form-detection/upload', upload.single('file'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+      }
+
+      const docId = Date.now().toString();
+      
+      // Use quick OCR processor for document classification
+      const { spawn } = require('child_process');
+      const pythonProcess = spawn('python3', ['server/quickOCR.py', req.file.path], {
+        stdio: ['pipe', 'pipe', 'pipe'],
+        timeout: 10000
+      });
+
+      let output = '';
+      let errorOutput = '';
+
+      pythonProcess.stdout.on('data', (data: Buffer) => {
+        output += data.toString();
+      });
+
+      pythonProcess.stderr.on('data', (data: Buffer) => {
+        errorOutput += data.toString();
+      });
+
+      const result = await new Promise((resolve, reject) => {
+        pythonProcess.on('close', (code: number) => {
+          if (code === 0) {
+            try {
+              const analysisResult = JSON.parse(output);
+              
+              const detectedForms = [{
+                id: `${docId}_form_1`,
+                formType: analysisResult.document_type,
+                confidence: analysisResult.confidence,
+                pageNumbers: [1],
+                extractedFields: {
+                  'Extracted Text Preview': analysisResult.extracted_text.substring(0, 500) + '...',
+                  'Text Length': `${analysisResult.text_length} characters`,
+                  'Processing Method': 'OCR-based content analysis'
+                },
+                status: 'completed',
+                processingMethod: 'Real OCR Content Analysis',
+                fullText: analysisResult.extracted_text
+              }];
+              
+              resolve({
+                docId,
+                detectedForms,
+                totalForms: 1,
+                processingMethod: 'OCR Classification',
+                status: 'completed'
+              });
+            } catch (parseError) {
+              reject(parseError);
+            }
+          } else {
+            reject(new Error(`OCR processing failed: ${errorOutput}`));
+          }
+        });
+      });
+
+      res.json(result);
+    } catch (error) {
+      console.error('Form detection error:', error);
+      res.status(500).json({ error: 'Form detection failed' });
+    }
+  });
+
+  // Status endpoint for form detection
+  app.get('/api/form-detection/status/:docId', async (req, res) => {
+    try {
+      const { docId } = req.params;
+      res.json({
+        docId,
+        status: 'completed',
+        message: 'Form detection completed successfully'
+      });
+    } catch (error) {
+      console.error('Status check error:', error);
+      res.status(500).json({ error: 'Status check failed' });
+    }
+  });
 
           let output = '';
           let errorOutput = '';
