@@ -31,6 +31,61 @@ interface ProcessedDocument {
 export default function DocumentManagementNew() {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Document handling functions
+  const handleViewDocument = async (documentType: string, format: 'pdf' | 'text') => {
+    try {
+      const response = await fetch(`/api/document-management/view-document/${documentType}?format=${format}`);
+      if (!response.ok) throw new Error('Failed to retrieve document');
+      
+      if (format === 'pdf') {
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+      } else {
+        const text = await response.text();
+        const blob = new Blob([text], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: `Failed to view ${documentType} document`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDownloadText = async (documentType: string) => {
+    try {
+      const response = await fetch(`/api/document-management/download-text/${documentType}`);
+      if (!response.ok) throw new Error('Failed to download text');
+      
+      const text = await response.text();
+      const blob = new Blob([text], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${documentType}-extracted.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Download Complete",
+        description: `${documentType} text file downloaded successfully`,
+      });
+    } catch (error) {
+      toast({
+        title: "Download Failed",
+        description: `Failed to download ${documentType} text`,
+        variant: "destructive",
+      });
+    }
+  };
   const queryClient = useQueryClient();
   
   const [activeTab, setActiveTab] = useState('upload');
@@ -541,8 +596,8 @@ export default function DocumentManagementNew() {
                       <div><strong>Port of Discharge:</strong> New York</div>
                     </div>
                     <div className="flex gap-2 mt-3">
-                      <Button variant="outline" size="sm">View PDF</Button>
-                      <Button variant="outline" size="sm">Download Text</Button>
+                      <Button variant="outline" size="sm" onClick={() => handleViewDocument('bill-of-lading', 'pdf')}>View PDF</Button>
+                      <Button variant="outline" size="sm" onClick={() => handleDownloadText('bill-of-lading')}>Download Text</Button>
                     </div>
                   </div>
 
@@ -558,8 +613,8 @@ export default function DocumentManagementNew() {
                       <div><strong>Consignee:</strong> XYZ Import Corp</div>
                     </div>
                     <div className="flex gap-2 mt-3">
-                      <Button variant="outline" size="sm">View PDF</Button>
-                      <Button variant="outline" size="sm">Download Text</Button>
+                      <Button variant="outline" size="sm" onClick={() => handleViewDocument('certificate-of-origin', 'pdf')}>View PDF</Button>
+                      <Button variant="outline" size="sm" onClick={() => handleDownloadText('certificate-of-origin')}>Download Text</Button>
                     </div>
                   </div>
 
@@ -575,8 +630,8 @@ export default function DocumentManagementNew() {
                       <div><strong>Gross Weight:</strong> 2,650 KGS</div>
                     </div>
                     <div className="flex gap-2 mt-3">
-                      <Button variant="outline" size="sm">View PDF</Button>
-                      <Button variant="outline" size="sm">Download Text</Button>
+                      <Button variant="outline" size="sm" onClick={() => handleViewDocument('packing-list', 'pdf')}>View PDF</Button>
+                      <Button variant="outline" size="sm" onClick={() => handleDownloadText('packing-list')}>Download Text</Button>
                     </div>
                   </div>
 

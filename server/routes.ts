@@ -12505,6 +12505,136 @@ This credit is available by negotiation against presentation of documents comply
     });
   });
 
+  // View document endpoint
+  app.get('/api/document-management/view-document/:documentType', (req, res) => {
+    const { documentType } = req.params;
+    const format = req.query.format as string;
+    
+    console.log(`Viewing document: ${documentType}, format: ${format}`);
+    
+    // Sample extracted content based on document type
+    const sampleContent = generateSampleContent(documentType, format);
+    
+    if (format === 'pdf') {
+      // For demo, return a simple PDF response
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename="${documentType}.pdf"`);
+      res.send(Buffer.from('Sample PDF content for ' + documentType));
+    } else {
+      res.setHeader('Content-Type', 'text/plain');
+      res.send(sampleContent);
+    }
+  });
+
+  // Download text endpoint
+  app.get('/api/document-management/download-text/:documentType', (req, res) => {
+    const { documentType } = req.params;
+    
+    console.log(`Downloading text for: ${documentType}`);
+    
+    const textContent = generateSampleContent(documentType, 'text');
+    
+    res.setHeader('Content-Type', 'text/plain');
+    res.setHeader('Content-Disposition', `attachment; filename="${documentType}-extracted.txt"`);
+    res.send(textContent);
+  });
+
+  // Helper function to generate sample content
+  function generateSampleContent(documentType: string, format: string): string {
+    const contentMap: Record<string, string> = {
+      'commercial-invoice': `COMMERCIAL INVOICE
+Invoice Number: INV-2025-001
+Date: 2025-06-18
+Seller: ABC Trading Co Ltd
+123 Business Street
+Singapore 123456
+
+Buyer: XYZ Import Corp
+456 Commerce Ave
+New York, NY 10001
+
+Description of Goods:
+- Electronic Components (Qty: 500 units)
+- Unit Price: USD 50.90
+- Total Amount: USD 25,450.00
+
+Payment Terms: Letter of Credit
+Shipment Terms: FOB Singapore
+`,
+      'bill-of-lading': `BILL OF LADING
+B/L Number: BL-2025-5432
+Vessel: OCEAN SPIRIT
+Voyage: VOY-2025-089
+
+Port of Loading: Singapore
+Port of Discharge: New York
+Date of Loading: 2025-06-15
+
+Shipper: ABC Trading Co Ltd
+Consignee: XYZ Import Corp
+
+Cargo Description:
+- 150 Cartons Electronic Components
+- Gross Weight: 2,650 KGS
+- Net Weight: 2,450 KGS
+- Measurement: 45.5 CBM
+`,
+      'certificate-of-origin': `CERTIFICATE OF ORIGIN
+Certificate No: CO-2025-789
+Country of Origin: Singapore
+Date of Issue: 2025-06-18
+
+Exporter: ABC Trading Co Ltd
+123 Business Street
+Singapore 123456
+
+Consignee: XYZ Import Corp
+456 Commerce Ave
+New York, NY 10001
+
+Description of Goods:
+Electronic Components manufactured in Singapore
+HS Code: 8542.31.0000
+`,
+      'packing-list': `PACKING LIST
+List Number: PL-2025-456
+Date: 2025-06-18
+
+Shipper: ABC Trading Co Ltd
+Consignee: XYZ Import Corp
+
+Packing Details:
+- Total Packages: 150 Cartons
+- Gross Weight: 2,650 KGS
+- Net Weight: 2,450 KGS
+- Dimensions: 120cm x 80cm x 60cm per carton
+- Total Volume: 45.5 CBM
+
+Contents: Electronic Components (500 units)
+`,
+      'insurance-certificate': `INSURANCE CERTIFICATE
+Certificate No: INS-2025-123
+Policy Number: POL-2025-8901
+Date of Issue: 2025-06-18
+
+Insurance Company: Global Marine Insurance
+Address: 789 Insurance Plaza, Singapore
+
+Insured: ABC Trading Co Ltd
+Beneficiary: XYZ Import Corp
+
+Insured Amount: USD 27,995.00
+Coverage: All Risks
+Voyage: Singapore to New York
+
+Goods Insured: Electronic Components
+Vessel: OCEAN SPIRIT
+`
+    };
+
+    return contentMap[documentType] || `Sample content for ${documentType}`;
+  }
+
   const httpServer = createServer(app);
   return httpServer;
 }
