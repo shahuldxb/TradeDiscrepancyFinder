@@ -93,61 +93,28 @@ export default function LCFormDetection() {
       
       setProcessingStatus({ upload: 'completed', ocr: 'completed', form_detection: 'completed', document_splitting: 'completed', form_grouping: 'completed' });
       
-      // Set detected forms with sample data
-      setDetectedForms(result.detected_forms || [
-        {
-          form_type: 'Commercial Invoice',
-          confidence: 95,
-          extracted_fields: [
-            { field_name: 'Invoice Number', field_value: 'INV-2024-001', confidence: 98 },
-            { field_name: 'Date', field_value: '2024-06-18', confidence: 95 },
-            { field_name: 'Amount', field_value: '$12,500.00', confidence: 92 },
-            { field_name: 'Seller', field_value: 'ABC Trading Co.', confidence: 97 },
-            { field_name: 'Buyer', field_value: 'XYZ Import Ltd.', confidence: 94 }
-          ]
-        },
-        {
-          form_type: 'Bill of Lading',
-          confidence: 92,
-          extracted_fields: [
-            { field_name: 'B/L Number', field_value: 'BL-2024-5678', confidence: 96 },
-            { field_name: 'Vessel', field_value: 'MV Ocean Star', confidence: 89 },
-            { field_name: 'Port of Loading', field_value: 'Shanghai', confidence: 94 },
-            { field_name: 'Port of Discharge', field_value: 'Los Angeles', confidence: 91 }
-          ]
-        },
-        {
-          form_type: 'Certificate of Origin',
-          confidence: 88,
-          extracted_fields: [
-            { field_name: 'Certificate Number', field_value: 'CO-2024-3456', confidence: 93 },
-            { field_name: 'Country of Origin', field_value: 'China', confidence: 97 },
-            { field_name: 'Product Description', field_value: 'Electronic Components', confidence: 85 }
-          ]
-        },
-        {
-          form_type: 'Packing List',
-          confidence: 90,
-          extracted_fields: [
-            { field_name: 'Packing List Number', field_value: 'PL-2024-7890', confidence: 94 },
-            { field_name: 'Total Packages', field_value: '25 Cartons', confidence: 88 },
-            { field_name: 'Gross Weight', field_value: '1,250 kg', confidence: 92 }
-          ]
-        },
-        {
-          form_type: 'Insurance Certificate',
-          confidence: 87,
-          extracted_fields: [
-            { field_name: 'Policy Number', field_value: 'INS-2024-1122', confidence: 91 },
-            { field_name: 'Coverage Amount', field_value: '$15,000.00', confidence: 89 },
-            { field_name: 'Insurance Company', field_value: 'Global Marine Insurance', confidence: 86 }
-          ]
-        }
-      ]);
+      // Set detected forms from actual backend response
+      if (result.detectedForms && result.detectedForms.length > 0) {
+        // Convert backend format to frontend format
+        const convertedForms = result.detectedForms.map((form: any) => ({
+          form_type: form.formType,
+          confidence: Math.round((form.confidence || 0) * 100),
+          extracted_fields: Object.entries(form.extractedFields || {}).map(([key, value]) => ({
+            field_name: key,
+            field_value: value as string,
+            confidence: Math.round((form.confidence || 0) * 100)
+          }))
+        }));
+        setDetectedForms(convertedForms);
+      } else {
+        // No forms detected
+        setDetectedForms([]);
+      }
 
+      const formsCount = result.detectedForms?.length || 0;
       toast({
         title: "Processing Complete",
-        description: `Successfully detected ${detectedForms.length || 5} forms in the LC document`,
+        description: `Successfully detected ${formsCount} form(s) in the document with real OCR extraction`,
       });
 
     } catch (error) {

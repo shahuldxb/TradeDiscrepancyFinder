@@ -12468,89 +12468,10 @@ if __name__ == "__main__":
     try {
       const { docId } = req.params;
       
-      // Simulate OCR and form detection processing
-      const detectedForms = [
-        {
-          id: `${docId}_form_1`,
-          formType: 'Commercial Invoice',
-          confidence: 0.92,
-          pageNumbers: [2, 3],
-          extractedFields: {
-            'Invoice Number': 'INV-2025-001',
-            'Date': '2025-06-18',
-            'Amount': 'USD 125,000.00',
-            'Seller': 'ABC Export Ltd',
-            'Buyer': 'XYZ Import Corp'
-          },
-          status: 'completed'
-        },
-        {
-          id: `${docId}_form_2`,
-          formType: 'Bill of Lading',
-          confidence: 0.88,
-          pageNumbers: [4, 5],
-          extractedFields: {
-            'B/L Number': 'BL-2025-456',
-            'Vessel': 'MV Ocean Trader',
-            'Port of Loading': 'Shanghai',
-            'Port of Discharge': 'Southampton',
-            'Container Number': 'TELU1234567'
-          },
-          status: 'completed'
-        },
-        {
-          id: `${docId}_form_3`,
-          formType: 'Certificate of Origin',
-          confidence: 0.85,
-          pageNumbers: [6],
-          extractedFields: {
-            'Certificate Number': 'CO-2025-789',
-            'Country of Origin': 'China',
-            'Exporter': 'ABC Export Ltd',
-            'Consignee': 'XYZ Import Corp'
-          },
-          status: 'completed'
-        },
-        {
-          id: `${docId}_form_4`,
-          formType: 'Packing List',
-          confidence: 0.90,
-          pageNumbers: [7],
-          extractedFields: {
-            'List Number': 'PL-2025-321',
-            'Total Packages': '50 Cartons',
-            'Gross Weight': '2,500 KG',
-            'Net Weight': '2,200 KG'
-          },
-          status: 'completed'
-        },
-        {
-          id: `${docId}_form_5`,
-          formType: 'Insurance Certificate',
-          confidence: 0.87,
-          pageNumbers: [8],
-          extractedFields: {
-            'Policy Number': 'INS-2025-654',
-            'Insured Amount': 'USD 137,500.00',
-            'Coverage': '110% of Invoice Value',
-            'Insurer': 'Global Marine Insurance'
-          },
-          status: 'completed'
-        }
-      ];
-
-      res.json({
-        success: true,
-        documentId: docId,
-        formsDetected: detectedForms.length,
-        detectedForms: detectedForms,
-        processingSteps: [
-          { id: 'upload', name: 'Upload LC Document', status: 'completed', progress: 100 },
-          { id: 'ocr', name: 'OCR Processing', status: 'completed', progress: 100 },
-          { id: 'detection', name: 'Form Detection', status: 'completed', progress: 100 },
-          { id: 'splitting', name: 'Document Splitting', status: 'completed', progress: 100 },
-          { id: 'grouping', name: 'Form Grouping', status: 'completed', progress: 100 }
-        ]
+      // This endpoint should not be used - redirect to upload endpoint
+      res.status(400).json({
+        error: 'This endpoint is deprecated. Please use /api/lc-form-detection/upload for document processing.',
+        redirectTo: '/api/lc-form-detection/upload'
       });
 
     } catch (error) {
