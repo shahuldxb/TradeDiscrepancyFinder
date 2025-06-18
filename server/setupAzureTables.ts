@@ -93,7 +93,7 @@ export async function setupAzureTables() {
 }
 
 // Run if called directly
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   setupAzureTables()
     .then(() => {
       console.log('Table setup completed successfully');

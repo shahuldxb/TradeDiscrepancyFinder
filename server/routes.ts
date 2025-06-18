@@ -354,11 +354,8 @@ async function loadFromAzureDatabase() {
         docId: docId
       };
       
-      // Add to memory and save immediately
-      documentHistory.unshift(historyEntry);
-      console.log(`Before save: ${documentHistory.length} documents in memory`);
-      saveDocumentHistory();
-      console.log(`✓ DOCUMENT STORED: ${historyEntry.filename} (${historyEntry.fileSize})`);
+      // Document processing will be saved to Azure SQL database after completion
+      console.log(`✓ DOCUMENT UPLOADED: ${historyEntry.filename} (${historyEntry.fileSize}) - processing started`);
 
       // Process document with LC-aware multi-page form detection
       const result = await new Promise<any>((resolve, reject) => {
