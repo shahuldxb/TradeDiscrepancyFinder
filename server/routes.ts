@@ -11872,7 +11872,8 @@ except Exception as e:
         { name: 'File_Name', value: fileName },
         { name: 'File_Size', value: file.size.toString() },
         { name: 'Document_Type', value: 'LC Document' },
-        { name: 'Upload_Status', value: 'Completed' }
+        { name: 'Upload_Status', value: 'Completed' },
+        { name: 'Processing_Status', value: 'Starting OCR' }
       ];
 
       for (const field of fields) {
@@ -11887,9 +11888,12 @@ except Exception as e:
         }
       }
 
+      // Start simple processing immediately  
+      processDocumentSimple(file.path, fileName, instrumentId, pool).catch(console.error);
+
       res.json({
         success: true,
-        message: `Document uploaded successfully`,
+        message: `Document uploaded and processing started`,
         instrumentId,
         batchName: uniqueBatchName,
         fileName,
@@ -11904,6 +11908,81 @@ except Exception as e:
       });
     }
   });
+
+  // Simple document processing function
+  async function processDocumentSimple(filePath: string, fileName: string, instrumentId: number, pool: any) {
+    try {
+      // Update status to OCR processing
+      await pool.request()
+        .input('instrumentId', instrumentId)
+        .input('fieldName', 'Processing_Status')
+        .input('fieldValue', 'OCR Processing')
+        .query(`UPDATE ingestion_fields_new SET field_value = @fieldValue WHERE instrument_id = @instrumentId AND field_name = @fieldName`);
+
+      // Simple OCR using Python
+      const pythonProcess = spawn('python3', ['-c', `
+import sys
+import os
+try:
+    if '${fileName}'.lower().endswith('.pdf'):
+        import fitz  # PyMuPDF
+        doc = fitz.open('${filePath}')
+        text = ""
+        for page in doc:
+            text += page.get_text()
+        print(text[:5000])  # Limit to 5000 characters
+    else:
+        print("File format not supported for OCR")
+except Exception as e:
+    print(f"OCR Error: {e}")
+`]);
+
+      let extractedText = '';
+      pythonProcess.stdout.on('data', (data: Buffer) => {
+        extractedText += data.toString();
+      });
+
+      pythonProcess.on('close', async (code: number) => {
+        try {
+          if (extractedText.trim()) {
+            // Store extracted text
+            await pool.request()
+              .input('instrumentId', instrumentId)
+              .input('fieldName', 'Extracted_Text')
+              .input('fieldValue', extractedText.substring(0, 4000))
+              .query(`INSERT INTO ingestion_fields_new (instrument_id, field_name, field_value) VALUES (@instrumentId, @fieldName, @fieldValue)`);
+
+            await pool.request()
+              .input('instrumentId', instrumentId)
+              .input('fieldName', 'Character_Count')
+              .input('fieldValue', extractedText.length.toString())
+              .query(`INSERT INTO ingestion_fields_new (instrument_id, field_name, field_value) VALUES (@instrumentId, @fieldName, @fieldValue)`);
+
+            // Update status to completed
+            await pool.request()
+              .input('instrumentId', instrumentId)
+              .input('fieldName', 'Processing_Status')
+              .input('fieldValue', 'Completed')
+              .query(`UPDATE ingestion_fields_new SET field_value = @fieldValue WHERE instrument_id = @instrumentId AND field_name = @fieldName`);
+              
+            console.log(`Document ${fileName} processed successfully - ${extractedText.length} characters extracted`);
+          } else {
+            throw new Error('No text extracted');
+          }
+        } catch (error) {
+          // Update status to failed
+          await pool.request()
+            .input('instrumentId', instrumentId)
+            .input('fieldName', 'Processing_Status')
+            .input('fieldValue', 'Failed')
+            .query(`UPDATE ingestion_fields_new SET field_value = @fieldValue WHERE instrument_id = @instrumentId AND field_name = @fieldName`);
+        }
+      });
+
+    } catch (error) {
+      console.error(`Processing failed for ${fileName}:`, error);
+    }
+  }
 
   // Get validation records for Validation Review tab
   app.get('/api/document-management/validation-records', async (req, res) => {
