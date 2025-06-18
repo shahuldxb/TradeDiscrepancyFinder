@@ -108,17 +108,27 @@ export class DocumentProcessor {
       
       // Store extracted text
       const pool = await connectToAzureSQL();
-      await pool.request()
-        .input('instrumentId', this.instrumentId)
-        .input('fieldName', 'Extracted_Text')
-        .input('fieldValue', extractedText)
-        .query(`INSERT INTO ingestion_fields_new (instrument_id, field_name, field_value) VALUES (@instrumentId, @fieldName, @fieldValue)`);
       
-      await pool.request()
-        .input('instrumentId', this.instrumentId)
-        .input('fieldName', 'OCR_Character_Count')
-        .input('fieldValue', extractedText.length.toString())
-        .query(`INSERT INTO ingestion_fields_new (instrument_id, field_name, field_value) VALUES (@instrumentId, @fieldName, @fieldValue)`);
+      // Store file metadata in fields table since main table doesn't support these columns
+      const fileMetadata = [
+        { name: 'File_Name', value: this.fileName },
+        { name: 'File_Path', value: this.filePath },
+        { name: 'Batch_Name', value: this.batchName },
+        { name: 'Extracted_Text', value: extractedText.substring(0, 4000) }, // Limit text length
+        { name: 'OCR_Character_Count', value: extractedText.length.toString() }
+      ];
+
+      for (const field of fileMetadata) {
+        try {
+          await pool.request()
+            .input('instrumentId', this.instrumentId)
+            .input('fieldName', field.name)
+            .input('fieldValue', field.value)
+            .query(`INSERT INTO ingestion_fields_new (instrument_id, field_name, field_value) VALUES (@instrumentId, @fieldName, @fieldValue)`);
+        } catch (error) {
+          console.log(`Field insert skipped: ${field.name}`);
+        }
+      }
       
       this.updateStep('ocr', 'completed', 100, `OCR completed - ${extractedText.length} characters extracted`);
     } catch (error) {

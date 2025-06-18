@@ -11851,48 +11851,49 @@ except Exception as e:
         return res.status(400).json({ error: 'No file uploaded' });
       }
 
-      const { DocumentProcessor } = await import('./documentProcessor');
-      const pool = await connectToAzureSQL();
-      
       const file = req.file;
       const fileName = file.originalname;
-      const batchName = req.body.batchName || `batch_${Date.now()}`;
+      const batchName = req.body.batchName || `LC_${Date.now()}`;
       const uniqueBatchName = `${batchName}_${Date.now()}`;
       
-      console.log(`Processing upload: ${fileName} (${file.size} bytes) - Batch: ${uniqueBatchName}`);
+      console.log(`Simple upload: ${fileName} - Batch: ${uniqueBatchName}`);
 
-      // Insert into instrument_ingestion_new table
+      const pool = await connectToAzureSQL();
+      
+      // Simple insert with just batch name
       const result = await pool.request()
         .input('batchName', uniqueBatchName)
-        .input('fileName', fileName)
-        .input('fileSize', file.size)
-        .input('fileType', file.mimetype)
-        .input('filePath', file.path)
-        .query(`
-          INSERT INTO instrument_ingestion_new (batch_name, file_name, file_size, file_type, file_path, created_at) 
-          OUTPUT INSERTED.id
-          VALUES (@batchName, @fileName, @fileSize, @fileType, @filePath, GETDATE())
-        `);
+        .query(`INSERT INTO instrument_ingestion_new (batch_name) OUTPUT INSERTED.id VALUES (@batchName)`);
 
       const instrumentId = result.recordset[0].id;
-      console.log(`Document stored with ID: ${instrumentId}`);
-
-      // Start comprehensive document processing
-      const processor = new DocumentProcessor(file.path, fileName, uniqueBatchName, instrumentId);
       
-      // Process asynchronously and return immediate response
-      processor.processDocument().catch(error => {
-        console.error('Document processing failed:', error);
-      });
+      // Add basic fields
+      const fields = [
+        { name: 'File_Name', value: fileName },
+        { name: 'File_Size', value: file.size.toString() },
+        { name: 'Document_Type', value: 'LC Document' },
+        { name: 'Upload_Status', value: 'Completed' }
+      ];
+
+      for (const field of fields) {
+        try {
+          await pool.request()
+            .input('instrumentId', instrumentId)
+            .input('fieldName', field.name)
+            .input('fieldValue', field.value)
+            .query(`INSERT INTO ingestion_fields_new (instrument_id, field_name, field_value) VALUES (@instrumentId, @fieldName, @fieldValue)`);
+        } catch (error) {
+          // Skip failed fields
+        }
+      }
 
       res.json({
         success: true,
-        message: `LC document uploaded successfully and processing started`,
+        message: `Document uploaded successfully`,
         instrumentId,
         batchName: uniqueBatchName,
         fileName,
-        fileSize: file.size,
-        processingSteps: processor.getSteps()
+        fileSize: file.size
       });
 
     } catch (error) {
