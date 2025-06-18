@@ -4222,6 +4222,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
           { name: 'Item Gross Weight', type: 'decimal', required: true, min: 0 },
           { name: 'Package Dimensions', type: 'text', required: false },
           { name: 'Handling Instructions', type: 'textarea', required: false }
+        ],
+        'Multimodal Transport Document': [
+          { name: 'MTD Number', type: 'text', required: true, pattern: '^MTD-\\d{8}$' },
+          { name: 'Date of Issue', type: 'date', required: true },
+          { name: 'Place of Issue', type: 'text', required: true },
+          { name: 'Shipper Name', type: 'text', required: true },
+          { name: 'Shipper Address', type: 'textarea', required: true },
+          { name: 'Consignee Name', type: 'text', required: true },
+          { name: 'Consignee Address', type: 'textarea', required: true },
+          { name: 'Notify Party', type: 'text', required: false },
+          { name: 'Place of Receipt', type: 'text', required: true },
+          { name: 'Port of Loading', type: 'text', required: true },
+          { name: 'Port of Discharge', type: 'text', required: true },
+          { name: 'Place of Delivery', type: 'text', required: true },
+          { name: 'Pre-Carriage By', type: 'select', required: false, options: ['Truck', 'Rail', 'Barge', 'Air'] },
+          { name: 'Ocean Vessel', type: 'text', required: true },
+          { name: 'Voyage Number', type: 'text', required: false },
+          { name: 'Container Number', type: 'text', required: false },
+          { name: 'Seal Number', type: 'text', required: false },
+          { name: 'Marks and Numbers', type: 'textarea', required: false },
+          { name: 'Number of Packages', type: 'integer', required: true, min: 1 },
+          { name: 'Kind of Packages', type: 'select', required: true, options: ['Carton', 'Pallet', 'Container', 'Box', 'Bag', 'Drum', 'Bundle'] },
+          { name: 'Description of Goods', type: 'textarea', required: true },
+          { name: 'Gross Weight', type: 'decimal', required: true, min: 0 },
+          { name: 'Net Weight', type: 'decimal', required: false, min: 0 },
+          { name: 'Measurement CBM', type: 'decimal', required: false, min: 0 },
+          { name: 'Freight Charges', type: 'select', required: true, options: ['Prepaid', 'Collect', 'Prepaid at Origin', 'Collect at Destination'] },
+          { name: 'Number of Originals', type: 'integer', required: false, min: 1, max: 10 },
+          { name: 'Transport Operator', type: 'text', required: true },
+          { name: 'Signature Date', type: 'date', required: false },
+          { name: 'Special Instructions', type: 'textarea', required: false }
         ]
       };
 
@@ -4578,10 +4609,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'Applicant': /(?:Applicant|Buyer)[\s:]*([A-Za-z\s]+)(?:\n|$)/i,
         'Beneficiary': /(?:Beneficiary|Seller)[\s:]*([A-Za-z\s]+)(?:\n|$)/i,
         'Amount': /(?:Amount|USD|EUR|GBP)[\s:]*([0-9,]+\.?[0-9]*)/i
+      },
+      'Multimodal Transport Document': {
+        'MTD Number': /(?:MTD|Multimodal|Transport Document|Doc)[\s#:]*([A-Z0-9\-]+)/i,
+        'Shipper': /(?:Shipper|Consignor)[\s:]*([A-Za-z\s&.,\-]+)(?:\n|To:|Consignee:)/i,
+        'Consignee': /(?:Consignee|To)[\s:]*([A-Za-z\s&.,\-]+)(?:\n|Notify:|Place of)/i,
+        'Place of Receipt': /(?:Place of Receipt|Receipt)[\s:]*([A-Za-z\s,\-]+)(?:\n|Port of|Place of)/i,
+        'Port of Loading': /(?:Port of Loading|Loading)[\s:]*([A-Za-z\s,\-]+)(?:\n|Port of|Place of)/i,
+        'Port of Discharge': /(?:Port of Discharge|Discharge)[\s:]*([A-Za-z\s,\-]+)(?:\n|Place of|Final)/i,
+        'Place of Delivery': /(?:Place of Delivery|Final Destination|Delivery)[\s:]*([A-Za-z\s,\-]+)(?:\n|Container|Marks)/i,
+        'Container Number': /(?:Container|CNTR)[\s#:]*([A-Z]{4}[0-9]{7}|[A-Z0-9\-]+)/i,
+        'Seal Number': /(?:Seal|SL)[\s#:]*([A-Z0-9\-]+)/i,
+        'Freight': /(?:Freight|Prepaid|Collect)[\s:]*([A-Za-z\s]+)(?:\n|$)/i,
+        'Number of Packages': /(?:Packages|Pkgs|No\. of Packages)[\s:]*([0-9,]+)/i,
+        'Kind of Packages': /(?:Kind of Packages|Package Type)[\s:]*([A-Za-z\s]+)(?:\n|Description)/i,
+        'Description of Goods': /(?:Description of Goods|Goods|Commodity)[\s:]*([A-Za-z\s,.\-]+)(?:\n|Gross Weight|Net Weight)/i,
+        'Gross Weight': /(?:Gross Weight|G\.W\.)[\s:]*([0-9,.]+)[\s]*(KGS|LBS|MT)?/i,
+        'Net Weight': /(?:Net Weight|N\.W\.)[\s:]*([0-9,.]+)[\s]*(KGS|LBS|MT)?/i,
+        'Measurement': /(?:Measurement|CBM|M3)[\s:]*([0-9,.]+)[\s]*(CBM|M3)?/i,
+        'Vessel': /(?:Vessel|Ship|M\/V|MV)[\s:]*([A-Za-z\s\-]+)(?:\n|Voyage)/i,
+        'Voyage': /(?:Voyage|Voy)[\s#:]*([A-Z0-9\-]+)/i,
+        'Date of Issue': /(?:Date of Issue|Issue Date|Issued)[\s:]*([0-9]{1,2}[\/\-][0-9]{1,2}[\/\-][0-9]{2,4})/i,
+        'Place of Issue': /(?:Place of Issue|Issued at)[\s:]*([A-Za-z\s,\-]+)(?:\n|Date|$)/i
+      },
+      'Bill of Lading': {
+        'B/L Number': /(?:B\/L|Bill of Lading|BL)[\s#:]*([A-Z0-9\-]+)/i,
+        'Vessel': /(?:Vessel|Ship|M\/V|MV)[\s:]*([A-Za-z\s\-]+)(?:\n|Voyage)/i,
+        'Voyage': /(?:Voyage|Voy)[\s#:]*([A-Z0-9\-]+)/i,
+        'Port of Loading': /(?:Port of Loading|Loading)[\s:]*([A-Za-z\s,\-]+)(?:\n|Port of)/i,
+        'Port of Discharge': /(?:Port of Discharge|Discharge)[\s:]*([A-Za-z\s,\-]+)(?:\n|Place of)/i,
+        'Shipper': /(?:Shipper|Consignor)[\s:]*([A-Za-z\s&.,\-]+)(?:\n|Consignee)/i,
+        'Consignee': /(?:Consignee)[\s:]*([A-Za-z\s&.,\-]+)(?:\n|Notify)/i,
+        'Freight': /(?:Freight|Prepaid|Collect)[\s:]*([A-Za-z\s]+)(?:\n|$)/i
       }
     };
     
-    const docPatterns = patterns[documentType] || patterns['Commercial Invoice'];
+    const docPatterns = patterns[documentType as keyof typeof patterns] || patterns['Commercial Invoice'];
     
     Object.entries(docPatterns).forEach(([fieldName, pattern]) => {
       const match = textContent.match(pattern);
