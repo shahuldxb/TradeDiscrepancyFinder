@@ -11950,10 +11950,6 @@ SPECIAL CONDITIONS:
       };
       
       res.json(summary);
-        batchName: finalBatchName,
-        fileName,
-        fileSize: file.size
-      });
 
     } catch (error) {
       console.error('Upload error:', error);
@@ -12057,24 +12053,60 @@ End of LC Document`;
     try {
       // Return sample data for now
       const sampleDocuments = [
-        {
-          id: 1,
-          batch_name: 'LC_2025_001',
-          document_type: 'Letter of Credit',
-          processing_status: 'completed',
-          total_documents: 3,
-          created_at: new Date().toISOString(),
-          field_count: 25
-        },
-        {
-          id: 2,
-          batch_name: 'CI_2025_002',
-          document_type: 'Commercial Invoice',
-          processing_status: 'processing',
-          total_documents: 1,
-          created_at: new Date(Date.now() - 3600000).toISOString(),
-          field_count: 12
+        // Get real uploaded files from uploads directory
+        const fs = require('fs');
+        const path = require('path');
+        
+        const uploadsDir = 'uploads';
+        const extractedDir = 'extracted_texts';
+        
+        if (fs.existsSync(uploadsDir)) {
+          const uploadedFiles = fs.readdirSync(uploadsDir).filter(f => f.endsWith('.pdf'));
+          
+          uploadedFiles.slice(-10).forEach((file, index) => {
+            const stats = fs.statSync(path.join(uploadsDir, file));
+            const hasExtractedText = fs.existsSync(extractedDir) && 
+              fs.readdirSync(extractedDir).some(f => f.endsWith('.txt'));
+            
+            return {
+              id: index + 100,
+              batch_name: `LC_${file.replace('.pdf', '').slice(-8)}`,
+              document_type: file.includes('lc') ? "Letter of Credit" : "Trade Document",
+              processing_status: hasExtractedText ? "completed" : "processing",
+              total_documents: 1,
+              created_at: stats.mtime.toISOString(),
+              field_count: hasExtractedText ? 15 : 0,
+              file_name: file,
+              file_size: Math.round(stats.size / 1024) + " KB"
+            };
+          })[0] || {
+            id: 1,
+            batch_name: 'LC_2025_001',
+            document_type: 'Letter of Credit',
+            processing_status: 'completed',
+            total_documents: 3,
+            created_at: new Date().toISOString(),
+            field_count: 25
+          };
+        } else {
+          return {
+            id: 1,
+            batch_name: 'LC_2025_001',
+            document_type: 'Letter of Credit',
+            processing_status: 'completed',
+            total_documents: 3,
+            created_at: new Date().toISOString(),
+            field_count: 25
+          };
         }
+      }, {
+        id: 2,
+        batch_name: 'CI_2025_002',
+        document_type: 'Commercial Invoice',
+        processing_status: 'processing',
+        total_documents: 1,
+        created_at: new Date(Date.now() - 3600000).toISOString(),
+        field_count: 12
       ];
 
       res.json(sampleDocuments);
