@@ -50,6 +50,14 @@ interface ValidationRecord {
   last_updated: string;
 }
 
+interface ProcessedDocument {
+  field_name: string;
+  field_value: string;
+  batch_name: string;
+  created_at: string;
+  confidence_score?: number;
+}
+
 interface RegistrationForm {
   document_type: string;
   form_name: string;
@@ -90,6 +98,28 @@ export default function DocumentManagementNew() {
     form_name: '',
     description: '',
     is_active: true
+  });
+
+  // Fetch processed documents for the new tab
+  const { data: processedDocuments = [], isLoading: isProcessedLoading } = useQuery<ProcessedDocument[]>({
+    queryKey: ['/api/azure-data/execute-sql', 'processed-documents'],
+    queryFn: async () => {
+      const response = await fetch('/api/azure-data/execute-sql', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: `
+            SELECT f.field_name, f.field_value, i.batch_name, f.created_at, f.confidence_score
+            FROM ingestion_fields_new f 
+            INNER JOIN instrument_ingestion_new i ON f.instrument_id = i.id 
+            WHERE f.field_name LIKE 'Required_Document%' OR f.field_name IN ('Total_Required_Documents', 'LC_Document_Type') 
+            ORDER BY f.created_at DESC
+          `
+        })
+      });
+      const result = await response.json();
+      return result.data || [];
+    }
   });
   const { toast } = useToast();
 
@@ -933,6 +963,146 @@ export default function DocumentManagementNew() {
                       Download Sample CSV
                     </Button>
                   </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Processed Documents Tab */}
+        <TabsContent value="processed" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="w-5 h-5" />
+                Processed Documents
+              </CardTitle>
+              <CardDescription>
+                View and download identified documents from processed uploads. Multi-page documents are automatically split and categorized.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isProcessedLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <span className="ml-2">Loading processed documents...</span>
+                </div>
+              ) : processedDocuments.length === 0 ? (
+                <div className="text-center py-8">
+                  <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">No processed documents found</p>
+                  <p className="text-sm text-muted-foreground mt-2">Upload documents in the Upload & Ingestion tab to see them here</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Statistics */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Card className="border-l-4 border-l-blue-500">
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-2">
+                          <FileText className="w-5 h-5 text-blue-600" />
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Total Documents</p>
+                            <p className="text-2xl font-bold">{processedDocuments.length}</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card className="border-l-4 border-l-green-500">
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-2">
+                          <Package className="w-5 h-5 text-green-600" />
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Unique Batches</p>
+                            <p className="text-2xl font-bold">{new Set(processedDocuments.map(doc => doc.batch_name)).size}</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card className="border-l-4 border-l-purple-500">
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-5 h-5 text-purple-600" />
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Latest Processing</p>
+                            <p className="text-sm font-bold">
+                              {processedDocuments.length > 0 ? new Date(processedDocuments[0].created_at).toLocaleDateString() : 'N/A'}
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Documents Table */}
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                      <div>
+                        <CardTitle>Identified Documents</CardTitle>
+                        <CardDescription>Documents extracted and identified from uploaded files</CardDescription>
+                      </div>
+                      <Button 
+                        onClick={() => window.open('/api/document-management/download-lc-documents', '_blank')}
+                        variant="outline"
+                        size="sm"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Download CSV
+                      </Button>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="rounded-md border">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Document Type</TableHead>
+                              <TableHead>Field Name</TableHead>
+                              <TableHead>Batch Name</TableHead>
+                              <TableHead>Confidence</TableHead>
+                              <TableHead>Date Processed</TableHead>
+                              <TableHead>Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {processedDocuments.map((doc, index) => (
+                              <TableRow key={index}>
+                                <TableCell>
+                                  <div className="flex items-center gap-2">
+                                    <FileText className="w-4 h-4 text-blue-600" />
+                                    <span className="font-medium">{doc.field_value}</span>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant="outline">{doc.field_name}</Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <span className="text-sm text-muted-foreground">{doc.batch_name}</span>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant={doc.confidence_score && doc.confidence_score > 0.8 ? "default" : "secondary"}>
+                                    {doc.confidence_score ? `${Math.round(doc.confidence_score * 100)}%` : 'N/A'}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <span className="text-sm">{new Date(doc.created_at).toLocaleDateString()}</span>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex items-center gap-2">
+                                    <Button variant="ghost" size="sm">
+                                      <Eye className="w-4 h-4" />
+                                    </Button>
+                                    <Button variant="ghost" size="sm">
+                                      <Download className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
               )}
             </CardContent>

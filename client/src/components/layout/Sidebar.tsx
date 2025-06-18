@@ -160,11 +160,6 @@ const navigationItems = [
         description: "Upload and process documents",
       },
       {
-        name: "LC Documents",
-        href: "/lc-documents",
-        description: "LC constituent document analysis",
-      },
-      {
         name: "Document Library",
         href: "/documents",
         description: "Browse document repository",

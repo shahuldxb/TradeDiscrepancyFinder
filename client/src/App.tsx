@@ -58,7 +58,7 @@ import FormsApprovalSystem from "@/pages/forms/FormsApprovalSystem";
 import ComprehensiveFormsUI from "@/pages/forms/ComprehensiveFormsUI";
 import InstantUpload from "@/pages/forms/InstantUpload";
 import DocumentManagementNew from "@/pages/documentmanagement/DocumentManagementNew";
-import LCDocuments from "@/pages/LCDocuments";
+
 
 import NotFound from "@/pages/not-found";
 
@@ -100,7 +100,7 @@ function Router() {
             <Route path="/document-management-new" component={DocumentManagementNew} />
             <Route path="/document-management-new/validation" component={DocumentManagementNew} />
             <Route path="/document-management-new/registration" component={DocumentManagementNew} />
-            <Route path="/lc-documents" component={LCDocuments} />
+
             
             {/* Document Management Routes */}
             <Route path="/document-upload" component={DocumentUpload} />
