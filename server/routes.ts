@@ -11911,8 +11911,8 @@ SPECIAL CONDITIONS:
 --- END OF EXTRACTED TEXT ---`;
 
       // Save extracted text to file system
-      const fs = await import('fs');
-      const path = await import('path');
+      const fs = require('fs');
+      const path = require('path');
       
       const outputDir = 'extracted_texts';
       if (!fs.existsSync(outputDir)) {
@@ -11950,14 +11950,6 @@ SPECIAL CONDITIONS:
       };
       
       res.json(summary);
-
-      // Start simple processing immediately  
-      processDocumentSimple(file.path, fileName, instrumentId, pool).catch(console.error);
-
-      res.json({
-        success: true,
-        message: `Document uploaded and processing started`,
-        instrumentId,
         batchName: finalBatchName,
         fileName,
         fileSize: file.size
@@ -12293,6 +12285,9 @@ This credit is available by negotiation against presentation of documents comply
       res.status(500).json({ error: 'Failed to fetch document statistics' });
     }
   });
+
+  // Add simple upload endpoint
+  createSimpleUpload(app);
 
   const httpServer = createServer(app);
   return httpServer;
