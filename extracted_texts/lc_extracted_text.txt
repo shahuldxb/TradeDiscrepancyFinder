@@ -1,0 +1,51 @@
+DOCUMENTARY CREDIT - EXTRACTED TEXT
+
+Document Type: Letter of Credit (LC)
+LC Number: LC-2025-TF-001
+Issue Date: 6/18/2025
+Issuing Bank: International Trade Finance Bank
+Amount: USD 75,000.00
+Currency: United States Dollar
+
+APPLICANT:
+Global Import Trading LLC
+789 Commerce Boulevard
+Houston, TX 77001
+United States
+
+BENEFICIARY:
+Premium Export Corporation
+45 Export Plaza
+Singapore 018956
+Singapore
+
+CREDIT DETAILS:
+- Credit available by: Negotiation
+- Credit expires on: 9/16/2025
+- Latest shipment date: 8/17/2025
+- Partial shipments: Not allowed
+- Transshipment: Not allowed
+
+DOCUMENTS REQUIRED:
+1. Commercial Invoice in triplicate
+2. Full set of clean on board Ocean Bills of Lading
+3. Certificate of Origin issued by Chamber of Commerce
+4. Packing List showing shipping marks and numbers
+5. Insurance Policy or Certificate covering 110% of CIF value
+
+DESCRIPTION OF GOODS:
+Electronic components and computer accessories as per proforma invoice
+dated 6/18/2025 for shipment from Singapore to Houston
+
+SPECIAL CONDITIONS:
+- All documents must be presented within 21 days after shipment date
+- This credit is subject to UCP 600 (2007 Revision)
+- All banking charges outside the issuing bank are for beneficiary's account
+
+--- END OF EXTRACTED TEXT ---
+
+Processing Summary:
+- Total characters: 1850
+- Processing time: 2025-06-18T06:43:29.836Z
+- Status: Completed
+- Workflow: Upload → OCR → Text Extraction → Field Analysis

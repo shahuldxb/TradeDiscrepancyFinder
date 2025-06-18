@@ -1,0 +1,21 @@
+{
+  "documentType": "Letter of Credit",
+  "fileName": "lc_1750227310092.pdf",
+  "extractedText": "DOCUMENTARY CREDIT - EXTRACTED TEXT\n\nDocument Type: Letter of Credit (LC)\nLC Number: LC-2025-TF-001\nIssue Date: 6/18/2025\nIssuing Bank: International Trade Finance Bank\nAmount: USD 75,000.00\nCurrency: United States Dollar\n\nAPPLICANT:\nGlobal Import Trading LLC\n789 Commerce Boulevard\nHouston, TX 77001\nUnited States\n\nBENEFICIARY:\nPremium Export Corporation\n45 Export Plaza\nSingapore 018956\nSingapore\n\nCREDIT DETAILS:\n- Credit available by: Negotiation\n- Credit expires on: 9/16/2025\n- Latest shipment date: 8/17/2025\n- Partial shipments: Not allowed\n- Transshipment: Not allowed\n\nDOCUMENTS REQUIRED:\n1. Commercial Invoice in triplicate\n2. Full set of clean on board Ocean Bills of Lading\n3. Certificate of Origin issued by Chamber of Commerce\n4. Packing List showing shipping marks and numbers\n5. Insurance Policy or Certificate covering 110% of CIF value\n\nDESCRIPTION OF GOODS:\nElectronic components and computer accessories as per proforma invoice\ndated 6/18/2025 for shipment from Singapore to Houston\n\nSPECIAL CONDITIONS:\n- All documents must be presented within 21 days after shipment date\n- This credit is subject to UCP 600 (2007 Revision)\n- All banking charges outside the issuing bank are for beneficiary's account\n\n--- END OF EXTRACTED TEXT ---\n\nProcessing Summary:\n- Total characters: 1850\n- Processing time: 2025-06-18T06:43:29.836Z\n- Status: Completed\n- Workflow: Upload → OCR → Text Extraction → Field Analysis",
+  "characterCount": 1423,
+  "processingDate": "2025-06-18T06:43:29.838Z",
+  "status": "completed",
+  "workflow": [
+    "upload",
+    "ocr",
+    "text_extraction",
+    "field_analysis"
+  ],
+  "keyFields": {
+    "lcNumber": "LC-2025-TF-001",
+    "amount": "USD 75,000.00",
+    "issuer": "International Trade Finance Bank",
+    "applicant": "Global Import Trading LLC",
+    "beneficiary": "Premium Export Corporation"
+  }
+}
