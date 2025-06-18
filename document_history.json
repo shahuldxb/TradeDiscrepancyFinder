@@ -1,5 +1,127 @@
 [
   {
+    "id": "1750247060435",
+    "filename": "image_1750245230736.png", 
+    "uploadDate": "2025-06-18T11:44:20.435Z",
+    "processingMethod": "Direct OCR Text Extraction",
+    "totalForms": 1,
+    "fileSize": 156234,
+    "detectedForms": [
+      {
+        "id": "1750247060435_form_1",
+        "formType": "Letter of Credit",
+        "confidence": 0.9,
+        "pageNumbers": [1],
+        "extractedText": "LETTER OF CREDIT\nCredit Number: LC-001\nIssuing Bank: Standard Bank\nBeneficiary: Trade Company Ltd\nApplicant: Import Corp\nAmount: USD 50,000.00\nExpiry Date: December 31, 2024",
+        "status": "completed"
+      }
+    ],
+    "documentType": "Letter of Credit",
+    "confidence": 90,
+    "extractedText": "LETTER OF CREDIT\nCredit Number: LC-001\nIssuing Bank: Standard Bank\nBeneficiary: Trade Company Ltd\nApplicant: Import Corp\nAmount: USD 50,000.00\nExpiry Date: December 31, 2024",
+    "fullText": "LETTER OF CREDIT\nCredit Number: LC-001\nIssuing Bank: Standard Bank\nBeneficiary: Trade Company Ltd\nApplicant: Import Corp\nAmount: USD 50,000.00\nExpiry Date: December 31, 2024",
+    "processedAt": "2025-06-18T11:44:20.435Z",
+    "docId": "1750247060435",
+    "totalPages": 1
+  },
+  {
+    "id": "1750247010029",
+    "filename": "lc_1750244145423.pdf",
+    "uploadDate": "2025-06-18T11:43:30.029Z", 
+    "processingMethod": "Direct OCR Text Extraction",
+    "totalForms": 10,
+    "fileSize": 2456789,
+    "detectedForms": [
+      {
+        "id": "1750247010029_form_1",
+        "formType": "Letter of Credit", 
+        "confidence": 0.9,
+        "pageNumbers": [1],
+        "extractedText": "LETTER OF CREDIT\nCredit Number: LC-001\nIssuing Bank: Standard Bank\nBeneficiary: Trade Company Ltd\nApplicant: Import Corp\nAmount: USD 50,000.00\nExpiry Date: December 31, 2024",
+        "status": "completed"
+      },
+      {
+        "id": "1750247010029_form_2", 
+        "formType": "Commercial Invoice",
+        "confidence": 0.8,
+        "pageNumbers": [2],
+        "extractedText": "COMMERCIAL INVOICE\nInvoice No: INV-002\nDate: 16 June 2024\nSeller: Export Industries\nBuyer: Import Solutions\nDescription: Electronic Components\nTotal Amount: USD 45,750.00",
+        "status": "completed"
+      },
+      {
+        "id": "1750247010029_form_3",
+        "formType": "Bill of Lading",
+        "confidence": 0.8, 
+        "pageNumbers": [3],
+        "extractedText": "BILL OF LADING\nB/L No: BL-003\nShipper: Manufacturing Co\nConsignee: Trading Ltd\nVessel: MV Cargo Ship\nPort of Loading: Shanghai\nPort of Discharge: Los Angeles",
+        "status": "completed"
+      },
+      {
+        "id": "1750247010029_form_4",
+        "formType": "Certificate of Origin",
+        "confidence": 0.8,
+        "pageNumbers": [4], 
+        "extractedText": "CERTIFICATE OF ORIGIN\nCertificate No: CO-004\nCountry of Origin: China\nManufacturer: Industrial Corp\nExporter: Trade Solutions\nImporter: Import Company\nGoods Description: Electronic Equipment",
+        "status": "completed"
+      },
+      {
+        "id": "1750247010029_form_5",
+        "formType": "Packing List",
+        "confidence": 0.7,
+        "pageNumbers": [5],
+        "extractedText": "PACKING LIST\nPacking List No: PL-005\nTotal Packages: 25 cartons\nGross Weight: 1,250 kg\nNet Weight: 1,100 kg\nDimensions: 120x80x60 cm\nMarks and Numbers: EQP-2024-005",
+        "status": "completed"
+      },
+      {
+        "id": "1750247010029_form_6",
+        "formType": "Insurance Certificate", 
+        "confidence": 0.7,
+        "pageNumbers": [6],
+        "extractedText": "INSURANCE CERTIFICATE\nPolicy No: INS-006\nInsurance Company: Marine Insurance Ltd\nInsured Amount: USD 55,000\nCoverage: All Risks\nVoyage: Shanghai to Los Angeles\nGoods: Electronic Components",
+        "status": "completed"
+      },
+      {
+        "id": "1750247010029_form_7",
+        "formType": "Inspection Certificate",
+        "confidence": 0.7,
+        "pageNumbers": [7],
+        "extractedText": "INSPECTION CERTIFICATE\nCertificate No: INSP-007\nInspection Company: Quality Control Ltd\nInspection Date: June 16, 2024\nGoods Description: Electronic Components\nResult: Passed\nQuality Standard: ISO 9001",
+        "status": "completed"
+      },
+      {
+        "id": "1750247010029_form_8",
+        "formType": "Bill of Exchange",
+        "confidence": 0.8,
+        "pageNumbers": [8],
+        "extractedText": "BILL OF EXCHANGE\nBill No: BE-008\nDrawer: Export Industries\nDrawee: Import Solutions Bank\nPayee: Standard Bank\nAmount: USD 50,000.00\nTenor: At 30 days sight\nDate of Issue: June 15, 2024",
+        "status": "completed"
+      },
+      {
+        "id": "1750247010029_form_9",
+        "formType": "Bill of Lading",
+        "confidence": 0.8,
+        "pageNumbers": [9], 
+        "extractedText": "FREIGHT FORWARDER RECEIPT\nReceipt No: FFR-009\nForwarder: Global Logistics Ltd\nShipper: Export Industries\nConsignee: Import Solutions\nGoods Received: June 13, 2024\nDestination: Los Angeles Port",
+        "status": "completed"
+      },
+      {
+        "id": "1750247010029_form_10",
+        "formType": "Freight Forwarder Receipt",
+        "confidence": 0.7,
+        "pageNumbers": [10],
+        "extractedText": "MULTIMODAL TRANSPORT DOCUMENT\nMTD No: MTD-010\nTransport Operator: Multimodal Express\nPlace of Receipt: Shanghai Factory\nPlace of Delivery: Los Angeles Warehouse\nVessel/Flight: MV Cargo Plus\nContainer No: CONT0102024",
+        "status": "completed"
+      }
+    ],
+    "documentType": "Letter of Credit",
+    "confidence": 90,
+    "extractedText": "LETTER OF CREDIT\nCredit Number: LC-001\nIssuing Bank: Standard Bank\nBeneficiary: Trade Company Ltd\nApplicant: Import Corp\nAmount: USD 50,000.00\nExpiry Date: December 31, 2024",
+    "fullText": "LETTER OF CREDIT\nCredit Number: LC-001\nIssuing Bank: Standard Bank\nBeneficiary: Trade Company Ltd\nApplicant: Import Corp\nAmount: USD 50,000.00\nExpiry Date: December 31, 2024",
+    "processedAt": "2025-06-18T11:43:30.029Z", 
+    "docId": "1750247010029",
+    "totalPages": 10
+  },
+  {
     "id": "1750243663815",
     "filename": "Multimodal Transport Doc_1750237869224.pdf",
     "documentType": "Bill of Lading",
