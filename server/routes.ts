@@ -11100,15 +11100,12 @@ For technical support, please reference Document ID: ${ingestionId}`;
       // Create ingestion record
       const result = await pool.request()
         .input('batch_name', batchName)
-        .input('original_name', 'lc_1750221925806.pdf')
-        .input('file_path', lcFilePath)
-        .input('file_size', fileStats.size)
-        .input('mime_type', 'application/pdf')
+        .input('document_name', 'lc_1750221925806.pdf')
         .query(`
           INSERT INTO instrument_ingestion_new 
-          (batch_name, original_filename, file_path, file_size, mime_type, created_at)
+          (batch_name, document_name, status, created_at)
           OUTPUT INSERTED.*
-          VALUES (@batch_name, @original_name, @file_path, @file_size, @mime_type, GETDATE())
+          VALUES (@batch_name, @document_name, 'uploaded', GETDATE())
         `);
 
       const documentId = result.recordset[0].id;
@@ -11153,7 +11150,7 @@ For technical support, please reference Document ID: ${ingestionId}`;
         .input('document_type', `LC Document (Contains: ${documentsInLC.join(', ')})`)
         .query(`
           UPDATE instrument_ingestion_new 
-          SET document_type = @document_type, processing_step = 'completed', updated_at = GETDATE()
+          SET document_type = @document_type, status = 'processed', updated_at = GETDATE()
           WHERE id = @document_id
         `);
 
