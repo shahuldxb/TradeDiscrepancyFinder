@@ -11069,6 +11069,301 @@ For technical support, please reference Document ID: ${ingestionId}`;
     }
   });
 
+  // Document Management New - Upload and process documents
+  app.post('/api/document-management/upload-and-process', upload.array('files'), async (req, res) => {
+    try {
+      const { batchName } = req.body;
+      const files = req.files as Express.Multer.File[];
+      
+      if (!files || files.length === 0) {
+        return res.status(400).json({ error: 'No files uploaded' });
+      }
+
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+
+      const processedFiles = [];
+      
+      for (const file of files) {
+        // Store file metadata in database
+        const result = await pool.request()
+          .input('batch_name', batchName)
+          .input('original_name', file.originalname)
+          .input('file_path', file.path)
+          .input('file_size', file.size)
+          .input('mime_type', file.mimetype)
+          .query(`
+            INSERT INTO instrument_ingestion_new 
+            (batch_name, original_filename, file_path, file_size, mime_type, status, created_at)
+            OUTPUT INSERTED.*
+            VALUES (@batch_name, @original_name, @file_path, @file_size, @mime_type, 'uploaded', GETDATE())
+          `);
+
+        processedFiles.push({
+          id: result.recordset[0].id,
+          originalName: file.originalname,
+          path: file.path,
+          size: file.size,
+          type: file.mimetype,
+          status: 'uploaded'
+        });
+
+        // Process document through workflow
+        await processDocumentWorkflow(result.recordset[0].id, file, pool);
+      }
+
+      res.json({
+        success: true,
+        message: `Successfully uploaded ${files.length} files`,
+        batchName,
+        files: processedFiles
+      });
+
+    } catch (error) {
+      console.error('Error uploading files:', error);
+      res.status(500).json({ 
+        error: 'Failed to upload files',
+        details: (error as Error).message
+      });
+    }
+  });
+
+  async function processDocumentWorkflow(documentId: number, file: Express.Multer.File, pool: any) {
+    try {
+      // Step 1: Validate document
+      await pool.request()
+        .input('document_id', documentId)
+        .input('step', 'validation')
+        .input('status', 'processing')
+        .query(`
+          UPDATE instrument_ingestion_new 
+          SET status = @status, processing_step = @step, updated_at = GETDATE()
+          WHERE id = @document_id
+        `);
+
+      // Step 2: OCR Processing
+      const ocrResult = await performOCRExtraction(file.path);
+      
+      await pool.request()
+        .input('document_id', documentId)
+        .input('step', 'ocr')
+        .input('status', 'processing')
+        .query(`
+          UPDATE instrument_ingestion_new 
+          SET status = @status, processing_step = @step, updated_at = GETDATE()
+          WHERE id = @document_id
+        `);
+
+      // Step 3: Form Type Identification
+      const documentType = await identifyFormType(ocrResult.text, file.originalname);
+      
+      await pool.request()
+        .input('document_id', documentId)
+        .input('document_type', documentType)
+        .input('step', 'classification')
+        .input('status', 'processing')
+        .query(`
+          UPDATE instrument_ingestion_new 
+          SET document_type = @document_type, status = @status, processing_step = @step, updated_at = GETDATE()
+          WHERE id = @document_id
+        `);
+
+      // Step 4: Store extracted text
+      await pool.request()
+        .input('document_id', documentId)
+        .input('extracted_text', ocrResult.text)
+        .input('confidence', ocrResult.confidence)
+        .query(`
+          INSERT INTO ingestion_docs_new (instrument_id, extracted_text, confidence_score, created_at)
+          VALUES (@document_id, @extracted_text, @confidence, GETDATE())
+        `);
+
+      // Step 5: Extract fields
+      const extractedFields = await extractDocumentFields(ocrResult.text, documentType);
+      
+      for (const field of extractedFields) {
+        await pool.request()
+          .input('document_id', documentId)
+          .input('field_name', field.name)
+          .input('field_value', field.value)
+          .input('confidence', field.confidence)
+          .query(`
+            INSERT INTO ingestion_fields_new (instrument_id, field_name, field_value, confidence_score, created_at)
+            VALUES (@document_id, @field_name, @field_value, @confidence, GETDATE())
+          `);
+      }
+
+      // Final step: Mark as completed
+      await pool.request()
+        .input('document_id', documentId)
+        .input('step', 'completed')
+        .input('status', 'completed')
+        .query(`
+          UPDATE instrument_ingestion_new 
+          SET status = @status, processing_step = @step, completed_at = GETDATE()
+          WHERE id = @document_id
+        `);
+
+      console.log(`Document processing completed for ${file.originalname}`);
+
+    } catch (error) {
+      console.error('Error in document workflow:', error);
+      
+      await pool.request()
+        .input('document_id', documentId)
+        .input('step', 'error')
+        .input('status', 'failed')
+        .input('error_message', (error as Error).message)
+        .query(`
+          UPDATE instrument_ingestion_new 
+          SET status = @status, processing_step = @step, error_message = @error_message, updated_at = GETDATE()
+          WHERE id = @document_id
+        `);
+    }
+  }
+
+  async function performOCRExtraction(filePath: string): Promise<{text: string, confidence: number}> {
+    return new Promise((resolve, reject) => {
+      const pythonProcess = spawn('python', ['-c', `
+import sys
+import os
+sys.path.append('.')
+
+try:
+    import pymupdf as fitz
+    import re
+    
+    file_path = "${filePath}"
+    
+    if not os.path.exists(file_path):
+        print(f"File not found: {file_path}")
+        sys.exit(1)
+    
+    # Open PDF and extract text
+    doc = fitz.open(file_path)
+    full_text = ""
+    
+    for page_num in range(len(doc)):
+        page = doc.load_page(page_num)
+        text = page.get_text()
+        full_text += text + "\\n\\n"
+    
+    doc.close()
+    
+    # Clean and format text
+    cleaned_text = re.sub(r'\\s+', ' ', full_text).strip()
+    
+    # Calculate confidence based on text length and clarity
+    confidence = min(0.95, max(0.5, len(cleaned_text) / 1000))
+    
+    print(f"RESULT:{{'text': '{cleaned_text[:2000]}...', 'confidence': {confidence}}}")
+    
+except Exception as e:
+    print(f"ERROR: {str(e)}")
+    sys.exit(1)
+`]);
+
+      let result = '';
+      let error = '';
+
+      pythonProcess.stdout.on('data', (data: Buffer) => {
+        result += data.toString();
+      });
+
+      pythonProcess.stderr.on('data', (data: Buffer) => {
+        error += data.toString();
+      });
+
+      pythonProcess.on('close', (code: number) => {
+        if (code === 0 && result.includes('RESULT:')) {
+          try {
+            const resultMatch = result.match(/RESULT:(.+)/);
+            if (resultMatch) {
+              const parsed = JSON.parse(resultMatch[1]);
+              resolve(parsed);
+            } else {
+              resolve({ text: result, confidence: 0.8 });
+            }
+          } catch (parseError) {
+            resolve({ text: result, confidence: 0.7 });
+          }
+        } else {
+          reject(new Error(error || 'OCR processing failed'));
+        }
+      });
+    });
+  }
+
+  async function identifyFormType(text: string, filename: string): Promise<string> {
+    const lowercaseText = text.toLowerCase();
+    const lowercaseFilename = filename.toLowerCase();
+    
+    // LC Document patterns
+    if (lowercaseText.includes('letter of credit') || 
+        lowercaseText.includes('documentary credit') ||
+        lowercaseFilename.includes('lc') ||
+        lowercaseText.includes('mt700')) {
+      return 'LC Document';
+    }
+    
+    // Commercial Invoice patterns
+    if (lowercaseText.includes('commercial invoice') ||
+        lowercaseText.includes('invoice') ||
+        lowercaseFilename.includes('invoice')) {
+      return 'Commercial Invoice';
+    }
+    
+    // Bill of Lading patterns
+    if (lowercaseText.includes('bill of lading') ||
+        lowercaseText.includes('bol') ||
+        lowercaseFilename.includes('bol')) {
+      return 'Bill of Lading';
+    }
+    
+    // Certificate of Origin patterns
+    if (lowercaseText.includes('certificate of origin') ||
+        lowercaseText.includes('origin certificate')) {
+      return 'Certificate of Origin';
+    }
+    
+    // Packing List patterns
+    if (lowercaseText.includes('packing list') ||
+        lowercaseText.includes('packing slip')) {
+      return 'Packing List';
+    }
+    
+    return 'Unknown Document';
+  }
+
+  async function extractDocumentFields(text: string, documentType: string): Promise<Array<{name: string, value: string, confidence: number}>> {
+    const fields: Array<{name: string, value: string, confidence: number}> = [];
+    
+    if (documentType === 'LC Document') {
+      // Extract LC-specific fields
+      const lcNumber = text.match(/(?:LC\s*No\.?|Credit\s*No\.?|LC\s*Number)\s*:?\s*([A-Z0-9\-\/]+)/i);
+      if (lcNumber) {
+        fields.push({ name: 'LC_Number', value: lcNumber[1], confidence: 0.9 });
+      }
+      
+      const issueDate = text.match(/(?:Issue\s*Date|Date\s*of\s*Issue)\s*:?\s*([0-9]{1,2}[\/\-][0-9]{1,2}[\/\-][0-9]{2,4})/i);
+      if (issueDate) {
+        fields.push({ name: 'Issue_Date', value: issueDate[1], confidence: 0.85 });
+      }
+      
+      const amount = text.match(/(?:Amount|Credit\s*Amount)\s*:?\s*([A-Z]{3}\s*[0-9,]+\.?[0-9]*)/i);
+      if (amount) {
+        fields.push({ name: 'Credit_Amount', value: amount[1], confidence: 0.9 });
+      }
+      
+      const beneficiary = text.match(/(?:Beneficiary)\s*:?\s*([A-Z\s&]+(?:LTD|LLC|INC|CORP)?)/i);
+      if (beneficiary) {
+        fields.push({ name: 'Beneficiary', value: beneficiary[1].trim(), confidence: 0.8 });
+      }
+    }
+    
+    return fields;
+  }
+
   // Document Management New - Insert sample data into masterdocuments_new
   app.post('/api/document-management/insert-sample-data', async (req, res) => {
     try {

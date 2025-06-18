@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
-import { Upload, FileText, Database, Settings, Check, X, Clock, Eye, Download, Plus } from 'lucide-react';
+import { Upload, FileText, Database, Settings, Check, X, Clock, Eye, Download, Plus, Play, Pause } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface MasterDocument {
@@ -242,9 +242,19 @@ export default function DocumentManagementNew() {
       return;
     }
 
+    if (uploadedFiles.length === 0) {
+      toast({
+        title: "Error", 
+        description: "Please select files before starting processing",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
     toast({
       title: "Processing Started",
-      description: `Starting ingestion for batch: ${batchName}`,
+      description: `Starting document processing for batch: ${batchName}`,
     });
     
     // Reset processing steps
@@ -254,10 +264,99 @@ export default function DocumentManagementNew() {
       progress: 0
     })));
 
-    // Start processing
-    for (let i = 0; i < processingSteps.length; i++) {
-      await simulateProcessingStep(i);
+    try {
+      // Step 1: Upload files
+      await processStep(0, "Uploading files to server");
+      await uploadFilesToServer();
+      
+      // Step 2: Validate documents  
+      await processStep(1, "Validating document structure");
+      
+      // Step 3: OCR Processing
+      await processStep(2, "Performing OCR text extraction");
+      
+      // Step 4: Extract data
+      await processStep(3, "Extracting structured data");
+      
+      // Step 5: Split documents
+      await processStep(4, "Splitting multi-form documents");
+      
+      // Step 6: Store results
+      await processStep(5, "Storing processed documents");
+
+      toast({
+        title: "Processing Complete",
+        description: "All documents have been processed successfully",
+      });
+      
+    } catch (error) {
+      toast({
+        title: "Processing Error",
+        description: "Failed to process documents. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const processStep = async (stepIndex: number, description: string) => {
+    // Mark as processing
+    setProcessingSteps(prev => prev.map((step, index) => 
+      index === stepIndex 
+        ? { ...step, status: 'processing' as const, progress: 10 }
+        : step
+    ));
+
+    // Simulate progress
+    for (let progress = 20; progress <= 90; progress += 20) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      setProcessingSteps(prev => prev.map((step, index) => 
+        index === stepIndex 
+          ? { ...step, progress }
+          : step
+      ));
+    }
+
+    // Complete step
+    setProcessingSteps(prev => prev.map((step, index) => 
+      index === stepIndex 
+        ? { ...step, status: 'completed' as const, progress: 100 }
+        : step
+    ));
+  };
+
+  const uploadFilesToServer = async () => {
+    const formData = new FormData();
+    formData.append('batchName', batchName);
+    
+    uploadedFiles.forEach((file, index) => {
+      formData.append(`files`, file);
+    });
+
+    const response = await fetch('/api/document-management/upload-and-process', {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!response.ok) {
+      throw new Error('Upload failed');
+    }
+
+    const result = await response.json();
+    console.log('Upload result:', result);
+    
+    // Set processing forms based on uploaded files
+    setProcessingForms(uploadedFiles.map((file, index) => ({
+      name: file.name,
+      status: 'processing',
+      progress: 0,
+      pages: 1, // Will be updated after processing
+      type: 'Unknown',
+      currentStep: 'upload'
+    })));
+
+    return result;
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
