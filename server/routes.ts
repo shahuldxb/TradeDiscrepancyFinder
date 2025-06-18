@@ -246,13 +246,14 @@ try {
             try {
               const analysisResult = JSON.parse(output);
               
-              // Store complete processing result in document history
+              // Store complete processing result in document history with FULL extracted text
               const historyDoc = {
                 id: docId,
                 filename: req.file?.originalname || 'Unknown',
                 documentType: analysisResult.document_type,
                 confidence: Math.round((analysisResult.confidence || 0) * 100),
-                extractedText: analysisResult.extracted_text.substring(0, 500) + '...',
+                extractedText: analysisResult.extracted_text, // Store FULL text, no truncation
+                fullText: analysisResult.extracted_text, // Also store as fullText for compatibility
                 fileSize: req.file ? `${(req.file.size / 1024 / 1024).toFixed(2)} MB` : 'Unknown',
                 processedAt: new Date().toISOString(),
                 docId: docId

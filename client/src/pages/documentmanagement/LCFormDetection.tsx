@@ -552,7 +552,7 @@ function DocumentHistory() {
             <p><strong>Processed:</strong> ${new Date(doc.processedAt).toLocaleString()}</p>
             <p><strong>File Size:</strong> ${doc.fileSize}</p>
           </div>
-          <div class="content">${doc.extractedText}</div>
+          <div class="content">${doc.fullText || doc.extractedText}</div>
         </body>
         </html>
       `);
@@ -609,7 +609,7 @@ function DocumentHistory() {
                   document_type: doc.documentType,
                   confidence: doc.confidence,
                   processed_at: doc.processedAt,
-                  extracted_text: doc.extractedText,
+                  extracted_text: doc.fullText || doc.extractedText,
                   file_size: doc.fileSize
                 };
                 
