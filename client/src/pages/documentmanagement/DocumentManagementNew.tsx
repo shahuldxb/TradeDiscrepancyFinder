@@ -95,13 +95,18 @@ export default function DocumentManagementNew() {
         title: "Upload Successful",
         description: result.message || "LC document uploaded successfully",
       });
-      // Reset form
-      setSelectedFile(null);
-      setBatchName('');
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-      // Refresh queries
+      
+      // Auto-reset after showing success for 2 seconds
+      setTimeout(() => {
+        setProcessingStatus('idle');
+        setSelectedFile(null);
+        setBatchName('');
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+      }, 2000);
+      
+      // Refresh queries immediately
       queryClient.invalidateQueries({ queryKey: ['/api/document-management/stats'] });
       queryClient.invalidateQueries({ queryKey: ['/api/document-management/validation-records'] });
       queryClient.invalidateQueries({ queryKey: ['/api/azure-data/execute-sql', 'processed-documents'] });
@@ -113,6 +118,11 @@ export default function DocumentManagementNew() {
         description: error.message,
         variant: "destructive",
       });
+      
+      // Auto-reset error state after 3 seconds
+      setTimeout(() => {
+        setProcessingStatus('idle');
+      }, 3000);
     }
   });
 
@@ -128,6 +138,11 @@ export default function DocumentManagementNew() {
 
     const finalBatchName = batchName.trim() || `LC_${Date.now()}`;
     setProcessingStatus('uploading');
+    
+    // Simulate processing steps for better UX
+    setTimeout(() => {
+      setProcessingStatus('processing');
+    }, 1000);
     
     const formData = new FormData();
     formData.append('file', selectedFile);
@@ -316,22 +331,67 @@ export default function DocumentManagementNew() {
                 </Button>
               </div>
 
-              {/* Processing Status */}
+              {/* Processing Status with Progress Bar */}
               {processingStatus !== 'idle' && (
-                <Card className="border-blue-200 bg-blue-50">
+                <Card className={`border-2 ${
+                  processingStatus === 'completed' ? 'border-green-200 bg-green-50' :
+                  processingStatus === 'error' ? 'border-red-200 bg-red-50' :
+                  'border-blue-200 bg-blue-50'
+                }`}>
                   <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-                      <div>
-                        <p className="font-medium">
-                          {processingStatus === 'uploading' ? 'Uploading Files...' : 'Processing Documents...'}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {processingStatus === 'uploading' 
-                            ? 'Files are being uploaded and validated' 
-                            : 'Processing LC document for manual handling'
-                          }
-                        </p>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        {processingStatus === 'completed' ? (
+                          <CheckCircle className="h-6 w-6 text-green-600" />
+                        ) : processingStatus === 'error' ? (
+                          <div className="h-6 w-6 rounded-full bg-red-600 flex items-center justify-center">
+                            <span className="text-white text-xs">!</span>
+                          </div>
+                        ) : (
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                        )}
+                        <div>
+                          <p className="font-medium">
+                            {processingStatus === 'uploading' ? 'Uploading Files...' : 
+                             processingStatus === 'processing' ? 'Processing Documents...' :
+                             processingStatus === 'completed' ? 'Upload Completed!' :
+                             processingStatus === 'error' ? 'Upload Failed' : 'Processing...'}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {processingStatus === 'uploading' ? 'Files are being uploaded to Azure SQL Server' : 
+                             processingStatus === 'processing' ? 'Storing document metadata in database' :
+                             processingStatus === 'completed' ? 'LC document successfully uploaded and processed' :
+                             processingStatus === 'error' ? 'Please try again or check file format' : 'Please wait...'}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {/* Progress Bar */}
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className={`h-2 rounded-full transition-all duration-500 ease-out ${
+                            processingStatus === 'completed' ? 'bg-green-600' :
+                            processingStatus === 'error' ? 'bg-red-600' :
+                            'bg-blue-600'
+                          }`}
+                          style={{ 
+                            width: processingStatus === 'uploading' ? '50%' : 
+                                   processingStatus === 'processing' ? '90%' :
+                                   processingStatus === 'completed' ? '100%' :
+                                   processingStatus === 'error' ? '100%' : '25%'
+                          }}
+                        ></div>
+                      </div>
+                      
+                      <div className={`text-xs ${
+                        processingStatus === 'completed' ? 'text-green-700' :
+                        processingStatus === 'error' ? 'text-red-700' :
+                        'text-blue-700'
+                      }`}>
+                        {processingStatus === 'uploading' ? 'Step 1/2: Uploading to Azure SQL Server' : 
+                         processingStatus === 'processing' ? 'Step 2/2: Storing document metadata' :
+                         processingStatus === 'completed' ? 'Ready for manual processing workflow' :
+                         processingStatus === 'error' ? 'Upload failed - please try again' : 'Processing...'}
                       </div>
                     </div>
                   </CardContent>
