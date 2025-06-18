@@ -24,7 +24,7 @@ interface ProcessingStep {
   message?: string;
 }
 
-export default function LCFormDetection() {
+function LCFormDetection() {
   const [file, setFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingSteps, setProcessingSteps] = useState<ProcessingStep[]>([]);
@@ -425,3 +425,5 @@ Generated on: ${new Date().toISOString()}`;
     </div>
   );
 }
+
+export default LCFormDetection;
