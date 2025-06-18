@@ -177,12 +177,16 @@ function loadDocumentHistory() {
   }
 }
 
-// Save history to file with error handling
+// Save history to file with error handling and atomic writes
 function saveDocumentHistory() {
   try {
     const historyPath = path.join(process.cwd(), 'document_history.json');
-    fs.writeFileSync(historyPath, JSON.stringify(documentHistory, null, 2));
-    console.log(`Document history saved: ${documentHistory.length} documents`);
+    const tempPath = historyPath + '.tmp';
+    
+    // Write to temporary file first, then rename for atomic operation
+    fs.writeFileSync(tempPath, JSON.stringify(documentHistory, null, 2));
+    fs.renameSync(tempPath, historyPath);
+    console.log(`✓ Document history saved: ${documentHistory.length} documents`);
   } catch (error) {
     console.error('Error saving document history:', error);
   }
@@ -307,10 +311,10 @@ try {
     }
   });
 
-  // Document history endpoint with file-based loading
+  // Document history endpoint with fresh file loading
   app.get('/api/form-detection/history', async (req, res) => {
     try {
-      // Always load fresh from file
+      // Always reload from file to get latest state
       loadDocumentHistory();
       console.log(`History requested: ${documentHistory.length} documents found`);
       res.json({
