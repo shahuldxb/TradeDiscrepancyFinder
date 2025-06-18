@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -56,6 +57,13 @@ interface RegistrationForm {
 }
 
 export default function DocumentManagementNew() {
+  const [location] = useLocation();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [activeTab, setActiveTab] = useState(() => {
+    if (location.includes('/validation')) return 'validation';
+    if (location.includes('/registration')) return 'registration';
+    return 'upload';
+  });
   const [documents, setDocuments] = useState<MasterDocument[]>([]);
   const [stats, setStats] = useState<DocumentManagementStats>({
     totalDocuments: 0,
@@ -64,6 +72,7 @@ export default function DocumentManagementNew() {
     lastUpdated: new Date().toISOString()
   });
   const [loading, setLoading] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [batchName, setBatchName] = useState('');
   const [processingForms, setProcessingForms] = useState<ProcessingForm[]>([]);
   const [processingSteps, setProcessingSteps] = useState<ProcessingStep[]>([
@@ -82,6 +91,17 @@ export default function DocumentManagementNew() {
     is_active: true
   });
   const { toast } = useToast();
+
+  // Update active tab based on route changes
+  useEffect(() => {
+    if (location.includes('/validation')) {
+      setActiveTab('validation');
+    } else if (location.includes('/registration')) {
+      setActiveTab('registration');
+    } else {
+      setActiveTab('upload');
+    }
+  }, [location]);
 
   const fetchDocuments = async () => {
     setLoading(true);
@@ -240,14 +260,45 @@ export default function DocumentManagementNew() {
     }
   };
 
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    if (files.length > 0) {
+      setUploadedFiles(files);
+      toast({
+        title: "Files Selected",
+        description: `${files.length} file(s) selected for processing`,
+      });
+    }
+  };
+
+  const handleDragOver = (event: React.DragEvent) => {
+    event.preventDefault();
+  };
+
+  const handleDrop = (event: React.DragEvent) => {
+    event.preventDefault();
+    const files = Array.from(event.dataTransfer.files);
+    if (files.length > 0) {
+      setUploadedFiles(files);
+      toast({
+        title: "Files Dropped",
+        description: `${files.length} file(s) ready for processing`,
+      });
+    }
+  };
+
   const resetUpload = () => {
     setProcessingForms([]);
+    setUploadedFiles([]);
     setBatchName('');
     setProcessingSteps(prev => prev.map(step => ({
       ...step,
       status: 'pending' as const,
       progress: 0
     })));
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const handleRegistrationSubmit = async () => {
@@ -359,42 +410,14 @@ export default function DocumentManagementNew() {
       </div>
 
       {/* Main Content Tabs */}
-      <Tabs defaultValue="upload" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="upload">Upload & Ingestion</TabsTrigger>
           <TabsTrigger value="validation">Validation Review</TabsTrigger>
           <TabsTrigger value="registration">Document Registration</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Document Management Overview</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <h3 className="font-semibold">Recent Activity</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {documents.length > 0 
-                      ? `Last document added: ${formatDate(documents[documents.length - 1]?.created_at)}`
-                      : 'No recent activity'
-                    }
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <h3 className="font-semibold">System Status</h3>
-                  <div className="flex items-center space-x-2">
-                    <Badge variant="default" className="bg-green-500">
-                      <Check className="w-3 h-3 mr-1" />
-                      Operational
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+
 
         <TabsContent value="documents" className="space-y-4">
           <Card>
@@ -471,16 +494,17 @@ export default function DocumentManagementNew() {
                     </p>
                   </div>
                   <input
+                    ref={fileInputRef}
                     type="file"
-                    accept=".pdf"
+                    accept=".pdf,.png,.jpg,.jpeg,.txt"
                     multiple
                     className="hidden"
                     id="pdf-upload"
-                    onChange={(e) => handlePdfUpload(e.target.files)}
+                    onChange={handleFileUpload}
                   />
                   <label htmlFor="pdf-upload">
                     <Button variant="outline" className="cursor-pointer">
-                      Choose PDF Files
+                      Choose Files
                     </Button>
                   </label>
                 </div>
