@@ -36,6 +36,7 @@ export default function LCFormDetection() {
   const [batchName, setBatchName] = useState('');
   const [processingStatus, setProcessingStatus] = useState<ProcessingStatus | null>(null);
   const [detectedForms, setDetectedForms] = useState<DetectedForm[]>([]);
+  const [documentId, setDocumentId] = useState<string | null>(null);
 
   const processingSteps = [
     { key: 'upload', label: 'Document Upload' },
@@ -73,6 +74,9 @@ export default function LCFormDetection() {
       }
 
       const result = await response.json();
+      
+      // Store document ID for form operations
+      setDocumentId(result.documentId || `doc_${Date.now()}`);
       
       // Simulate processing steps with realistic timing
       setProcessingStatus({ upload: 'completed', ocr: 'processing' });
