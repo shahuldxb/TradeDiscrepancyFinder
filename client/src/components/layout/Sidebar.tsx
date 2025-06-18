@@ -149,7 +149,7 @@ const navigationItems = [
         description: "Step 7-12: Form registration and approval",
       },
       {
-        name: "LC Form Detection",
+        name: "Form Detection",
         href: "/lc-form-detection",
         description: "LC document form detection and splitting",
       },
