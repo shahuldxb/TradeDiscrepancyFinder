@@ -270,23 +270,20 @@ export default function DocumentManagementNew() {
         <TabsContent value="upload" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Instant Upload</CardTitle>
+              <CardTitle>PDF Upload & Processing</CardTitle>
               <p className="text-sm text-muted-foreground">
-                Quick document upload and processing interface
+                Ready for Step 2: Upload PDF (Single/Multi-scanned) via UI - awaiting UI specifications
               </p>
             </CardHeader>
             <CardContent>
               <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center space-y-4">
                 <Upload className="h-12 w-12 mx-auto text-muted-foreground" />
                 <div className="space-y-2">
-                  <h3 className="text-lg font-semibold">Upload Documents</h3>
+                  <h3 className="text-lg font-semibold">Upload Interface</h3>
                   <p className="text-sm text-muted-foreground">
-                    Drag and drop files here or click to browse
+                    UI implementation pending specifications
                   </p>
                 </div>
-                <Button variant="outline">
-                  Choose Files
-                </Button>
               </div>
             </CardContent>
           </Card>

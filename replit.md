@@ -156,6 +156,22 @@ This is a sophisticated Trade Finance Discrepancy Resolution Platform that lever
 - Enhanced processing pipeline with field_extraction step tracking and status monitoring
 - Status: Complete with comprehensive field extraction capabilities and database integration
 
+## Document Management New Workflow (In Memory)
+
+### Complete 7-Step Processing Pipeline
+**Step 2**: Upload PDF (Single/Multi-scanned) via UI
+**Step 3**: Slice PDF Page-by-Page using PyMuPDF/PDFPlumber + OCR each page + ML-based classification
+**Step 4**: Stitch Pages into Documents by Form Name + Export grouped documents (PDF, Text)
+**Step 5**: Document Detection and Registration (masterdocuments_new table management)
+**Step 6**: Attribute Detection (Key-Value pairs, JSON schema, masterdocument_fields_new)
+**Step 7**: Insert into Instrument Tables (unique batch name, instrument_ingestion_new, ingestion_docs_new, ingestion_fields_new)
+
+### Current Status
+- ✅ Basic DocumentManagementNew component created with tabbed interface
+- ✅ Azure SQL masterdocuments_new table populated with 35 records (all document_code fields populated)
+- ✅ API endpoints functional for document management operations
+- 🔄 Awaiting UI specifications for Step 2 implementation
+
 ## Changelog
 
 - June 14, 2025. Initial setup
