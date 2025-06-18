@@ -28,6 +28,7 @@ import path from "path";
 import fs from "fs";
 import { nanoid } from "nanoid";
 import { spawn } from "child_process";
+import sql from 'mssql';
 
 // Configure multer for file uploads with memory storage
 const upload = multer({
@@ -11865,34 +11866,24 @@ except Exception as e:
       const randomSuffix = Math.random().toString(36).substring(2, 8);
       const finalBatchName = `${uniqueBatchName}_${randomSuffix}`;
       
-      // Workaround for unique constraint: Use try-catch and fallback to update existing NULL record
+      // First check if any NULL records exist to update
+      const nullCheckResult = await pool.request()
+        .query(`SELECT TOP 1 id FROM instrument_ingestion_new WHERE batch_name IS NULL`);
+      
       let result;
-      try {
+      if (nullCheckResult.recordset.length > 0) {
+        // Update existing NULL record
+        const nullId = nullCheckResult.recordset[0].id;
         result = await pool.request()
-          .input('batchName', sql.VarChar(255), finalBatchName)
-          .input('instrumentType', sql.VarChar(50), 'LC_Document')
-          .input('status', sql.VarChar(50), 'Processing')
-          .input('createdAt', sql.DateTime, new Date())
-          .input('processingStatus', sql.VarChar(50), 'uploaded')
-          .input('documentCount', sql.Int, 1)
+          .input('id', nullId)
+          .input('batchName', finalBatchName)
+          .input('instrumentType', 'LC_Document')
+          .input('status', 'Processing')
+          .input('createdAt', new Date())
+          .input('processingStatus', 'uploaded')
+          .input('documentCount', 1)
           .query(`
-            INSERT INTO instrument_ingestion_new 
-            (batch_name, instrument_type, status, created_at, processing_status, document_count) 
-            OUTPUT INSERTED.id 
-            VALUES (@batchName, @instrumentType, @status, @createdAt, @processingStatus, @documentCount)
-          `);
-      } catch (insertError) {
-        console.log('Insert failed, trying to update existing NULL record...');
-        // Find and update an existing record with NULL values
-        const updateResult = await pool.request()
-          .input('batchName', sql.VarChar(255), finalBatchName)
-          .input('instrumentType', sql.VarChar(50), 'LC_Document')
-          .input('status', sql.VarChar(50), 'Processing')
-          .input('createdAt', sql.DateTime, new Date())
-          .input('processingStatus', sql.VarChar(50), 'uploaded')
-          .input('documentCount', sql.Int, 1)
-          .query(`
-            UPDATE TOP(1) instrument_ingestion_new 
+            UPDATE instrument_ingestion_new 
             SET batch_name = @batchName,
                 instrument_type = @instrumentType,
                 status = @status,
@@ -11900,13 +11891,27 @@ except Exception as e:
                 processing_status = @processingStatus,
                 document_count = @documentCount
             OUTPUT INSERTED.id
-            WHERE batch_name IS NULL OR instrument_type IS NULL
+            WHERE id = @id
           `);
-        
-        if (updateResult.recordset.length === 0) {
-          throw new Error('Unable to insert or update record due to constraint violation');
+      } else {
+        // Try regular insert
+        try {
+          result = await pool.request()
+            .input('batchName', finalBatchName)
+            .input('instrumentType', 'LC_Document')
+            .input('status', 'Processing')
+            .input('createdAt', new Date())
+            .input('processingStatus', 'uploaded')
+            .input('documentCount', 1)
+            .query(`
+              INSERT INTO instrument_ingestion_new 
+              (batch_name, instrument_type, status, created_at, processing_status, document_count) 
+              OUTPUT INSERTED.id 
+              VALUES (@batchName, @instrumentType, @status, @createdAt, @processingStatus, @documentCount)
+            `);
+        } catch (insertError) {
+          throw new Error('Unable to insert record: ' + insertError.message);
         }
-        result = updateResult;
       }
 
       const instrumentId = result.recordset[0].id;
