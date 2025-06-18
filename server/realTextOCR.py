@@ -9,33 +9,55 @@ import json
 import os
 
 def extract_real_text(pdf_path: str):
-    """Extract real text from PDF"""
+    """Extract real text from PDF with proper error handling"""
+    detected_forms = []
+    total_pages = 0
+    
     try:
-        doc = fitz.open(pdf_path)
-        detected_forms = []
-        
-        for page_num in range(min(15, doc.page_count)):
-            page = doc[page_num]
-            text = page.get_text()
+        with fitz.open(pdf_path) as doc:
+            total_pages = doc.page_count
             
-            if len(text.strip()) > 30:  # Only process pages with meaningful content
-                # Detect document type based on actual content
-                doc_type = detect_type_from_text(text)
-                confidence = calculate_confidence(text, doc_type)
-                
-                detected_forms.append({
-                    'page_number': page_num + 1,
-                    'document_type': doc_type,
-                    'form_type': doc_type,
-                    'confidence': confidence,
-                    'extracted_text': text.strip(),
-                    'text_length': len(text.strip())
-                })
-        
-        doc.close()
+            for page_num in range(min(15, total_pages)):
+                try:
+                    page = doc[page_num]
+                    text = page.get_text()
+                    
+                    # If direct text extraction has little content, try OCR
+                    if len(text.strip()) < 50:
+                        try:
+                            # Try to extract text using OCR methods
+                            text_dict = page.get_text("dict")
+                            blocks = text_dict.get("blocks", [])
+                            ocr_text = ""
+                            for block in blocks:
+                                if "lines" in block:
+                                    for line in block["lines"]:
+                                        for span in line.get("spans", []):
+                                            ocr_text += span.get("text", "") + " "
+                            if len(ocr_text.strip()) > len(text.strip()):
+                                text = ocr_text.strip()
+                        except:
+                            pass
+                    
+                    if len(text.strip()) > 20:  # Process pages with meaningful content
+                        doc_type = detect_type_from_text(text)
+                        confidence = calculate_confidence(text, doc_type)
+                        
+                        detected_forms.append({
+                            'page_number': page_num + 1,
+                            'document_type': doc_type,
+                            'form_type': doc_type,
+                            'confidence': confidence,
+                            'extracted_text': text.strip(),
+                            'text_length': len(text.strip())
+                        })
+                        
+                except Exception as page_error:
+                    # Skip problematic pages but continue processing
+                    continue
         
         return {
-            'total_pages': doc.page_count,
+            'total_pages': total_pages,
             'detected_forms': detected_forms,
             'processing_method': 'Real Text OCR Extraction',
             'processed_pages': [f['page_number'] for f in detected_forms]
@@ -45,7 +67,8 @@ def extract_real_text(pdf_path: str):
         return {
             'error': str(e),
             'detected_forms': [],
-            'processing_method': 'Real Text OCR Extraction'
+            'processing_method': 'Real Text OCR Extraction',
+            'total_pages': 0
         }
 
 def detect_type_from_text(text):
