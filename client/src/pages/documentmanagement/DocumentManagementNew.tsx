@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'wouter';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
-import { Upload, FileText, Database, Settings, Check, X, Clock, Eye, Download, Plus, Play, Pause, FileCheck } from 'lucide-react';
+import { Upload, FileText, Database, Settings, Check, X, Clock, Eye, Download, Plus, Play, Pause, FileCheck, Package, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
 
@@ -149,6 +149,8 @@ export default function DocumentManagementNew() {
       setActiveTab('validation');
     } else if (location.includes('/registration')) {
       setActiveTab('registration');
+    } else if (location.includes('/processed')) {
+      setActiveTab('processed');
     } else {
       setActiveTab('upload');
     }
@@ -905,7 +907,7 @@ export default function DocumentManagementNew() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {lcDocuments.map((doc, index) => (
+                      {lcDocuments.map((doc: any, index: number) => (
                         <TableRow key={index}>
                           <TableCell className="font-medium">{doc.field_name}</TableCell>
                           <TableCell>
@@ -1014,7 +1016,7 @@ export default function DocumentManagementNew() {
                           <Package className="w-5 h-5 text-green-600" />
                           <div>
                             <p className="text-sm font-medium text-muted-foreground">Unique Batches</p>
-                            <p className="text-2xl font-bold">{new Set(processedDocuments.map(doc => doc.batch_name)).size}</p>
+                            <p className="text-2xl font-bold">{new Set(processedDocuments.map((doc: ProcessedDocument) => doc.batch_name)).size}</p>
                           </div>
                         </div>
                       </CardContent>
@@ -1064,7 +1066,7 @@ export default function DocumentManagementNew() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {processedDocuments.map((doc, index) => (
+                            {processedDocuments.map((doc: ProcessedDocument, index: number) => (
                               <TableRow key={index}>
                                 <TableCell>
                                   <div className="flex items-center gap-2">
