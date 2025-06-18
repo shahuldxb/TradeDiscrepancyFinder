@@ -57,6 +57,7 @@ import ComprehensiveCRUD from "@/pages/forms/ComprehensiveCRUD";
 import FormsApprovalSystem from "@/pages/forms/FormsApprovalSystem";
 import ComprehensiveFormsUI from "@/pages/forms/ComprehensiveFormsUI";
 import InstantUpload from "@/pages/forms/InstantUpload";
+import DocumentManagementNew from "@/pages/documentmanagement/DocumentManagementNew";
 
 import NotFound from "@/pages/not-found";
 
@@ -181,6 +182,7 @@ function Router() {
             <Route path="/forms/split" component={SplitDocuments} />
             <Route path="/forms/crud" component={ComprehensiveCRUD} />
             <Route path="/forms/system" component={FormsApprovalSystem} />
+            <Route path="/document-management-new" component={DocumentManagementNew} />
             
             {/* System Admin Routes */}
             <Route path="/admin/users" component={AgentMonitor} />

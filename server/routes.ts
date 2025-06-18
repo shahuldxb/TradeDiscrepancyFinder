@@ -11097,49 +11097,61 @@ For technical support, please reference Document ID: ${ingestionId}`;
         }
       }
 
-      // Insert records only if they don't exist (avoid duplicates)
-      const sampleCodes = ['CI001', 'UNK001', 'LC001', 'UNK_DOC', 'CI_SAMPLE'];
+      // Update existing NULL document_code records with proper codes
+      let updatedCount = 0;
+      const nullRecords = await pool.request().query(`
+        SELECT id, form_name FROM masterdocuments_new 
+        WHERE document_code IS NULL 
+        ORDER BY id
+      `);
+
+      for (let i = 0; i < nullRecords.recordset.length; i++) {
+        const record = nullRecords.recordset[i];
+        let documentCode = '';
+        
+        // Assign codes based on form_name patterns
+        if (record.form_name.toLowerCase().includes('commercial invoice')) {
+          documentCode = `CI${String(i + 1).padStart(3, '0')}`;
+        } else if (record.form_name.toLowerCase().includes('unknown')) {
+          documentCode = `UNK${String(i + 1).padStart(3, '0')}`;
+        } else if (record.form_name.toLowerCase().includes('lc document')) {
+          documentCode = `LC${String(i + 1).padStart(3, '0')}`;
+        } else {
+          documentCode = `DOC${String(i + 1).padStart(3, '0')}`;
+        }
+
+        await pool.request()
+          .input('code', documentCode)
+          .input('id', record.id)
+          .query('UPDATE masterdocuments_new SET document_code = @code WHERE id = @id');
+        
+        updatedCount++;
+      }
+
+      // Insert new records if they don't exist
+      const sampleCodes = ['CI_NEW_001', 'UNK_NEW_001', 'LC_NEW_001', 'DOC_NEW_001', 'CI_SAMPLE_001'];
       let insertedCount = 0;
       
       for (const code of sampleCodes) {
         try {
-          // Check if record with this code exists
-          const existing = hasDocumentCode 
-            ? await pool.request()
-                .input('code', code)
-                .query('SELECT COUNT(*) as count FROM masterdocuments_new WHERE document_code = @code')
-            : { recordset: [{ count: 0 }] }; // If no document_code column, assume no duplicates
+          const existing = await pool.request()
+            .input('code', code)
+            .query('SELECT COUNT(*) as count FROM masterdocuments_new WHERE document_code = @code');
             
           if (existing.recordset[0].count === 0) {
             const formName = {
-              'CI001': 'Sample Commercial Invoice',
-              'UNK001': 'New Unknown Document', 
-              'LC001': 'LC Document',
-              'UNK_DOC': 'Unknown Document Type',
-              'CI_SAMPLE': 'Commercial Invoice'
+              'CI_NEW_001': 'New Commercial Invoice',
+              'UNK_NEW_001': 'New Unknown Document', 
+              'LC_NEW_001': 'New LC Document',
+              'DOC_NEW_001': 'New Document Type',
+              'CI_SAMPLE_001': 'Sample Commercial Invoice'
             }[code];
             
-            // Build insert query based on available columns
-            let insertQuery = 'INSERT INTO masterdocuments_new (';
-            let valuesQuery = 'VALUES (';
+            await pool.request()
+              .input('code', code)
+              .input('name', formName)
+              .query('INSERT INTO masterdocuments_new (document_code, form_name, is_active) VALUES (@code, @name, 0)');
             
-            if (hasDocumentCode) {
-              insertQuery += 'document_code, ';
-              valuesQuery += '@code, ';
-            }
-            insertQuery += 'form_name, is_active) ';
-            valuesQuery += '@name, 0)';
-            
-            const finalQuery = insertQuery + valuesQuery;
-            
-            const insertRequest = pool.request()
-              .input('name', formName);
-            
-            if (hasDocumentCode) {
-              insertRequest.input('code', code);
-            }
-            
-            await insertRequest.query(finalQuery);
             insertedCount++;
           }
         } catch (insertError) {
@@ -11152,7 +11164,7 @@ For technical support, please reference Document ID: ${ingestionId}`;
 
       res.json({
         success: true,
-        message: `Successfully processed masterdocuments_new - Total records: ${verifyResult.recordset.length}, Inserted: ${insertedCount}`,
+        message: `Successfully processed masterdocuments_new - Total records: ${verifyResult.recordset.length}, Updated: ${updatedCount}, Inserted: ${insertedCount}`,
         tableStructure: columnCheck.recordset,
         data: verifyResult.recordset
       });
