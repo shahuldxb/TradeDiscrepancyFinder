@@ -12,7 +12,7 @@ import { Upload, FileText, Eye, Download, CheckCircle, AlertCircle, Clock } from
 import { apiRequest } from '@/lib/queryClient';
 
 interface ValidationRecord {
-  id: number;
+  id: string;
   document_name: string;
   validation_status: 'pending' | 'passed' | 'failed';
   extracted_fields: number;
