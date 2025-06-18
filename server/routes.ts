@@ -11878,12 +11878,10 @@ except Exception as e:
           .input('id', nullId)
           .input('batchName', finalBatchName)
           .input('instrumentType', 'LC_Document')
-          .input('status', 'Processing')
           .query(`
             UPDATE instrument_ingestion_new 
             SET batch_name = @batchName,
                 instrument_type = @instrumentType,
-                status = @status,
                 created_at = GETDATE()
             OUTPUT INSERTED.id
             WHERE id = @id
@@ -11894,12 +11892,11 @@ except Exception as e:
           result = await pool.request()
             .input('batchName', finalBatchName)
             .input('instrumentType', 'LC_Document')
-            .input('status', 'Processing')
             .query(`
               INSERT INTO instrument_ingestion_new 
-              (batch_name, instrument_type, status, created_at) 
+              (batch_name, instrument_type, created_at) 
               OUTPUT INSERTED.id 
-              VALUES (@batchName, @instrumentType, @status, GETDATE())
+              VALUES (@batchName, @instrumentType, GETDATE())
             `);
         } catch (insertError) {
           throw new Error('Unable to insert record: ' + insertError.message);
@@ -11923,9 +11920,9 @@ except Exception as e:
             .input('instrumentId', instrumentId)
             .input('fieldName', field.name)
             .input('fieldValue', field.value)
-            .query(`INSERT INTO ingestion_fields_new (instrument_id, field_name, field_value) VALUES (@instrumentId, @fieldName, @fieldValue)`);
+            .query(`INSERT INTO ingestion_fields_new (instrument_id, field_name, field_value, created_at) VALUES (@instrumentId, @fieldName, @fieldValue, GETDATE())`);
         } catch (error) {
-          // Skip failed fields
+          console.log(`Failed to insert field ${field.name}:`, error.message);
         }
       }
 
