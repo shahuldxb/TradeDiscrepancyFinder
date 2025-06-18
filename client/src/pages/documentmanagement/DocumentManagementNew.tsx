@@ -579,8 +579,8 @@ export default function DocumentManagementNew() {
                       <div><strong>Seller:</strong> ABC Trading Co Ltd</div>
                     </div>
                     <div className="flex gap-2 mt-3">
-                      <Button variant="outline" size="sm">View PDF</Button>
-                      <Button variant="outline" size="sm">Download Text</Button>
+                      <Button variant="outline" size="sm" onClick={() => handleViewDocument('commercial-invoice', 'pdf')}>View PDF</Button>
+                      <Button variant="outline" size="sm" onClick={() => handleDownloadText('commercial-invoice')}>Download Text</Button>
                     </div>
                   </div>
 
@@ -772,6 +772,77 @@ export default function DocumentManagementNew() {
                       </TableRow>
                     </TableBody>
                   </Table>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Document Registration Tab */}
+        <TabsContent value="registration" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Document Registration</CardTitle>
+              <CardDescription>Register extracted documents into the trade finance system for processing and compliance tracking</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div className="grid gap-4">
+                  <div className="border rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-semibold">Commercial Invoice - INV-2025-001</h4>
+                      <div className="flex gap-2">
+                        <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm">Ready for Registration</span>
+                        <Button size="sm">Register in System</Button>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4 text-sm">
+                      <div><strong>Amount:</strong> USD 25,450.00</div>
+                      <div><strong>Currency:</strong> USD</div>
+                      <div><strong>Classification:</strong> Trade Finance Document</div>
+                    </div>
+                  </div>
+
+                  <div className="border rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-semibold">Bill of Lading - BL-2025-5432</h4>
+                      <div className="flex gap-2">
+                        <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm">Ready for Registration</span>
+                        <Button size="sm">Register in System</Button>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4 text-sm">
+                      <div><strong>Vessel:</strong> OCEAN SPIRIT</div>
+                      <div><strong>Route:</strong> Singapore → New York</div>
+                      <div><strong>Classification:</strong> Shipping Document</div>
+                    </div>
+                  </div>
+
+                  <div className="border rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-semibold">Certificate of Origin - CO-2025-789</h4>
+                      <div className="flex gap-2">
+                        <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-sm">Registered</span>
+                        <Button size="sm" variant="outline">View Registration</Button>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4 text-sm">
+                      <div><strong>Origin:</strong> Singapore</div>
+                      <div><strong>HS Code:</strong> 8542.31.0000</div>
+                      <div><strong>Registration ID:</strong> REG-2025-001</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <h5 className="font-semibold mb-2">Document Registration Process</h5>
+                  <ul className="text-sm space-y-1 text-gray-600">
+                    <li>• Extracted documents are validated for completeness and accuracy</li>
+                    <li>• Key metadata is registered in the trade finance system database</li>
+                    <li>• Documents receive unique registration IDs for tracking</li>
+                    <li>• Registered documents can be used for LC compliance verification</li>
+                    <li>• Integration with customs and regulatory systems for reporting</li>
+                  </ul>
                 </div>
               </div>
             </CardContent>
