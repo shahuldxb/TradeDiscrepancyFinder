@@ -11233,5 +11233,61 @@ For technical support, please reference Document ID: ${ingestionId}`;
   });
 
   const httpServer = createServer(app);
+  // Document Management New endpoints
+  app.get('/api/document-management/validation-records', async (req, res) => {
+    try {
+      // Return sample validation records for now - replace with actual Azure SQL query when ready
+      const sampleRecords = [
+        {
+          id: 1,
+          document_name: 'Commercial_Invoice_001.pdf',
+          validation_status: 'passed',
+          extracted_fields: 8,
+          confidence_score: 0.92,
+          last_updated: new Date().toISOString()
+        },
+        {
+          id: 2,
+          document_name: 'Bill_of_Lading_002.pdf',
+          validation_status: 'pending',
+          extracted_fields: 6,
+          confidence_score: 0.85,
+          last_updated: new Date().toISOString()
+        },
+        {
+          id: 3,
+          document_name: 'Certificate_Origin_003.pdf',
+          validation_status: 'failed',
+          extracted_fields: 3,
+          confidence_score: 0.65,
+          last_updated: new Date().toISOString()
+        }
+      ];
+      
+      res.json(sampleRecords);
+    } catch (error) {
+      console.error('Error fetching validation records:', error);
+      res.status(500).json({ message: 'Failed to fetch validation records' });
+    }
+  });
+
+  app.post('/api/document-management/register-document', async (req, res) => {
+    try {
+      const { document_type, form_name, description, is_active } = req.body;
+      
+      // For now, simulate successful registration - replace with actual Azure SQL insert when ready
+      console.log('Registering document:', { document_type, form_name, description, is_active });
+      
+      res.json({ 
+        success: true, 
+        message: 'Document registered successfully',
+        id: Math.floor(Math.random() * 1000) + 100
+      });
+    } catch (error) {
+      console.error('Error registering document:', error);
+      res.status(500).json({ message: 'Failed to register document' });
+    }
+  });
+
   return httpServer;
 }

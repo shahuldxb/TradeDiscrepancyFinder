@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Upload, FileText, Database, Settings, Check, X, Clock } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { Upload, FileText, Database, Settings, Check, X, Clock, Eye, Download, Plus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface MasterDocument {
@@ -35,6 +37,22 @@ interface ProcessingStep {
   name: string;
   status: 'pending' | 'processing' | 'completed' | 'error';
   progress: number;
+}
+
+interface ValidationRecord {
+  id: number;
+  document_name: string;
+  validation_status: 'pending' | 'passed' | 'failed';
+  extracted_fields: number;
+  confidence_score: number;
+  last_updated: string;
+}
+
+interface RegistrationForm {
+  document_type: string;
+  form_name: string;
+  description: string;
+  is_active: boolean;
 }
 
 export default function DocumentManagementNew() {
@@ -123,7 +141,138 @@ export default function DocumentManagementNew() {
 
   useEffect(() => {
     fetchDocuments();
+    fetchValidationRecords();
   }, []);
+
+  const fetchValidationRecords = async () => {
+    try {
+      const response = await fetch('/api/document-management/validation-records');
+      if (response.ok) {
+        const data = await response.json();
+        setValidationRecords(data);
+      }
+    } catch (error) {
+      console.error('Error fetching validation records:', error);
+    }
+  };
+
+  const handlePdfUpload = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+
+    const uploadedFiles: ProcessingForm[] = Array.from(files).map((file, index) => ({
+      name: file.name,
+      status: 'uploaded',
+      progress: 0,
+      pages: Math.floor(Math.random() * 10) + 1, // Simulate pages
+      type: 'unknown'
+    }));
+
+    setProcessingForms(uploadedFiles);
+    
+    // Start processing simulation
+    for (let i = 0; i < processingSteps.length; i++) {
+      await simulateProcessingStep(i);
+    }
+  };
+
+  const simulateProcessingStep = async (stepIndex: number) => {
+    // Update step status to processing
+    setProcessingSteps(prev => prev.map((step, index) => 
+      index === stepIndex 
+        ? { ...step, status: 'processing' as const }
+        : step
+    ));
+
+    // Simulate progress
+    for (let progress = 0; progress <= 100; progress += 20) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      setProcessingSteps(prev => prev.map((step, index) => 
+        index === stepIndex 
+          ? { ...step, progress }
+          : step
+      ));
+    }
+
+    // Mark as completed
+    setProcessingSteps(prev => prev.map((step, index) => 
+      index === stepIndex 
+        ? { ...step, status: 'completed' as const, progress: 100 }
+        : step
+    ));
+  };
+
+  const generateBatchName = () => {
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/[-T:]/g, '');
+    setBatchName(`BATCH_${timestamp}`);
+  };
+
+  const startProcessing = async () => {
+    if (!batchName) {
+      toast({
+        title: "Error",
+        description: "Please enter a batch name before starting processing",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({
+      title: "Processing Started",
+      description: `Starting ingestion for batch: ${batchName}`,
+    });
+    
+    // Reset processing steps
+    setProcessingSteps(prev => prev.map(step => ({
+      ...step,
+      status: 'pending' as const,
+      progress: 0
+    })));
+
+    // Start processing
+    for (let i = 0; i < processingSteps.length; i++) {
+      await simulateProcessingStep(i);
+    }
+  };
+
+  const resetUpload = () => {
+    setProcessingForms([]);
+    setBatchName('');
+    setProcessingSteps(prev => prev.map(step => ({
+      ...step,
+      status: 'pending' as const,
+      progress: 0
+    })));
+  };
+
+  const handleRegistrationSubmit = async () => {
+    try {
+      const response = await fetch('/api/document-management/register-document', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(registrationForm)
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Document registered successfully",
+        });
+        setRegistrationForm({
+          document_type: '',
+          form_name: '',
+          description: '',
+          is_active: true
+        });
+        fetchDocuments();
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to register document",
+        variant: "destructive",
+      });
+    }
+  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
