@@ -25,8 +25,6 @@ import { ucpPostgresService } from "./ucpPostgresService";
 import { documentaryCreditService } from "./documentaryCreditService";
 import { NewFormDetectionService } from "./newFormDetectionService";
 import multer from "multer";
-import path from "path";
-import fs from "fs";
 import { nanoid } from "nanoid";
 import { spawn } from "child_process";
 import sql from 'mssql';
@@ -229,6 +227,7 @@ let documentHistory = loadDocumentHistory();
               documentHistory.unshift(historyEntry); // Add to beginning of array
               saveDocumentHistory(documentHistory); // Persist to file
               console.log(`Document stored in history: ${historyEntry.filename}, total documents: ${documentHistory.length}`);
+              console.log(`History entry:`, JSON.stringify(historyEntry, null, 2));
               
               const detectedForms = [{
                 id: `${docId}_form_1`,
