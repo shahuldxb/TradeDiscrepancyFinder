@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Upload, FileText, CheckCircle, Clock, Scissors, Eye } from 'lucide-react';
+import { Upload, FileText, CheckCircle, Clock, Scissors, Eye, ChevronRight, ChevronDown, Download } from 'lucide-react';
 
 interface ProcessingStatus {
   upload?: 'processing' | 'completed' | 'error';
@@ -578,6 +578,7 @@ This form was automatically extracted from the uploaded document using Azure Doc
 function DocumentHistory() {
   const [documents, setDocuments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expandedDocs, setExpandedDocs] = useState<Set<string>>(new Set());
 
   React.useEffect(() => {
     fetchDocumentHistory();
@@ -651,6 +652,50 @@ function DocumentHistory() {
     );
   }
 
+  const toggleExpanded = (docId: string) => {
+    const newExpanded = new Set(expandedDocs);
+    if (newExpanded.has(docId)) {
+      newExpanded.delete(docId);
+    } else {
+      newExpanded.add(docId);
+    }
+    setExpandedDocs(newExpanded);
+  };
+
+  const handleViewSplitDocument = (form: any, index: number) => {
+    const newWindow = window.open('', '_blank');
+    if (newWindow) {
+      newWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Split Document ${index + 1} - ${form.formType}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+            .header { border-bottom: 2px solid #ccc; padding-bottom: 10px; margin-bottom: 20px; }
+            .content { white-space: pre-wrap; background: #f5f5f5; padding: 15px; border-radius: 5px; }
+            .metadata { background: #e3f2fd; padding: 10px; border-radius: 5px; margin-bottom: 20px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Split Document ${index + 1}</h1>
+            <p>${form.formType} - Processing Results</p>
+          </div>
+          <div class="metadata">
+            <p><strong>Document Type:</strong> ${form.formType}</p>
+            <p><strong>Confidence:</strong> ${Math.round((form.confidence || 0) * 100)}%</p>
+            <p><strong>Page Numbers:</strong> ${form.pageNumbers?.join(', ') || 'N/A'}</p>
+            <p><strong>Processing Method:</strong> ${form.processingMethod || 'Direct OCR Text Extraction'}</p>
+          </div>
+          <div class="content">${form.extractedFields?.['Full Extracted Text'] || form.fullText || 'No content available'}</div>
+        </body>
+        </html>
+      `);
+      newWindow.document.close();
+    }
+  };
+
   return (
     <div className="space-y-4">
       {documents.map((doc, index) => (
@@ -661,6 +706,11 @@ function DocumentHistory() {
               <div className="flex space-x-2">
                 <Badge variant="secondary">{doc.documentType}</Badge>
                 <Badge variant="outline">{doc.confidence}% confidence</Badge>
+                {doc.detectedForms && doc.detectedForms.length > 1 && (
+                  <Badge variant="default" className="bg-blue-100 text-blue-800">
+                    {doc.detectedForms.length} Forms Detected
+                  </Badge>
+                )}
               </div>
             </div>
             <CardDescription>
@@ -668,7 +718,7 @@ function DocumentHistory() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex space-x-2">
+            <div className="flex space-x-2 mb-4">
               <Button size="sm" variant="outline" onClick={() => handleViewDocument(doc)}>
                 <Eye className="h-4 w-4 mr-1" />
                 View Results
@@ -709,10 +759,102 @@ function DocumentHistory() {
                 document.body.removeChild(link);
                 URL.revokeObjectURL(url);
               }}>
-                <FileText className="h-4 w-4 mr-1" />
+                <Download className="h-4 w-4 mr-1" />
                 Export Data
               </Button>
+              
+              {doc.detectedForms && doc.detectedForms.length > 1 && (
+                <Button 
+                  size="sm" 
+                  variant="ghost" 
+                  onClick={() => toggleExpanded(doc.id)}
+                  className="text-blue-600 hover:text-blue-800"
+                >
+                  {expandedDocs.has(doc.id) ? (
+                    <ChevronDown className="h-4 w-4 mr-1" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 mr-1" />
+                  )}
+                  Show Split Documents ({doc.detectedForms.length})
+                </Button>
+              )}
             </div>
+
+            {/* Split Documents Section */}
+            {doc.detectedForms && doc.detectedForms.length > 1 && expandedDocs.has(doc.id) && (
+              <div className="mt-4 border-t pt-4">
+                <h4 className="text-sm font-medium text-gray-900 mb-3">Split Documents:</h4>
+                <div className="space-y-3">
+                  {doc.detectedForms.map((form: any, formIndex: number) => (
+                    <div key={form.id || formIndex} className="bg-gray-50 p-3 rounded-lg border">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Badge variant="outline" className="text-xs">
+                              {form.formType}
+                            </Badge>
+                            <span className="text-xs text-gray-600">
+                              Page {form.pageNumbers?.join(', ') || formIndex + 1}
+                            </span>
+                            <span className="text-xs text-green-600 font-medium">
+                              {Math.round((form.confidence || 0) * 100)}% confidence
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-700 line-clamp-2">
+                            {form.extractedFields?.['Full Extracted Text']?.substring(0, 150) || 
+                             form.fullText?.substring(0, 150) || 
+                             'No content available'}
+                            {(form.extractedFields?.['Full Extracted Text']?.length > 150 || 
+                              form.fullText?.length > 150) && '...'}
+                          </p>
+                        </div>
+                        
+                        <div className="flex gap-1 ml-3">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 px-2 text-xs"
+                            onClick={() => handleViewSplitDocument(form, formIndex)}
+                          >
+                            <Eye className="h-3 w-3 mr-1" />
+                            View
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 px-2 text-xs"
+                            onClick={() => {
+                              const splitData = {
+                                formId: form.id,
+                                formType: form.formType,
+                                confidence: form.confidence,
+                                pageNumbers: form.pageNumbers,
+                                extractedText: form.extractedFields?.['Full Extracted Text'] || form.fullText,
+                                processingMethod: form.processingMethod,
+                                exportDate: new Date().toISOString()
+                              };
+                              
+                              const jsonBlob = new Blob([JSON.stringify(splitData, null, 2)], { type: 'application/json' });
+                              const url = URL.createObjectURL(jsonBlob);
+                              const link = document.createElement('a');
+                              link.href = url;
+                              link.download = `${form.formType.replace(/\s+/g, '_')}_split_${formIndex + 1}.json`;
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                              URL.revokeObjectURL(url);
+                            }}
+                          >
+                            <Download className="h-3 w-3 mr-1" />
+                            Export
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       ))}
