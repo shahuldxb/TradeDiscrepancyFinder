@@ -140,22 +140,11 @@ export default function DocumentManagementNew() {
 
   // Fetch processed documents
   const { data: processedDocuments = [] } = useQuery<ProcessedDocument[]>({
-    queryKey: ['/api/azure-data/execute-sql', 'processed-documents'],
+    queryKey: ['/api/document-management/extracted-fields'],
     queryFn: async () => {
-      const response = await fetch('/api/azure-data/execute-sql', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query: `
-            SELECT f.field_name, f.field_value, i.batch_name, f.created_at, f.confidence_score
-            FROM ingestion_fields_new f 
-            INNER JOIN instrument_ingestion_new i ON f.instrument_id = i.id 
-            ORDER BY f.created_at DESC
-          `
-        })
-      });
-      const result = await response.json();
-      return result.data || [];
+      const response = await fetch('/api/document-management/extracted-fields');
+      if (!response.ok) throw new Error('Failed to fetch extracted fields');
+      return await response.json();
     }
   });
 
