@@ -150,8 +150,8 @@ const navigationItems = [
       },
       {
         name: "Form Detection",
-        href: "/lc-form-detection",
-        description: "LC document form detection and splitting",
+        href: "/form-detection",
+        description: "Document form detection and splitting",
       },
     ],
   },

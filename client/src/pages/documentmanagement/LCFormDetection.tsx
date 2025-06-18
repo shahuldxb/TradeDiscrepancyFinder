@@ -26,7 +26,7 @@ interface DetectedForm {
   }>;
 }
 
-export default function LCFormDetection() {
+export default function FormDetection() {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -118,7 +118,7 @@ export default function LCFormDetection() {
       });
 
     } catch (error) {
-      console.error('LC upload error:', error);
+      console.error('Form detection upload error:', error);
       setProcessingStatus({ upload: 'error' });
       toast({
         title: "Upload Failed",
@@ -177,7 +177,7 @@ Processing Information:
 - Total Fields Extracted: ${Object.keys(form.extractedFields || form.extracted_fields || {}).length}
 - Page Numbers: ${form.pageNumbers?.join(', ') || form.page_numbers?.join(', ') || 'N/A'}
 
-This form was automatically extracted from the uploaded LC document using Azure Document Intelligence.
+This form was automatically extracted from the uploaded document using Azure Document Intelligence.
 `;
 
     // Open in new window with formatted content
@@ -257,10 +257,10 @@ This form was automatically extracted from the uploaded LC document using Azure 
       <div className="text-center space-y-2">
         <h1 className="text-3xl font-bold text-gray-900 flex items-center justify-center gap-2">
           <Scissors className="h-8 w-8 text-blue-600" />
-          LC Form Detection
+          Form Detection
         </h1>
         <p className="text-lg text-muted-foreground">
-          Upload LC documents for automated form detection and splitting
+          Upload documents for automated form detection and splitting
         </p>
       </div>
 
@@ -276,9 +276,9 @@ This form was automatically extracted from the uploaded LC document using Azure 
         <TabsContent value="upload" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>LC Document Upload</CardTitle>
+              <CardTitle>Document Upload</CardTitle>
               <CardDescription>
-                Upload Letter of Credit documents for automatic form detection and constituent document splitting
+                Upload documents for automatic form detection and constituent document splitting
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -287,7 +287,7 @@ This form was automatically extracted from the uploaded LC document using Azure 
                 <Label htmlFor="batchName">Batch Name</Label>
                 <Input
                   id="batchName"
-                  placeholder="Enter batch name for this LC processing"
+                  placeholder="Enter batch name for this processing"
                   value={batchName}
                   onChange={(e) => setBatchName(e.target.value)}
                   disabled={processingStatus !== null}
@@ -296,7 +296,7 @@ This form was automatically extracted from the uploaded LC document using Azure 
 
               {/* File Upload Area */}
               <div className="space-y-4">
-                <Label>LC Document</Label>
+                <Label>Document</Label>
                 <div
                   className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
                     selectedFile ? 'border-green-500 bg-green-50' : 'border-gray-300 hover:border-gray-400'
