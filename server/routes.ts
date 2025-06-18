@@ -155,32 +155,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-// Document history storage - use file-based persistence
-const HISTORY_FILE = path.join(process.cwd(), 'document_history.json');
-
-// Load existing history from file
-function loadDocumentHistory(): any[] {
-  try {
-    if (fs.existsSync(HISTORY_FILE)) {
-      const data = fs.readFileSync(HISTORY_FILE, 'utf8');
-      return JSON.parse(data);
-    }
-  } catch (error) {
-    console.error('Error loading document history:', error);
-  }
-  return [];
-}
-
-// Save history to file
-function saveDocumentHistory(history: any[]): void {
-  try {
-    fs.writeFileSync(HISTORY_FILE, JSON.stringify(history, null, 2));
-  } catch (error) {
-    console.error('Error saving document history:', error);
-  }
-}
-
-let documentHistory = loadDocumentHistory();
+// Import document history service
+import documentHistoryService from './documentHistoryService.js';
 
   // Form detection upload endpoint with history storage
   app.post('/api/form-detection/upload', upload.single('file'), async (req, res) => {
@@ -224,10 +200,13 @@ let documentHistory = loadDocumentHistory();
                 docId: docId
               };
               
-              documentHistory.unshift(historyEntry); // Add to beginning of array
-              saveDocumentHistory(documentHistory); // Persist to file
-              console.log(`Document stored in history: ${historyEntry.filename}, total documents: ${documentHistory.length}`);
-              console.log(`History entry:`, JSON.stringify(historyEntry, null, 2));
+              // Store in document history service
+              try {
+                documentHistoryService.addDocument(historyEntry);
+                console.log('Document successfully added to history service');
+              } catch (historyError) {
+                console.error('Failed to add document to history:', historyError);
+              }
               
               const detectedForms = [{
                 id: `${docId}_form_1`,
@@ -270,11 +249,9 @@ let documentHistory = loadDocumentHistory();
   // Document history endpoint
   app.get('/api/form-detection/history', async (req, res) => {
     try {
-      console.log(`History requested: ${documentHistory.length} documents found`);
-      res.json({
-        documents: documentHistory,
-        total: documentHistory.length
-      });
+      const historyData = documentHistoryService.getDocuments();
+      console.log(`History requested: ${historyData.total} documents found`);
+      res.json(historyData);
     } catch (error) {
       console.error('History fetch error:', error);
       res.status(500).json({ error: 'Failed to fetch document history' });
