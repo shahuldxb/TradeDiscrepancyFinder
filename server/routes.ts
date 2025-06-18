@@ -11911,8 +11911,8 @@ SPECIAL CONDITIONS:
 --- END OF EXTRACTED TEXT ---`;
 
       // Save extracted text to file system
-      const fs = require('fs');
-      const path = require('path');
+      const fs = await import('fs');
+      const path = await import('path');
       
       const outputDir = 'extracted_texts';
       if (!fs.existsSync(outputDir)) {
