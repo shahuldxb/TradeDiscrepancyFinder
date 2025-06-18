@@ -27,7 +27,7 @@ interface ExtractedTextResponse {
 export default function ProcessedDocuments() {
   const [selectedDocumentId, setSelectedDocumentId] = useState<number | null>(null);
 
-  const { data: documents = [], isLoading } = useQuery({
+  const { data: documents = [], isLoading } = useQuery<ProcessedDocument[]>({
     queryKey: ['/api/document-management/processed-documents'],
     refetchInterval: 5000 // Refresh every 5 seconds for real-time updates
   });

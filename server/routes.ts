@@ -11861,11 +11861,20 @@ except Exception as e:
 
       const pool = await connectToAzureSQL();
       
-      // Simple insert with unique batch name and timestamp
+      // Generate truly unique batch name with random suffix
+      const randomSuffix = Math.random().toString(36).substring(2, 8);
+      const finalBatchName = `${uniqueBatchName}_${randomSuffix}`;
+      
+      // Check existing records to avoid duplicates and understand schema
+      const checkExisting = await pool.request()
+        .query(`SELECT TOP 1 * FROM instrument_ingestion_new ORDER BY id DESC`);
+      
+      console.log('Existing record structure:', checkExisting.recordset[0]);
+      
+      // Simple insert with minimal required fields
       const result = await pool.request()
-        .input('batchName', uniqueBatchName)
-        .input('createdAt', new Date())
-        .query(`INSERT INTO instrument_ingestion_new (batch_name, created_at) OUTPUT INSERTED.id VALUES (@batchName, @createdAt)`);
+        .input('batchName', finalBatchName)
+        .query(`INSERT INTO instrument_ingestion_new (batch_name) OUTPUT INSERTED.id VALUES (@batchName)`);
 
       const instrumentId = result.recordset[0].id;
       

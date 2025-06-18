@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import ProcessedDocuments from './ProcessedDocuments';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -268,10 +269,11 @@ export default function DocumentManagementNew() {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="upload">Upload & Ingestion</TabsTrigger>
-          <TabsTrigger value="validation">Validation Review</TabsTrigger>
           <TabsTrigger value="processed">Processed Documents</TabsTrigger>
+          <TabsTrigger value="validation">Validation Review</TabsTrigger>
+          <TabsTrigger value="registration">Document Registration</TabsTrigger>
         </TabsList>
 
         {/* Upload & Ingestion Tab */}
@@ -501,6 +503,11 @@ export default function DocumentManagementNew() {
 
         {/* Processed Documents Tab */}
         <TabsContent value="processed" className="space-y-6">
+          <ProcessedDocuments />
+        </TabsContent>
+
+        {/* Validation Review Tab */}
+        <TabsContent value="validation" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>Processed Documents</CardTitle>
