@@ -18,6 +18,8 @@ import { crewAI, processDocumentSetWithAgents } from "./crewai";
 import { runDiscrepancyAnalysis, getDiscrepancies } from "./discrepancyEngine";
 import { azureDataService } from "./azureDataService";
 import { azureAgentService } from "./azureAgentService";
+import fs from 'fs';
+import path from 'path';
 import { ucpDataService } from "./ucpDataService";
 import { ucpPostgresService } from "./ucpPostgresService";
 import { documentaryCreditService } from "./documentaryCreditService";
@@ -155,8 +157,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-// Document history storage - move outside function to persist across requests
-const documentHistory: any[] = [];
+// Document history storage - use file-based persistence
+const HISTORY_FILE = path.join(process.cwd(), 'document_history.json');
+
+// Load existing history from file
+function loadDocumentHistory(): any[] {
+  try {
+    if (fs.existsSync(HISTORY_FILE)) {
+      const data = fs.readFileSync(HISTORY_FILE, 'utf8');
+      return JSON.parse(data);
+    }
+  } catch (error) {
+    console.error('Error loading document history:', error);
+  }
+  return [];
+}
+
+// Save history to file
+function saveDocumentHistory(history: any[]): void {
+  try {
+    fs.writeFileSync(HISTORY_FILE, JSON.stringify(history, null, 2));
+  } catch (error) {
+    console.error('Error saving document history:', error);
+  }
+}
+
+let documentHistory = loadDocumentHistory();
 
   // Form detection upload endpoint with history storage
   app.post('/api/form-detection/upload', upload.single('file'), async (req, res) => {
@@ -201,6 +227,7 @@ const documentHistory: any[] = [];
               };
               
               documentHistory.unshift(historyEntry); // Add to beginning of array
+              saveDocumentHistory(documentHistory); // Persist to file
               console.log(`Document stored in history: ${historyEntry.filename}, total documents: ${documentHistory.length}`);
               
               const detectedForms = [{
