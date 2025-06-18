@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -270,10 +270,11 @@ This form was automatically extracted from the uploaded document using Azure Doc
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="upload">Upload & Processing</TabsTrigger>
           <TabsTrigger value="progress">Processing Progress</TabsTrigger>
           <TabsTrigger value="forms">Detected Forms</TabsTrigger>
+          <TabsTrigger value="history">Document History</TabsTrigger>
         </TabsList>
 
         {/* Upload Tab */}
@@ -480,7 +481,152 @@ This form was automatically extracted from the uploaded document using Azure Doc
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Document History Tab */}
+        <TabsContent value="history" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Document Processing History</CardTitle>
+              <CardDescription>
+                View all previously uploaded and processed documents
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <DocumentHistory />
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+// Document History Component
+function DocumentHistory() {
+  const [documents, setDocuments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  React.useEffect(() => {
+    fetchDocumentHistory();
+  }, []);
+
+  const fetchDocumentHistory = async () => {
+    try {
+      const response = await fetch('/api/form-detection/history');
+      const data = await response.json();
+      setDocuments(data.documents || []);
+    } catch (error) {
+      console.error('Failed to fetch document history:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleViewDocument = (doc: any) => {
+    // Open document in new window with extracted content
+    const newWindow = window.open('', '_blank');
+    if (newWindow) {
+      newWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>${doc.filename} - Processing Results</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+            .header { border-bottom: 2px solid #ccc; padding-bottom: 10px; margin-bottom: 20px; }
+            .content { white-space: pre-wrap; background: #f5f5f5; padding: 15px; border-radius: 5px; }
+            .metadata { background: #e3f2fd; padding: 10px; border-radius: 5px; margin-bottom: 20px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>${doc.filename}</h1>
+            <p>Document Processing Results</p>
+          </div>
+          <div class="metadata">
+            <p><strong>Document Type:</strong> ${doc.documentType}</p>
+            <p><strong>Confidence:</strong> ${doc.confidence}%</p>
+            <p><strong>Processed:</strong> ${new Date(doc.processedAt).toLocaleString()}</p>
+            <p><strong>File Size:</strong> ${doc.fileSize}</p>
+          </div>
+          <div class="content">${doc.extractedText}</div>
+        </body>
+        </html>
+      `);
+      newWindow.document.close();
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <span className="ml-2">Loading document history...</span>
+      </div>
+    );
+  }
+
+  if (documents.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <FileText className="mx-auto h-12 w-12 text-gray-400" />
+        <p className="mt-2 text-lg font-medium text-gray-900">No Documents Found</p>
+        <p className="text-sm text-gray-500">
+          Upload documents to see them appear in your history
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {documents.map((doc, index) => (
+        <Card key={index} className="border-l-4 border-l-green-600">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg">{doc.filename}</CardTitle>
+              <div className="flex space-x-2">
+                <Badge variant="secondary">{doc.documentType}</Badge>
+                <Badge variant="outline">{doc.confidence}% confidence</Badge>
+              </div>
+            </div>
+            <CardDescription>
+              Processed on {new Date(doc.processedAt).toLocaleString()} • {doc.fileSize}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex space-x-2">
+              <Button size="sm" variant="outline" onClick={() => handleViewDocument(doc)}>
+                <Eye className="h-4 w-4 mr-1" />
+                View Results
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => {
+                const exportData = {
+                  filename: doc.filename,
+                  document_type: doc.documentType,
+                  confidence: doc.confidence,
+                  processed_at: doc.processedAt,
+                  extracted_text: doc.extractedText,
+                  file_size: doc.fileSize
+                };
+                
+                const jsonBlob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(jsonBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `${doc.filename.replace(/\.[^/.]+$/, '')}_results.json`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+              }}>
+                <FileText className="h-4 w-4 mr-1" />
+                Export Data
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 }
