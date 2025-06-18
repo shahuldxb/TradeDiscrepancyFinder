@@ -167,49 +167,167 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-// Document history storage with synchronous file operations
-let documentHistory: any[] = [];
-
-// Load existing history on startup
-function loadDocumentHistory() {
+// Azure SQL Database storage functions
+async function saveToAzureDatabase(docId: string, file: any, analysisResult: any, formsData: any[]) {
   try {
-    const historyPath = path.join(process.cwd(), 'document_history.json');
-    if (fs.existsSync(historyPath)) {
-      const data = fs.readFileSync(historyPath, 'utf8');
-      const parsedData = JSON.parse(data);
-      documentHistory = Array.isArray(parsedData) ? parsedData : [];
-      console.log(`✓ Loaded ${documentHistory.length} documents from history file`);
-    } else {
-      documentHistory = [];
-      console.log('No existing document history found, starting fresh');
-    }
-  } catch (error) {
-    console.error('Error loading document history:', error);
-    documentHistory = [];
-  }
-}
-
-// Save history to file with error handling and atomic writes
-function saveDocumentHistory() {
-  try {
-    const historyPath = path.join(process.cwd(), 'document_history.json');
-    const tempPath = historyPath + '.tmp';
+    const { connectToAzureSQL } = await import('./azureSqlConnection');
+    const pool = await connectToAzureSQL();
     
-    // Write to temporary file first, then rename for atomic operation
-    fs.writeFileSync(tempPath, JSON.stringify(documentHistory, null, 2));
-    fs.renameSync(tempPath, historyPath);
-    console.log(`✓ Document history saved: ${documentHistory.length} documents`);
+    // 1. Insert main ingestion record
+    await pool.request()
+      .input('ingestionId', docId)
+      .input('originalFilename', file?.originalname || 'Unknown')
+      .input('filePath', file?.path || '')
+      .input('fileType', file?.mimetype || 'unknown')
+      .input('fileSize', file?.size || 0)
+      .input('status', 'completed')
+      .input('extractedText', formsData[0]?.extracted_text || '')
+      .input('extractedData', JSON.stringify({
+        totalPages: analysisResult.total_pages,
+        totalForms: formsData.length,
+        processingMethod: 'Direct OCR Text Extraction',
+        detectedForms: formsData.map((f: any) => ({
+          formType: f.form_type || f.document_type,
+          confidence: f.confidence,
+          pageNumber: f.page_number
+        }))
+      }))
+      .query(`
+        INSERT INTO TF_ingestion (
+          ingestion_id, original_filename, file_path, file_type, file_size, 
+          status, extracted_text, extracted_data, created_date, updated_date
+        ) VALUES (
+          @ingestionId, @originalFilename, @filePath, @fileType, @fileSize,
+          @status, @extractedText, @extractedData, GETDATE(), GETDATE()
+        )
+      `);
+
+    // 2. Insert PDF processing records for each detected form
+    for (let i = 0; i < formsData.length; i++) {
+      const form = formsData[i];
+      const pdfId = `${docId}_form_${i + 1}`;
+      
+      await pool.request()
+        .input('pdfId', pdfId)
+        .input('ingestionId', docId)
+        .input('originalFilename', `${file?.originalname || 'Unknown'}_page_${form.page_number}`)
+        .input('filePath', file?.path || '')
+        .input('fileSize', file?.size || 0)
+        .input('pageCount', 1)
+        .input('ocrText', form.extracted_text)
+        .input('processingStatus', 'completed')
+        .input('azureClassification', JSON.stringify({
+          documentType: form.form_type || form.document_type,
+          confidence: form.confidence,
+          pageNumber: form.page_number
+        }))
+        .input('confidenceScore', Math.round((form.confidence || 0) * 100))
+        .query(`
+          INSERT INTO TF_ingestion_Pdf (
+            pdf_id, ingestion_id, original_filename, file_path, file_size_bytes,
+            page_count, ocr_text, processing_status, azure_classification, 
+            confidence_score, created_date, updated_date
+          ) VALUES (
+            @pdfId, @ingestionId, @originalFilename, @filePath, @fileSize,
+            @pageCount, @ocrText, @processingStatus, @azureClassification,
+            @confidenceScore, GETDATE(), GETDATE()
+          )
+        `);
+
+      // 3. Insert OCR text record
+      await pool.request()
+        .input('ingestionId', docId)
+        .input('content', form.extracted_text)
+        .input('language', 'en')
+        .query(`
+          INSERT INTO TF_ingestion_TXT (
+            ingestion_id, content, language, created_date
+          ) VALUES (
+            @ingestionId, @content, @language, GETDATE()
+          )
+        `);
+
+      // 4. Insert extracted fields
+      const fields = [
+        { name: 'Full_Extracted_Text', value: form.extracted_text, type: 'text' },
+        { name: 'Document_Classification', value: form.form_type || form.document_type, type: 'classification' },
+        { name: 'Processing_Statistics', value: `${form.text_length || 0} characters extracted from page ${form.page_number}`, type: 'metadata' },
+        { name: 'Page_Number', value: form.page_number.toString(), type: 'metadata' }
+      ];
+
+      for (const field of fields) {
+        await pool.request()
+          .input('ingestionId', docId)
+          .input('fieldName', field.name)
+          .input('fieldValue', field.value)
+          .input('fieldType', field.type)
+          .input('confidence', Math.round((form.confidence || 0) * 100))
+          .input('pageNumber', form.page_number)
+          .query(`
+            INSERT INTO TF_ingestion_fields (
+              ingestion_id, field_name, field_value, field_type, confidence, page_number, created_date
+            ) VALUES (
+              @ingestionId, @fieldName, @fieldValue, @fieldType, @confidence, @pageNumber, GETDATE()
+            )
+          `);
+      }
+    }
+    
+    console.log(`✓ Saved ${formsData.length} forms to Azure SQL database`);
+    
   } catch (error) {
-    console.error('Error saving document history:', error);
+    console.error('Error saving to Azure database:', error);
+    throw error;
   }
 }
 
-// Initialize history on module load - ensure it runs
-try {
-  loadDocumentHistory();
-  console.log('Document history initialization complete');
-} catch (error) {
-  console.error('Failed to initialize document history:', error);
+async function loadFromAzureDatabase() {
+  try {
+    const { connectToAzureSQL } = await import('./azureSqlConnection');
+    const pool = await connectToAzureSQL();
+    
+    const result = await pool.request().query(`
+      SELECT 
+        i.ingestion_id,
+        i.original_filename,
+        i.file_type,
+        i.file_size,
+        i.status,
+        i.extracted_text,
+        i.extracted_data,
+        i.created_date,
+        COUNT(p.id) as form_count
+      FROM TF_ingestion i
+      LEFT JOIN TF_ingestion_Pdf p ON i.ingestion_id = p.ingestion_id
+      WHERE i.status = 'completed'
+      GROUP BY i.ingestion_id, i.original_filename, i.file_type, i.file_size, 
+               i.status, i.extracted_text, i.extracted_data, i.created_date
+      ORDER BY i.created_date DESC
+    `);
+    
+    return result.recordset.map((record: any) => {
+      const extractedData = record.extracted_data ? JSON.parse(record.extracted_data) : {};
+      return {
+        id: record.ingestion_id,
+        filename: record.original_filename,
+        uploadDate: record.created_date,
+        processingMethod: extractedData.processingMethod || 'Direct OCR Text Extraction',
+        totalForms: record.form_count || extractedData.totalForms || 1,
+        fileSize: record.file_size,
+        documentType: extractedData.detectedForms?.[0]?.formType || 'Unknown Document',
+        confidence: extractedData.detectedForms?.[0]?.confidence ? Math.round(extractedData.detectedForms[0].confidence * 100) : 85,
+        extractedText: record.extracted_text,
+        fullText: record.extracted_text,
+        processedAt: record.created_date,
+        docId: record.ingestion_id,
+        totalPages: extractedData.totalPages || 1
+      };
+    });
+    
+  } catch (error) {
+    console.error('Error loading from Azure database:', error);
+    return [];
+  }
 }
 
   // Form detection upload endpoint with immediate history storage
@@ -310,8 +428,13 @@ try {
               };
               
               // Store in Azure SQL database instead of JSON file
-              await saveToAzureDatabase(docId, req.file, analysisResult, formsData);
-              console.log(`✓ Multi-page document processed: ${req.file?.originalname} (${analysisResult.total_pages} pages, ${formsArray.length} forms) - saved to Azure SQL`);
+              try {
+                await saveToAzureDatabase(docId, req.file, analysisResult, formsData);
+                console.log(`✓ Multi-page document processed: ${req.file?.originalname} (${analysisResult.total_pages} pages, ${formsData.length} forms) - saved to Azure SQL`);
+              } catch (dbError) {
+                console.error('Database save error:', dbError);
+                // Continue with response even if database save fails
+              }
               
               resolve({
                 docId,
