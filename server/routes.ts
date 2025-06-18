@@ -155,8 +155,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Document history storage
-  const documentHistory: any[] = [];
+// Document history storage - move outside function to persist across requests
+const documentHistory: any[] = [];
 
   // Form detection upload endpoint with history storage
   app.post('/api/form-detection/upload', upload.single('file'), async (req, res) => {
@@ -201,6 +201,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               };
               
               documentHistory.unshift(historyEntry); // Add to beginning of array
+              console.log(`Document stored in history: ${historyEntry.filename}, total documents: ${documentHistory.length}`);
               
               const detectedForms = [{
                 id: `${docId}_form_1`,
@@ -243,6 +244,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Document history endpoint
   app.get('/api/form-detection/history', async (req, res) => {
     try {
+      console.log(`History requested: ${documentHistory.length} documents found`);
       res.json({
         documents: documentHistory,
         total: documentHistory.length

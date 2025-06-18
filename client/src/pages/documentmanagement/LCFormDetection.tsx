@@ -76,20 +76,20 @@ export default function FormDetection() {
       const result = await response.json();
       
       // Store document ID for form operations
-      setDocumentId(result.documentId || `doc_${Date.now()}`);
+      setDocumentId(result.docId || `doc_${Date.now()}`);
       
-      // Simulate processing steps with realistic timing
+      // Show immediate processing progress without auto-navigation
       setProcessingStatus({ upload: 'completed', ocr: 'processing' });
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       setProcessingStatus({ upload: 'completed', ocr: 'completed', form_detection: 'processing' });
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       setProcessingStatus({ upload: 'completed', ocr: 'completed', form_detection: 'completed', document_splitting: 'processing' });
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise(resolve => setTimeout(resolve, 800));
       
       setProcessingStatus({ upload: 'completed', ocr: 'completed', form_detection: 'completed', document_splitting: 'completed', form_grouping: 'processing' });
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise(resolve => setTimeout(resolve, 800));
       
       setProcessingStatus({ upload: 'completed', ocr: 'completed', form_detection: 'completed', document_splitting: 'completed', form_grouping: 'completed' });
       
@@ -114,8 +114,10 @@ export default function FormDetection() {
       const formsCount = result.detectedForms?.length || 0;
       toast({
         title: "Processing Complete",
-        description: `Successfully detected ${formsCount} form(s) in the document with real OCR extraction`,
+        description: `Successfully detected ${formsCount} form(s). Check Detected Forms tab to view results.`,
       });
+
+      // Stay on current tab - don't auto-navigate
 
     } catch (error) {
       console.error('Form detection upload error:', error);
