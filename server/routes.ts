@@ -129,13 +129,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 fullText: form.extracted_text
               }));
               
-              resolve({
-                docId,
-                detectedForms,
-                totalForms: formsData.length,
-                processingMethod: analysisResult.processing_method,
-                status: 'completed'
-              });
+              // Save to Azure SQL database
+              saveToAzureDatabase(docId, req.file, analysisResult, formsData)
+                .then(() => {
+                  console.log(`✓ Document ${docId} saved to Azure SQL database`);
+                  resolve({
+                    docId,
+                    detectedForms,
+                    totalForms: formsData.length,
+                    processingMethod: analysisResult.processing_method,
+                    status: 'completed'
+                  });
+                })
+                .catch(dbError => {
+                  console.error('Database save error:', dbError);
+                  // Still resolve with results even if DB save fails
+                  resolve({
+                    docId,
+                    detectedForms,
+                    totalForms: formsData.length,
+                    processingMethod: analysisResult.processing_method,
+                    status: 'completed'
+                  });
+                });
             } catch (parseError) {
               reject(parseError);
             }
@@ -170,8 +186,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 // Azure SQL Database storage functions
 async function saveToAzureDatabase(docId: string, file: any, analysisResult: any, formsData: any[]) {
   try {
+    console.log(`Starting database save for document ${docId}...`);
     const { connectToAzureSQL } = await import('./azureSqlConnection');
     const pool = await connectToAzureSQL();
+    console.log('Database connection established');
     
     // 1. Insert main ingestion record
     await pool.request()
@@ -226,11 +244,11 @@ async function saveToAzureDatabase(docId: string, file: any, analysisResult: any
           INSERT INTO TF_ingestion_Pdf (
             pdf_id, ingestion_id, original_filename, file_path, file_size_bytes,
             page_count, ocr_text, processing_status, azure_classification, 
-            confidence_score, created_date, updated_date
+            confidence_score, created_date
           ) VALUES (
             @pdfId, @ingestionId, @originalFilename, @filePath, @fileSize,
             @pageCount, @ocrText, @processingStatus, @azureClassification,
-            @confidenceScore, GETDATE(), GETDATE()
+            @confidenceScore, GETDATE()
           )
         `);
 
