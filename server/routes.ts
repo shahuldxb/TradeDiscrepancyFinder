@@ -11100,6 +11100,8 @@ For technical support, please reference Document ID: ${ingestionId}`;
       // Check if batch_name already exists and create a unique one
       let finalBatchName = batchName;
       let attempts = 0;
+      let documentId;
+      
       while (attempts < 5) {
         try {
           const result = await pool.request()
@@ -11111,9 +11113,20 @@ For technical support, please reference Document ID: ${ingestionId}`;
               VALUES (@batch_name)
             `);
           
-          const documentId = result.recordset[0].id;
-
-      const documentId = result.recordset[0].id;
+          documentId = result.recordset[0].id;
+          break; // Success, exit the loop
+        } catch (insertError: any) {
+          if (insertError.number === 2627) { // Unique constraint violation
+            attempts++;
+            finalBatchName = `LC_TEST_${Date.now()}_${Math.floor(Math.random() * 100000)}_${attempts}`;
+            if (attempts >= 5) {
+              throw new Error('Failed to create unique batch name after multiple attempts');
+            }
+          } else {
+            throw insertError;
+          }
+        }
+      }
       
       // Store extracted text if the docs table exists
       try {
