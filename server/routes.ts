@@ -267,7 +267,7 @@ try {
           errorOutput += data.toString();
         });
 
-        pythonProcess.on('close', (code: number) => {
+        pythonProcess.on('close', async (code: number) => {
           if (code === 0) {
             try {
               const analysisResult = JSON.parse(output);
@@ -309,40 +309,9 @@ try {
                 text_length: 0
               };
               
-              // Store complete processing result in document history with all forms
-              const historyDoc = {
-                id: docId,
-                filename: req.file?.originalname || 'Unknown',
-                uploadDate: new Date().toISOString(),
-                processingMethod: 'Direct OCR Text Extraction',
-                totalForms: formsData.length,
-                fileSize: req.file?.size || 0,
-                detectedForms: formsData.map((form: any, index: number) => ({
-                  id: `${docId}_form_${index + 1}`,
-                  formType: form.form_type || form.document_type,
-                  confidence: form.confidence,
-                  pageNumbers: [form.page_number],
-                  extractedText: form.extracted_text,
-                  status: 'completed'
-                })),
-                documentType: primaryForm.form_type || primaryForm.document_type,
-                confidence: Math.round((primaryForm.confidence || 0) * 100),
-                extractedText: primaryForm.extracted_text,
-                fullText: primaryForm.extracted_text,
-                processedAt: new Date().toISOString(),
-                docId: docId,
-                totalPages: analysisResult.total_pages
-              };
-              
-              // Replace the initial entry with complete processing result
-              const existingIndex = documentHistory.findIndex(doc => doc.docId === docId);
-              if (existingIndex !== -1) {
-                documentHistory[existingIndex] = historyDoc;
-              } else {
-                documentHistory.unshift(historyDoc);
-              }
-              saveDocumentHistory();
-              console.log(`✓ Multi-page document processed: ${historyDoc.filename} (${analysisResult.total_pages} pages, ${formsArray.length} forms) - ${documentHistory.length} total`);
+              // Store in Azure SQL database instead of JSON file
+              await saveToAzureDatabase(docId, req.file, analysisResult, formsData);
+              console.log(`✓ Multi-page document processed: ${req.file?.originalname} (${analysisResult.total_pages} pages, ${formsArray.length} forms) - saved to Azure SQL`);
               
               resolve({
                 docId,
@@ -369,19 +338,18 @@ try {
     }
   });
 
-  // Document history endpoint with fresh file loading
+  // Document history endpoint loading from Azure database
   app.get('/api/form-detection/history', async (req, res) => {
     try {
-      // Always reload from file to get latest state
-      loadDocumentHistory();
-      console.log(`History requested: ${documentHistory.length} documents found`);
+      const documents = await loadFromAzureDatabase();
+      console.log(`History requested: ${documents.length} documents found from Azure SQL`);
       res.json({
-        documents: documentHistory,
-        total: documentHistory.length
+        documents,
+        total: documents.length
       });
     } catch (error) {
       console.error('History fetch error:', error);
-      res.status(500).json({ error: 'Failed to fetch document history' });
+      res.status(500).json({ error: 'Failed to fetch document history from database' });
     }
   });
 
