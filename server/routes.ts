@@ -11084,12 +11084,10 @@ For technical support, please reference Document ID: ${ingestionId}`;
 
       let insertedCount = 0;
       for (const record of sampleData) {
-        await pool.request()
-          .input('id', record.id)
+        const result = await pool.request()
           .input('form_name', record.form_name)
           .input('is_active', record.is_active)
           .query(`
-            IF NOT EXISTS (SELECT 1 FROM masterdocuments_new WHERE id = @id)
             INSERT INTO masterdocuments_new (form_name, is_active) 
             VALUES (@form_name, @is_active)
           `);
@@ -11106,6 +11104,33 @@ For technical support, please reference Document ID: ${ingestionId}`;
       console.error('Error inserting sample data:', error);
       res.status(500).json({ 
         error: 'Failed to insert sample data',
+        details: (error as Error).message
+      });
+    }
+  });
+
+  // Document Management New - View masterdocuments_new data
+  app.get('/api/document-management/masterdocuments', async (req, res) => {
+    try {
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+
+      const result = await pool.request().query(`
+        SELECT id, form_name, is_active, created_at 
+        FROM masterdocuments_new 
+        ORDER BY id
+      `);
+
+      res.json({
+        success: true,
+        count: result.recordset.length,
+        data: result.recordset
+      });
+
+    } catch (error) {
+      console.error('Error fetching masterdocuments_new:', error);
+      res.status(500).json({ 
+        error: 'Failed to fetch data',
         details: (error as Error).message
       });
     }
