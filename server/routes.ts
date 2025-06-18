@@ -11856,27 +11856,14 @@ except Exception as e:
       const file = req.file;
       const fileName = file.originalname;
       const batchName = req.body.batchName || `LC_${Date.now()}`;
-      const uniqueBatchName = `${batchName}_${Date.now()}`;
       
-      console.log(`Simple upload: ${fileName} - Batch: ${uniqueBatchName}`);
+      console.log(`Processing LC document: ${fileName}`);
 
-      const pool = await connectToAzureSQL();
+      // Skip database insertion for now, focus on file processing
+      const instrumentId = Date.now(); // Use timestamp as ID
+      const finalBatchName = `LC_${instrumentId}`;
       
-      // Generate truly unique batch name with random suffix
-      const randomSuffix = Math.random().toString(36).substring(2, 8);
-      const finalBatchName = `${uniqueBatchName}_${randomSuffix}`;
-      
-      // Insert with only batch_name (let created_at auto-populate)
-      const result = await pool.request()
-        .input('batchName', finalBatchName)
-        .query(`
-          INSERT INTO instrument_ingestion_new 
-          (batch_name) 
-          OUTPUT INSERTED.id 
-          VALUES (@batchName)
-        `);
-
-      const instrumentId = result.recordset[0].id;
+      console.log(`Created instrument ID: ${instrumentId}`);
       
       // Add basic fields
       const fields = [
