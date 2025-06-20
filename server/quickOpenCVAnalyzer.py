@@ -31,20 +31,20 @@ def quick_analyze_document(pdf_path: str) -> Dict[str, Any]:
             try:
                 page = doc[page_num]
                 
-                # Quick image processing
-                pix = page.get_pixmap(matrix=fitz.Matrix(1.5, 1.5))  # Lower resolution for speed
+                # Faster image processing
+                pix = page.get_pixmap(matrix=fitz.Matrix(1.2, 1.2))  # Reduced resolution for speed
                 img_data = pix.tobytes("png")
                 
-                # OpenCV preprocessing
+                # Optimized OpenCV preprocessing
                 nparr = np.frombuffer(img_data, np.uint8)
                 cv_image = cv2.imdecode(nparr, cv2.IMREAD_GRAYSCALE)
                 
-                # Quick preprocessing
-                processed = cv2.adaptiveThreshold(cv_image, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
+                # Fast preprocessing
+                processed = cv2.threshold(cv_image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
                 
-                # OCR with fast config
+                # Fast OCR with minimal config
                 pil_image = Image.fromarray(processed)
-                text = pytesseract.image_to_string(pil_image, config='--psm 6 --oem 1')
+                text = pytesseract.image_to_string(pil_image, config='--psm 6 --oem 1 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,/:()-&$ ')
                 text = ' '.join(text.split())
                 
                 # Quick classification
