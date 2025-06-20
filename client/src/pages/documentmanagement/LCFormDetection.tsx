@@ -70,7 +70,10 @@ export default function TradeFinanceFormDetection() {
       // Store document ID for form operations
       setDocumentId(result.docId || `doc_${Date.now()}`);
       
-      // Show immediate processing progress without auto-navigation
+      // Auto-navigate to Processing Progress tab immediately after upload starts
+      setActiveTab('progress');
+      
+      // Show processing progress with real-time updates
       setProcessingStatus({ upload: 'completed', ocr: 'processing' });
       await new Promise(resolve => setTimeout(resolve, 1000));
       
