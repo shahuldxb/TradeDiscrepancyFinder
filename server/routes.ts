@@ -465,7 +465,7 @@ async function loadFromAzureDatabase() {
   }
 }
 
-  // Form detection upload endpoint with immediate history storage
+  // Form detection upload endpoint with real OCR processing
   app.post('/api/form-detection/upload', upload.single('file'), async (req, res) => {
     console.log('=== UPLOAD ENDPOINT CALLED ===');
     try {
@@ -473,7 +473,7 @@ async function loadFromAzureDatabase() {
         return res.status(400).json({ error: 'No file uploaded' });
       }
 
-      console.log('=== UPLOAD STARTED ===');
+      console.log('=== STARTING REAL OCR PROCESSING ===');
       const docId = Date.now().toString();
       const filePath = req.file.path;
 
@@ -501,9 +501,9 @@ async function loadFromAzureDatabase() {
         
         console.log(`📋 Processing: ${req.file?.originalname} | LC Detection: ${isLCDocument}`);
         
-        // Use Direct OCR for authentic document content extraction
-        const scriptPath = 'server/directOCR.py';
-        console.log(`🚀 Using Direct OCR Processor: ${scriptPath}`);
+        // Use Real-time OCR for authentic document content extraction
+        const scriptPath = path.join(__dirname, 'realTimeOCRProcessor.py');
+        console.log(`🚀 Using Real-time OCR Processor: ${scriptPath}`);
         const pythonProcess = spawn('python3', [scriptPath, filePath]);
         
         let output = '';
@@ -520,34 +520,31 @@ async function loadFromAzureDatabase() {
         pythonProcess.on('close', async (code: number) => {
           if (code === 0) {
             try {
-              const analysisResult = JSON.parse(output);
+              const ocrResult = JSON.parse(output);
               
-              if (analysisResult.error) {
-                reject(new Error(analysisResult.error));
+              if (ocrResult.error) {
+                reject(new Error(ocrResult.error));
                 return;
               }
               
-              // Create detected forms array from multi-page or LC processing
-              const formsData = analysisResult.detected_forms || analysisResult.constituent_documents || [];
-              console.log(`📋 Forms data length: ${formsData.length}`);
+              // Extract detected forms from OCR results
+              const formsData = ocrResult.detected_forms || [];
+              console.log(`📋 OCR detected ${formsData.length} forms`);
               
               const detectedForms = formsData.map((form: any, index: number) => ({
-                id: `${docId}_form_${index + 1}`,
-                formType: form.form_type || form.document_type,
+                id: form.id || `${docId}_form_${index + 1}`,
+                formType: form.formType || form.form_type,
                 confidence: form.confidence,
-                pageNumbers: [form.page_number],
-                extractedFields: {
-                  'Full Extracted Text': form.extracted_text,
-                  'Document Classification': form.form_type || form.document_type,
-                  'Processing Statistics': `${form.text_length} characters extracted from ${form.page_range || `page ${form.page_number || 'unknown'}`}`,
-                  'Page Range': form.page_range || `Page ${form.page_number || 'Unknown'}`
-                },
+                pageNumbers: form.page_numbers || [index + 1],
+                page_range: form.page_range,
+                extractedFields: form.extractedFields || { 'Full Extracted Text': form.extracted_text },
+                extracted_text: form.extracted_text,
+                fullText: form.fullText || form.extracted_text,
                 status: 'completed',
-                processingMethod: analysisResult.processing_method,
-                fullText: form.extracted_text
+                processingMethod: form.processingMethod || 'OpenCV + Tesseract OCR'
               }));
               
-              console.log(`📊 Detected ${detectedForms.length} forms from analysis`);
+              console.log(`📊 OCR processed ${detectedForms.length} forms successfully`);
               
               // For history, use the first/primary form from either processing type
               const formsArray = analysisResult.detected_forms || analysisResult.constituent_documents || [];
