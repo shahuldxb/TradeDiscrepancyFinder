@@ -860,10 +860,8 @@ function DocumentHistory() {
                               {form.confidence || 85}% confidence
                             </span>
                           </div>
-                          <p className="text-sm text-gray-700 line-clamp-2">
-                            {form.extracted_text?.substring(0, 150) || 
-                             'No content available'}
-                            {form.extracted_text?.length > 150 && '...'}
+                          <p className="text-sm text-gray-600">
+                            Document type: {form.formType || form.form_type}
                           </p>
                         </div>
                         
