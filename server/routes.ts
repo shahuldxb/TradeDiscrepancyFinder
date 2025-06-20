@@ -569,26 +569,28 @@ async function loadFromAzureDatabase() {
                   id: docId,
                   filename: req.file?.originalname,
                   uploadDate: new Date(),
-                  processingMethod: "Tesseract OCR",
+                  processingMethod: "Robust OCR Extraction",
                   totalForms: formsData.length,
-                  fileSize: `${(req.file?.size / 1024 / 1024).toFixed(2)} MB`,
+                  fileSize: req.file?.size ? `${(req.file.size / 1024 / 1024).toFixed(2)} MB` : 'Unknown',
                   documentType: formsData[0]?.formType || 'Trade Finance Document',
-                  confidence: formsData[0]?.confidence || 60,
+                  confidence: Math.round((formsData[0]?.confidence || 0.8) * 100),
                   extractedText: fullExtractedText.substring(0, 500) + (fullExtractedText.length > 500 ? '...' : ''),
                   fullText: fullExtractedText,
                   processedAt: new Date(),
                   docId: docId,
                   detectedForms: formsData.map(form => ({
                     ...form,
-                    extractedText: form.extractedFields?.['Full Extracted Text'] || form.fullText || form.extracted_text || 'No content available'
+                    extractedText: form.extractedFields?.['Full Extracted Text'] || form.fullText || form.extracted_text || fullExtractedText
                   }))
                 };
                 
-                // Save to persistent storage
+                // Import and use persistent storage
+                const documentHistory = require('./documentHistory.js');
                 const updatedDocuments = documentHistory.addDocument(newDocument);
                 
                 console.log(`✓ Document saved to persistent storage: ${req.file?.originalname} (${ocrResult.total_pages} pages, ${formsData.length} forms)`);
                 console.log(`Total documents in history: ${updatedDocuments.length}`);
+                console.log(`Document ID: ${newDocument.id}, Extracted text length: ${fullExtractedText.length}`);
                 console.log(`Full text length: ${fullExtractedText.length} characters`);
                 console.log(`Document preview: ${newDocument.extractedText.substring(0, 100)}...`);
                 console.log(`Document preview: ${newDocument.extractedText.substring(0, 100)}...`);
@@ -621,18 +623,19 @@ async function loadFromAzureDatabase() {
     }
   });
 
-  // Import persistent document history module
-  const documentHistory = require('./documentHistory.js');
+  // Persistent document history will be imported in upload handler
 
   // Document history endpoint using persistent file storage
   app.get('/api/form-detection/history', async (req, res) => {
     try {
       console.log('Loading document history from persistent storage...');
+      const documentHistory = require('./documentHistory.js');
       const documents = documentHistory.loadDocuments();
       console.log(`Current document count: ${documents.length}`);
       
       if (documents.length > 0) {
         console.log(`First document: ${documents[0].filename}`);
+        console.log(`First document extracted text length: ${documents[0].fullText?.length || 0}`);
       }
       
       const formattedDocuments = documents.map(doc => ({
