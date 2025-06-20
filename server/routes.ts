@@ -433,9 +433,10 @@ async function loadFromAzureDatabase() {
         
         console.log(`📋 Processing: ${req.file?.originalname} | LC Detection: ${isLCDocument}`);
         
-        // Use Simple OCR for reliable text extraction
-        const scriptPath = path.join(__dirname, 'simpleOCR.py');
-        console.log(`🚀 Using Simple OCR Processor: ${scriptPath}`);
+        // Use Real Form Splitter for proper document separation
+        const scriptPath = path.join(__dirname, 'realFormSplitter.py');
+        console.log(`🚀 Using Real Form Splitter: ${scriptPath}`);
+        console.log(`📋 Processing with NEW form splitter to separate individual documents`);
         const pythonProcess = spawn('python3', [scriptPath, filePath]);
         
         let output = '';
@@ -493,10 +494,10 @@ async function loadFromAzureDatabase() {
                   id: docId,
                   filename: req.file?.originalname,
                   uploadDate: new Date(),
-                  processingMethod: "Robust OCR Extraction",
+                  processingMethod: "Real Form Splitter",
                   totalForms: formsData.length,
                   fileSize: req.file?.size ? `${(req.file.size / 1024 / 1024).toFixed(2)} MB` : 'Unknown',
-                  documentType: formsData[0]?.formType || 'Trade Finance Document',
+                  documentType: `${formsData.length} Individual Forms Detected`,
                   confidence: Math.round((formsData[0]?.confidence || 0.8) * 100),
                   extractedText: fullExtractedText.substring(0, 500) + (fullExtractedText.length > 500 ? '...' : ''),
                   fullText: fullExtractedText,
@@ -518,12 +519,12 @@ async function loadFromAzureDatabase() {
                   console.log('Error details:', azureError.message);
                 }
                 
-                // Save document to history file directly
+                // Save document to history file directly - show individual forms
                 const processedDocument = {
                   id: docId,
                   filename: req.file?.originalname || 'Unknown',
                   uploadDate: new Date().toISOString(),
-                  documentType: formsData[0]?.form_type || 'Trade Finance Document',
+                  documentType: `${formsData.length} Forms: ${formsData.map(f => f.form_type).join(', ')}`,
                   confidence: Math.round((formsData[0]?.confidence || 0.8) * 100),
                   totalForms: formsData.length,
                   extractedText: fullExtractedText.substring(0, 200) + '...',
