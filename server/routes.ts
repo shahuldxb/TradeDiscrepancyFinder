@@ -578,6 +578,7 @@ async function loadFromAzureDatabase() {
                 
                 console.log(`✓ Document saved to memory: ${req.file?.originalname} (${ocrResult.total_pages} pages, ${formsData.length} forms)`);
                 console.log(`Total documents in history: ${processedDocuments.length}`);
+                console.log(`Document preview: ${newDocument.extractedText.substring(0, 100)}...`);
               } catch (error) {
                 console.error('Memory save error:', error);
               }
@@ -613,6 +614,11 @@ async function loadFromAzureDatabase() {
       console.log('Loading document history from memory...');
       
       // Return processed documents from in-memory storage
+      console.log(`Current processedDocuments count: ${processedDocuments.length}`);
+      if (processedDocuments.length > 0) {
+        console.log(`First document: ${processedDocuments[0].filename}`);
+      }
+      
       const documents = processedDocuments.map(doc => ({
         id: doc.id,
         filename: doc.filename,
