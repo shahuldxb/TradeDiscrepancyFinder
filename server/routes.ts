@@ -465,140 +465,23 @@ async function loadFromAzureDatabase() {
               const formsData = splitterResult.detected_forms || [];
               console.log(`✅ Real Form Splitter separated document into ${formsData.length} individual forms`);
               
-              // Keep each form as individual document from Real Form Splitter
-              const detectedForms = formsData.map((form: any, index: number) => ({
-                id: form.id || `${docId}_form_${index + 1}`,
-                formType: form.form_type || form.formType,
-                confidence: form.confidence,
-                pageNumbers: form.page_numbers || [form.page_number],
-                page_range: form.page_range,
-                extractedFields: form.extractedFields || { 'Full Extracted Text': form.extracted_text },
-                extracted_text: form.extracted_text,
-                fullText: form.fullText || form.extracted_text,
-                status: 'completed',
-                processingMethod: 'Real Form Splitter'
-              }));
-              
-              console.log(`📊 OCR processed ${detectedForms.length} forms successfully`);
-              
-              // Add to in-memory storage for immediate display in history
-              try {
-                // Extract full text from all forms
-                const fullExtractedText = formsData.map(form => 
-                  form.extractedFields?.['Full Extracted Text'] || 
-                  form.fullText || 
-                  form.extracted_text || 
-                  'No content extracted'
-                ).join('\n\n--- Form Break ---\n\n');
-
-                const newDocument = {
-                  id: docId,
-                  filename: req.file?.originalname,
-                  uploadDate: new Date(),
-                  processingMethod: "Real Form Splitter",
-                  totalForms: formsData.length,
-                  fileSize: req.file?.size ? `${(req.file.size / 1024 / 1024).toFixed(2)} MB` : 'Unknown',
-                  documentType: `${formsData.length} Individual Forms Detected`,
-                  confidence: Math.round((formsData[0]?.confidence || 0.8) * 100),
-                  extractedText: fullExtractedText.substring(0, 500) + (fullExtractedText.length > 500 ? '...' : ''),
-                  fullText: fullExtractedText,
-                  processedAt: new Date(),
-                  docId: docId,
-                  detectedForms: formsData.map(form => ({
-                    ...form,
-                    extractedText: form.extractedFields?.['Full Extracted Text'] || form.fullText || form.extracted_text || fullExtractedText
-                  }))
-                };
-                
-                // Skip Azure SQL save due to table structure issues - use direct storage
-                console.log('Saving document to Azure SQL database...');
-                try {
-                  await saveToAzureDatabase(docId, req.file, ocrResult, formsData);
-                  console.log(`✓ Document saved to Azure SQL database: ${req.file?.originalname}`);
-                } catch (azureError) {
-                  console.log('Azure SQL connection issue, continuing with processing...');
-                  console.log('Error details:', azureError.message);
-                }
-                
-                // Save document to history file directly - show individual forms
-                const processedDocument = {
-                  id: docId,
-                  filename: req.file?.originalname || 'Unknown',
-                  uploadDate: new Date().toISOString(),
-                  documentType: `${formsData.length} Forms: ${formsData.map(f => f.form_type).join(', ')}`,
-                  confidence: Math.round((formsData[0]?.confidence || 0.8) * 100),
-                  totalForms: formsData.length,
-                  extractedText: fullExtractedText.substring(0, 200) + '...',
-                  fullText: fullExtractedText,
-                  fileSize: `${(req.file?.size / 1024 / 1024).toFixed(1)} MB`,
-                  processedAt: new Date().toISOString(),
-                  docId: docId,
-                  processingMethod: 'Robust OCR Extraction',
-                  detectedForms: formsData.map(form => ({
-                    id: form.id || `form_${Date.now()}`,
-                    formType: form.form_type,
-                    form_type: form.form_type,
-                    confidence: Math.round((form.confidence || 0.8) * 100),
-                    pageNumbers: form.pages || [1],
-                    extractedFields: {
-                      'Full Extracted Text': form.extracted_text || '',
-                      'Document Classification': form.form_type,
-                      'Processing Statistics': `${form.text_length || 0} characters extracted`,
-                      'Page Range': form.page_range || 'Page 1'
-                    },
-                    status: 'completed',
-                    processingMethod: 'OCR Processing',
-                    fullText: form.extracted_text || '',
-                    extracted_text: form.extracted_text || '',
-                    page_range: form.page_range
-                  }))
-                };
-                
-                // Save to Azure SQL database using existing saveToAzureDatabase function
-                try {
-                  await saveToAzureDatabase(docId, req.file, ocrResult, formsData);
-                  console.log(`✅ Document saved to Azure SQL: ${processedDocument.filename}`);
-                  
-                  res.json({
-                    docId: docId,
-                    detectedForms: formsData,
-                    totalForms: formsData.length,
-                    processingMethod: 'Robust OCR Extraction',
-                    status: 'completed',
-                    saved: true,
-                    message: `Document saved to Azure SQL: ${processedDocument.filename} (${formsData.length} forms)`
-                  });
-                  
-                } catch (saveError) {
-                  console.error('Azure SQL save error:', saveError);
-                  res.json({
-                    docId: docId,
-                    detectedForms: formsData,
-                    totalForms: formsData.length,
-                    processingMethod: 'Robust OCR Extraction',
-                    status: 'completed',
-                    saved: false,
-                    error: saveError.message
-                  });
-                }
-                
-                console.log(`✓ Document processed: ${req.file?.originalname} (${splitterResult.total_pages} pages, ${formsData.length} individual forms)`);
-                console.log(`Document ID: ${docId}, Extracted text length: ${fullExtractedText.length}`);
-                console.log(`Full text length: ${fullExtractedText.length} characters`);
-                console.log(`Document preview: ${processedDocument.extractedText.substring(0, 100)}...`);
-                console.log(`Document preview: ${newDocument.extractedText.substring(0, 100)}...`);
-              } catch (error) {
-                console.error('Memory save error:', error);
-              }
-              
-              resolve({
-                docId,
-                detectedForms,
+              // Return ONLY Real Form Splitter results - NO other processing
+              return res.json({
+                docId: docId,
+                detectedForms: formsData,
                 totalForms: formsData.length,
-                totalPages: splitterResult.total_pages,
                 processingMethod: 'Real Form Splitter',
-                status: 'completed'
+                status: 'completed',
+                message: `Successfully split document into ${formsData.length} individual forms`
               });
+              
+              // Save to Azure SQL database
+              try {
+                await saveToAzureDatabase(docId, req.file, splitterResult, formsData);
+                console.log(`✓ Document saved to Azure SQL: ${req.file?.originalname}`);
+              } catch (saveError) {
+                console.error('Azure SQL save error:', saveError);
+              }
             } catch (parseError) {
               reject(parseError);
             }

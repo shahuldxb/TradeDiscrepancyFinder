@@ -42,11 +42,27 @@ def extract_and_split_forms(pdf_path):
         
         for page_num in range(doc.page_count):
             page = doc[page_num]
+            
+            # Try direct text extraction first
             text = page.get_text()
             
-            # Clean and format text
+            # If minimal text, use OCR
             if len(text.strip()) < 50:
-                text = f"Page {page_num + 1} content processed but minimal text detected"
+                # Convert page to image for OCR
+                mat = fitz.Matrix(2, 2)  # 2x scaling
+                pix = page.get_pixmap(matrix=mat)
+                img_data = pix.tobytes("png")
+                
+                # Convert to PIL Image and extract with pytesseract
+                from PIL import Image
+                import pytesseract
+                import io
+                
+                pil_image = Image.open(io.BytesIO(img_data))
+                text = pytesseract.image_to_string(pil_image)
+                
+            # Clean and format the extracted text
+            text = text.strip() if text.strip() else f"Page {page_num + 1} - OCR processing completed"
             
             # Classify this specific page
             doc_type, confidence = classify_document_content(text)
