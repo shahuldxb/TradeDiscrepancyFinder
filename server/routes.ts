@@ -121,13 +121,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 extractedFields: {
                   'Full Extracted Text': form.extracted_text,
                   'Document Classification': form.form_type || form.document_type,
-                  'Processing Statistics': `${form.text_length} characters extracted from page ${form.page_number}`,
-                  'Page Number': form.page_number.toString()
+                  'Processing Statistics': `${form.text_length} characters extracted from ${form.page_range || `page ${form.page_number || 'unknown'}`}`,
+                  'Page Range': form.page_range || `Page ${form.page_number || 'Unknown'}`
                 },
                 status: 'completed',
                 processingMethod: analysisResult.processing_method,
                 fullText: form.extracted_text
               }));
+              
+              console.log(`✓ Form-type grouping completed: ${formsData.length} documents`, 
+                formsData.map(f => `${f.form_type} (${f.page_range})`).join(', '));
               
               // Save to Azure SQL database
               saveToAzureDatabase(docId, req.file, analysisResult, formsData)
