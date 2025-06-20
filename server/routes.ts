@@ -79,10 +79,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const docId = Date.now().toString();
       
-      // Use Direct OCR for authentic document content extraction
-      const pythonProcess = spawn('python3', ['server/directOCR.py', req.file.path], {
+      // Use Fast Document Analyzer for authentic content analysis
+      const pythonProcess = spawn('python3', ['server/fastDocumentAnalyzer.py', req.file.path], {
         stdio: ['pipe', 'pipe', 'pipe'],
-        timeout: 10000
+        timeout: 30000  // Reasonable timeout for text-based analysis
       });
 
       let output = '';

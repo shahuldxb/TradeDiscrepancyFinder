@@ -31,19 +31,16 @@ def extract_real_text_from_pdf(pdf_path: str) -> Dict[str, Any]:
                 # Try direct text extraction first
                 text = page.get_text()
                 
-                # If minimal text found, use OCR
-                if len(text.strip()) < 50:
+                # If minimal text found, use OCR (faster processing for large documents)
+                if len(text.strip()) < 30:
                     try:
-                        # Convert page to image
-                        pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))  # Higher resolution
+                        # Convert page to image with moderate resolution for speed
+                        pix = page.get_pixmap(matrix=fitz.Matrix(1.5, 1.5))
                         img_data = pix.tobytes("png")
                         image = Image.open(io.BytesIO(img_data))
                         
-                        # Use OCR with better config
-                        ocr_text = pytesseract.image_to_string(
-                            image, 
-                            config='--psm 6 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,/:()-&$ \n'
-                        )
+                        # Use OCR with faster config for speed
+                        ocr_text = pytesseract.image_to_string(image, config='--psm 6')
                         if len(ocr_text.strip()) > len(text.strip()):
                             text = ocr_text
                     except Exception as ocr_error:
@@ -242,14 +239,14 @@ def should_group_pages(current_group: Dict, new_page: Dict) -> bool:
     if current_group['form_type'] == new_page['form_type']:
         return True
     
-    # Same base document type but different identifiers
+    # Same base document type but different identifiers - be more restrictive
     current_base = current_group['form_type'].split('(')[0].strip()
     new_base = new_page['form_type'].split('(')[0].strip()
     
     if current_base == new_base:
-        # Only group if pages are consecutive or very close
+        # Only group if pages are consecutive (strict grouping for accuracy)
         last_page = current_group['pages'][-1]
-        if abs(new_page['page_number'] - last_page) <= 2:
+        if abs(new_page['page_number'] - last_page) == 1:
             return True
     
     return False
