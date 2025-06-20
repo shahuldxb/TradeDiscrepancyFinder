@@ -91,8 +91,9 @@ def extract_page_text_robust(page, page_num: int) -> str:
         # Convert back to PIL Image
         pil_img = Image.fromarray(thresh)
         
-        # Simple OCR without complex configuration
-        extracted_text = pytesseract.image_to_string(pil_img)
+        # OCR with better configuration for readable text
+        custom_config = '--oem 3 --psm 6 -c preserve_interword_spaces=1'
+        extracted_text = pytesseract.image_to_string(pil_img, config=custom_config)
         
         return format_text_simple(extracted_text)
         
@@ -108,23 +109,29 @@ def format_text_simple(raw_text: str) -> str:
     if not raw_text:
         return ""
     
-    # Basic cleanup
+    # Clean up the raw text
     text = raw_text.strip()
     
-    # Preserve natural line breaks from OCR
+    # Fix common OCR issues first
+    text = fix_ocr_errors(text)
+    
+    # Split into meaningful paragraphs
     lines = text.split('\n')
     formatted_lines = []
     
     for line in lines:
         line = line.strip()
-        if line:
-            # Split very long lines into readable chunks
-            if len(line) > 120:
+        if line and len(line) > 2:  # Skip very short lines
+            # Clean spacing and formatting
+            line = ' '.join(line.split())
+            
+            # Split long lines for readability
+            if len(line) > 100:
                 words = line.split()
                 current_line = ""
                 
                 for word in words:
-                    if len(current_line + " " + word) < 100:
+                    if len(current_line + " " + word) <= 80:
                         current_line += (" " + word if current_line else word)
                     else:
                         if current_line:
@@ -136,13 +143,35 @@ def format_text_simple(raw_text: str) -> str:
             else:
                 formatted_lines.append(line)
     
-    # Join with proper line breaks
+    # Join with proper spacing
     formatted = "\n".join(formatted_lines)
     
-    # Add document structure markers
+    # Add document structure
     formatted = add_document_structure(formatted)
     
     return formatted
+
+def fix_ocr_errors(text: str) -> str:
+    """
+    Fix common OCR errors for better readability
+    """
+    import re
+    
+    # Common OCR fixes
+    fixes = [
+        (r'\b([A-Z])\s+([A-Z])\s+([A-Z])\b', r'\1\2\3'),  # Fix spaced capitals like "U S A" -> "USA"
+        (r'\b([A-Z])\s+([a-z])', r'\1\2'),  # Fix "A pple" -> "Apple"
+        (r'([a-z])\s+([A-Z])\s+([a-z])', r'\1\2\3'),  # Fix "a B c" -> "aBc"
+        (r'\s+([,.;:!?])', r'\1'),  # Remove spaces before punctuation
+        (r'([,.;:!?])([A-Za-z])', r'\1 \2'),  # Add space after punctuation
+        (r'\s+', ' '),  # Multiple spaces to single space
+        (r'(\d)\s+([A-Za-z])', r'\1\2'),  # Fix "123 ABC" -> "123ABC" for codes
+    ]
+    
+    for pattern, replacement in fixes:
+        text = re.sub(pattern, replacement, text)
+    
+    return text
 
 def add_document_structure(text: str) -> str:
     """

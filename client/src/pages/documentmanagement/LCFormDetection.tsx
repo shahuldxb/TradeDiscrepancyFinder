@@ -823,21 +823,7 @@ function DocumentHistory() {
                 Delete
               </Button>
               
-              {doc.detectedForms && doc.detectedForms.length > 1 && (
-                <Button 
-                  size="sm" 
-                  variant="ghost" 
-                  onClick={() => toggleExpanded(doc.id)}
-                  className="text-blue-600 hover:text-blue-800"
-                >
-                  {expandedDocs.has(doc.id) ? (
-                    <ChevronDown className="h-4 w-4 mr-1" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4 mr-1" />
-                  )}
-                  Show Split Documents ({doc.detectedForms.length})
-                </Button>
-              )}
+              {/* Split documents button hidden per user request */}
             </div>
 
             {/* Split Documents Section */}
