@@ -557,6 +557,14 @@ async function loadFromAzureDatabase() {
               
               // Add to in-memory storage for immediate display in history
               try {
+                // Extract full text from all forms
+                const fullExtractedText = formsData.map(form => 
+                  form.extractedFields?.['Full Extracted Text'] || 
+                  form.fullText || 
+                  form.extracted_text || 
+                  'No content extracted'
+                ).join('\n\n--- Form Break ---\n\n');
+
                 const newDocument = {
                   id: docId,
                   filename: req.file?.originalname,
@@ -566,18 +574,25 @@ async function loadFromAzureDatabase() {
                   fileSize: `${(req.file?.size / 1024 / 1024).toFixed(2)} MB`,
                   documentType: formsData[0]?.formType || 'Trade Finance Document',
                   confidence: formsData[0]?.confidence || 60,
-                  extractedText: formsData[0]?.extracted_text || 'Document processed successfully',
-                  fullText: formsData[0]?.extracted_text || '',
+                  extractedText: fullExtractedText.substring(0, 500) + (fullExtractedText.length > 500 ? '...' : ''),
+                  fullText: fullExtractedText,
                   processedAt: new Date(),
                   docId: docId,
-                  detectedForms: formsData
+                  detectedForms: formsData.map(form => ({
+                    ...form,
+                    extractedText: form.extractedFields?.['Full Extracted Text'] || form.fullText || form.extracted_text || 'No content available'
+                  }))
                 };
                 
                 // Add to processedDocuments array at the top of the list
                 processedDocuments.unshift(newDocument);
                 
+                // Save to persistent storage
+                documentStorage.saveDocuments(processedDocuments);
+                
                 console.log(`✓ Document saved to memory: ${req.file?.originalname} (${ocrResult.total_pages} pages, ${formsData.length} forms)`);
                 console.log(`Total documents in history: ${processedDocuments.length}`);
+                console.log(`Full text length: ${fullExtractedText.length} characters`);
                 console.log(`Document preview: ${newDocument.extractedText.substring(0, 100)}...`);
               } catch (error) {
                 console.error('Memory save error:', error);
