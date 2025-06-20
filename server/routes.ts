@@ -79,10 +79,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const docId = Date.now().toString();
       
-      // Use OCR Document Analyzer for scanned document processing
-      const pythonProcess = spawn('python3', ['server/ocrDocumentAnalyzer.py', req.file.path], {
+      // Use Quick OpenCV Analyzer for fast scanned document processing
+      const pythonProcess = spawn('python3', ['server/quickOpenCVAnalyzer.py', req.file.path], {
         stdio: ['pipe', 'pipe', 'pipe'],
-        timeout: 120000  // Extended timeout for OCR processing
+        timeout: 45000  // Reduced timeout for quick processing
       });
 
       let output = '';
