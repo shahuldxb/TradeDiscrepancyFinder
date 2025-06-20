@@ -19,20 +19,45 @@ def analyze_real_document(pdf_path: str) -> Dict[str, Any]:
         total_pages = doc.page_count
         page_data = []
         
-        # Extract text from all pages quickly
+        # Extract text from all pages quickly (with OCR fallback for image-based PDFs)
         for page_num in range(total_pages):
             page = doc[page_num]
             text = page.get_text()
             
+            # If minimal text found, this might be image-based PDF - use OCR
+            if len(text.strip()) < 30:
+                try:
+                    import pytesseract
+                    from PIL import Image
+                    import io
+                    
+                    # Convert page to image and extract text using OCR
+                    pix = page.get_pixmap()
+                    img_data = pix.tobytes("png")
+                    image = Image.open(io.BytesIO(img_data))
+                    
+                    # Use OCR to extract text
+                    ocr_text = pytesseract.image_to_string(image, config='--psm 6')
+                    if len(ocr_text.strip()) > len(text.strip()):
+                        text = ocr_text
+                except Exception:
+                    # If OCR fails, use original text
+                    pass
+            
             # Clean and normalize text
             text = ' '.join(text.split())
             
-            if len(text) > 10:
+            # Accept pages with any extractable text
+            if len(text) > 5:
                 page_data.append({
                     'page_number': page_num + 1,
                     'text': text,
                     'text_length': len(text)
                 })
+                
+                # Debug: print first few pages
+                if page_num < 3:
+                    print(f"Page {page_num + 1}: {text[:100]}...", file=sys.stderr)
         
         doc.close()
         
@@ -99,50 +124,62 @@ def detect_document_boundary(prev_page: Dict, current_page: Dict) -> bool:
     prev_text = prev_page['text'].lower()
     current_text = current_page['text'].lower()
     
-    # Strong indicators of new document
+    # Enhanced document boundary patterns for trade finance
     new_doc_patterns = [
-        # Document headers
-        r'\b(letter of credit|commercial invoice|bill of lading|certificate of origin)\b',
-        r'\b(packing list|insurance certificate|inspection certificate)\b',
-        r'\b(bill of exchange|draft|guarantee|declaration)\b',
+        # Document headers (broader patterns)
+        r'(letter of credit|commercial invoice|bill of lading|certificate)',
+        r'(packing list|insurance|inspection|quality)',
+        r'(bill of exchange|draft|guarantee|declaration|receipt)',
+        r'(customs|freight|transport|shipping)',
         
-        # Document numbers
-        r'\b(no\.|number|ref\.|reference)[\s:]+[a-z0-9\-/]{3,}',
-        r'\b[a-z]{2,4}[-_/]\d{3,}',
+        # Document identification patterns
+        r'(no[.:\s]|number[.:\s]|ref[.:\s])',
+        r'(certificate|invoice|bill|document)',
+        r'(issued|date|to whom)',
         
-        # Formal document language
-        r'\bwe hereby (certify|declare|confirm|guarantee)\b',
-        r'\bthis is to certify\b',
-        r'\bin accordance with\b',
-        r'\bissued by\b'
+        # Formal document starters
+        r'(we hereby|this is to|in accordance)',
+        r'(certify that|declare that|confirm that)',
+        r'(the undersigned|it is certified)',
+        
+        # Financial/trade patterns
+        r'(amount|value|quantity|weight)',
+        r'(shipper|consignee|beneficiary|applicant)',
+        r'(origin|destination|port|vessel)'
     ]
     
-    # Check if current page has strong new document indicators
-    current_has_strong_indicators = any(
-        re.search(pattern, current_text) for pattern in new_doc_patterns
-    )
+    # Check content changes and document indicators
+    prev_doc_type = classify_document_type(prev_text)
+    current_doc_type = classify_document_type(current_text)
     
-    if current_has_strong_indicators:
-        # Additional checks for document type consistency
-        prev_doc_type = classify_document_type(prev_text)
-        current_doc_type = classify_document_type(current_text)
-        
-        # If document types are clearly different, it's a new document
-        if prev_doc_type != current_doc_type and current_doc_type != 'Unknown':
-            return True
-        
-        # Check for document number changes
-        prev_doc_numbers = extract_document_numbers(prev_text)
-        current_doc_numbers = extract_document_numbers(current_text)
-        
-        if prev_doc_numbers and current_doc_numbers:
-            # If document numbers are completely different, new document
-            if not any(num in current_doc_numbers for num in prev_doc_numbers):
-                return True
+    # Different document types indicate boundary
+    if prev_doc_type != current_doc_type and current_doc_type != 'Unknown':
+        return True
     
-    # Check for content similarity - if very different, likely new document
+    # Check for strong document indicators in current page
+    has_doc_indicators = any(re.search(pattern, current_text) for pattern in new_doc_patterns)
+    
+    # Check content similarity
     similarity = calculate_text_similarity(prev_text, current_text)
-    if similarity < 0.2 and current_has_strong_indicators:
+    
+    # New document if:
+    # 1. Has document indicators AND low similarity
+    # 2. OR different document numbers
+    # 3. OR significant content change with document patterns
+    
+    if has_doc_indicators and similarity < 0.3:
+        return True
+    
+    # Check document number changes
+    prev_numbers = extract_document_numbers(prev_text)
+    current_numbers = extract_document_numbers(current_text)
+    
+    if prev_numbers and current_numbers:
+        if not any(num in current_numbers for num in prev_numbers):
+            return True
+    
+    # Major content shift with document patterns
+    if similarity < 0.15 and has_doc_indicators:
         return True
     
     return False
