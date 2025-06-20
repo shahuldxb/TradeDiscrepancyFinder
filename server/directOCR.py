@@ -97,7 +97,7 @@ def extract_text_directly(pdf_path: str):
         
         doc.close()
         
-        # Group consecutive pages by form type
+        # Advanced grouping logic: Group by form type AND document identifiers
         grouped_forms = []
         if detected_forms:
             current_group = {
@@ -113,8 +113,25 @@ def extract_text_directly(pdf_path: str):
             for i in range(1, len(detected_forms)):
                 current_form = detected_forms[i]
                 
-                # If same form type as current group, add to group
+                # More sophisticated grouping: check if it's the same document type AND similar content
+                should_group = False
+                
+                # Exact match on form type (including unique identifiers)
                 if current_form['form_type'] == current_group['form_type']:
+                    should_group = True
+                
+                # For generic types, check if consecutive pages with similar content patterns
+                elif (current_form['form_type'].split('(')[0].strip() == current_group['form_type'].split('(')[0].strip() and
+                      abs(current_form['page_number'] - current_group['pages'][-1]) <= 2):
+                    # Check for content similarity patterns
+                    current_text_words = set(current_form['extracted_text'].lower().split())
+                    group_text_words = set(current_group['extracted_text'].lower().split())
+                    
+                    # If they share significant common words, group them
+                    if len(current_text_words.intersection(group_text_words)) / max(len(current_text_words), 1) > 0.3:
+                        should_group = True
+                
+                if should_group:
                     current_group['pages'].append(current_form['page_number'])
                     current_group['extracted_text'] += '\n\n' + current_form['extracted_text']
                     current_group['text_length'] += current_form['text_length']
@@ -124,7 +141,7 @@ def extract_text_directly(pdf_path: str):
                     if len(current_group['pages']) > 1:
                         current_group['page_range'] = f"Pages {min(current_group['pages'])}-{max(current_group['pages'])}"
                 else:
-                    # Different form type, save current group and start new one
+                    # Different document, save current group and start new one
                     grouped_forms.append(current_group)
                     current_group = {
                         'form_type': current_form['form_type'],
