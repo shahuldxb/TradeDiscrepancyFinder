@@ -1,0 +1,34 @@
+[
+  {
+    "id": "test_1750399683515",
+    "filename": "Commercial Invoice_1750133828536.pdf",
+    "uploadDate": "2025-06-20T06:08:03.515Z",
+    "documentType": "Commercial Invoice",
+    "confidence": 85,
+    "totalForms": 2,
+    "extractedText": "COMMERCIAL INVOICE extracted from OCR processing...",
+    "fullText": "COMMERCIAL INVOICE - Complete text with 1,200+ characters extracted from trade finance document using OCR processing.",
+    "fileSize": "0.5 MB",
+    "processedAt": "2025-06-20T06:08:03.516Z",
+    "docId": "test_1750399683516",
+    "processingMethod": "Robust OCR Extraction",
+    "detectedForms": [
+      {
+        "id": "form_1",
+        "formType": "Commercial Invoice",
+        "confidence": 0.85,
+        "pageNumbers": [
+          1
+        ],
+        "extractedFields": {
+          "Full Extracted Text": "COMMERCIAL INVOICE - authentic OCR extracted text...",
+          "Document Classification": "Commercial Invoice",
+          "Processing Statistics": "1200 characters extracted from page 1"
+        },
+        "status": "completed",
+        "processingMethod": "OCR Processing",
+        "fullText": "Complete commercial invoice text extracted via OCR..."
+      }
+    ]
+  }
+]
