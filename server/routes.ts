@@ -253,12 +253,12 @@ async function saveToAzureDatabase(docId: string, file: any, analysisResult: any
           id: `${docId}_form_${formsData.indexOf(f) + 1}`,
           formType: f.form_type || f.document_type,
           confidence: f.confidence,
-          pageNumbers: [f.page_number],
+          pageNumbers: f.pages || [f.page_number || 1],
           extractedFields: {
             'Full Extracted Text': f.extracted_text,
             'Document Classification': f.form_type || f.document_type,
             'Processing Statistics': `${f.extracted_text?.length || 0} characters extracted from page ${f.page_number}`,
-            'Page Number': f.page_number.toString()
+            'Page Range': f.page_range || `Page ${f.page_number || 'Unknown'}`
           },
           status: 'completed',
           processingMethod: 'Direct OCR Text Extraction',
@@ -539,8 +539,8 @@ async function loadFromAzureDatabase() {
                 extractedFields: {
                   'Full Extracted Text': form.extracted_text,
                   'Document Classification': form.form_type || form.document_type,
-                  'Processing Statistics': `${form.text_length} characters extracted from page ${form.page_number}`,
-                  'Page Number': form.page_number.toString()
+                  'Processing Statistics': `${form.text_length} characters extracted from ${form.page_range || `page ${form.page_number || 'unknown'}`}`,
+                  'Page Range': form.page_range || `Page ${form.page_number || 'Unknown'}`
                 },
                 status: 'completed',
                 processingMethod: analysisResult.processing_method,
