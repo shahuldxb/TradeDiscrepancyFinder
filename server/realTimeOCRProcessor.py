@@ -75,6 +75,12 @@ class RealTimeOCRProcessor:
     def extract_text_from_page(self, page):
         """Extract text from a PDF page using OCR"""
         try:
+            # First try to extract text directly from PDF
+            direct_text = page.get_text()
+            if direct_text.strip():
+                return direct_text.strip()
+            
+            # If no direct text, use OCR
             # Convert page to image
             pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))  # 2x zoom for better quality
             img_data = pix.tobytes("png")
@@ -89,7 +95,7 @@ class RealTimeOCRProcessor:
             processed_image = self.preprocess_image(opencv_image)
             
             # Perform OCR
-            text = pytesseract.image_to_string(processed_image, config='--psm 3')
+            text = pytesseract.image_to_string(processed_image, config='--psm 6')
             
             return text.strip()
         except Exception as e:

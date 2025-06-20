@@ -501,9 +501,9 @@ async function loadFromAzureDatabase() {
         
         console.log(`📋 Processing: ${req.file?.originalname} | LC Detection: ${isLCDocument}`);
         
-        // Use Real-time OCR for authentic document content extraction
-        const scriptPath = path.join(__dirname, 'realTimeOCRProcessor.py');
-        console.log(`🚀 Using Real-time OCR Processor: ${scriptPath}`);
+        // Use Efficient OCR for fast document content extraction
+        const scriptPath = path.join(__dirname, 'efficientOCR.py');
+        console.log(`🚀 Using Efficient OCR Processor: ${scriptPath}`);
         const pythonProcess = spawn('python3', [scriptPath, filePath]);
         
         let output = '';
