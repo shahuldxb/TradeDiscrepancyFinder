@@ -596,22 +596,15 @@ async function loadFromAzureDatabase() {
   // Fast document history endpoint with error handling (no auth required)
   app.get('/api/form-detection/history', async (req, res) => {
     try {
-      let pool;
-      try {
-        pool = await getConnection();
-      } catch (dbError) {
-        console.error('Database connection failed, using fallback data:', dbError);
-        // Return empty array if database unavailable
-        return res.json({ documents: [], total: 0 });
-      }
+      const pool = await getConnection();
       
       const result = await pool.request().query(`
         SELECT TOP 20
-          ingestion_id,
+          CAST(ingestion_id AS NVARCHAR(50)) as ingestion_id,
           original_filename,
           created_date,
-          file_size,
-          ISNULL(extracted_text, 'Processing completed') as extracted_text
+          ISNULL(file_size, 0) as file_size,
+          ISNULL(CAST(extracted_text AS NVARCHAR(MAX)), 'Processing completed') as extracted_text
         FROM TF_ingestion 
         WHERE original_filename IS NOT NULL
         ORDER BY created_date DESC
