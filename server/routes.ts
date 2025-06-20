@@ -588,16 +588,14 @@ async function loadFromAzureDatabase() {
       console.log('🧹 Starting cleanup of old documents...');
       
       const azureConfig = {
-        user: process.env.AZURE_SQL_USER || 'shahulmi',
-        password: process.env.AZURE_SQL_PASSWORD,
-        server: process.env.AZURE_SQL_SERVER || 'shahulmi.database.windows.net',
-        database: process.env.AZURE_SQL_DATABASE || 'tf_genie',
+        server: 'shahulmi.database.windows.net',
+        port: 1433,
+        database: 'tf_genie',
+        user: 'shahul',
+        password: 'Apple123!@#',
         options: {
           encrypt: true,
-          trustServerCertificate: false,
-          enableArithAbort: true,
-          connectionTimeout: 30000,
-          requestTimeout: 30000
+          trustServerCertificate: false
         }
       };
       
@@ -606,9 +604,9 @@ async function loadFromAzureDatabase() {
       
       // Get the latest document ID (most recent upload)
       const latestDocQuery = `
-        SELECT TOP 1 doc_id, filename, upload_date 
+        SELECT TOP 1 ingestion_id, file_name, created_date 
         FROM TF_ingestion 
-        ORDER BY upload_date DESC
+        ORDER BY ingestion_id DESC
       `;
       
       const latestResult = await pool.request().query(latestDocQuery);
@@ -623,7 +621,7 @@ async function loadFromAzureDatabase() {
       }
 
       const latestDoc = latestResult.recordset[0];
-      console.log(`📄 Latest document: ${latestDoc.filename} (ID: ${latestDoc.doc_id})`);
+      console.log(`📄 Latest document: ${latestDoc.file_name} (ID: ${latestDoc.ingestion_id})`);
 
       // Count total documents before cleanup
       const countQuery = 'SELECT COUNT(*) as total FROM TF_ingestion';
@@ -638,24 +636,24 @@ async function loadFromAzureDatabase() {
           success: true, 
           message: 'Only one document exists, no cleanup needed',
           remaining: 1,
-          keptDocument: latestDoc.filename
+          keptDocument: latestDoc.file_name
         });
       }
 
       // Delete all documents except the latest one
       const deleteQuery = `
         DELETE FROM TF_ingestion 
-        WHERE doc_id != @latestDocId
+        WHERE ingestion_id != @latestDocId
       `;
       
       console.log('🗑️ Deleting old documents...');
       const deleteRequest = pool.request();
-      deleteRequest.input('latestDocId', sql.VarChar(50), latestDoc.doc_id);
+      deleteRequest.input('latestDocId', sql.VarChar(50), latestDoc.ingestion_id);
       const deleteResult = await deleteRequest.query(deleteQuery);
       
       const deletedCount = deleteResult.rowsAffected[0];
       console.log(`✅ Deleted ${deletedCount} old documents`);
-      console.log(`📄 Kept latest document: ${latestDoc.filename}`);
+      console.log(`📄 Kept latest document: ${latestDoc.file_name}`);
       
       // Verify cleanup
       const finalCountResult = await pool.request().query(countQuery);
@@ -668,8 +666,8 @@ async function loadFromAzureDatabase() {
         message: `Successfully deleted ${deletedCount} old documents`,
         deletedCount,
         remaining: remainingDocs,
-        keptDocument: latestDoc.filename,
-        keptDocumentId: latestDoc.doc_id
+        keptDocument: latestDoc.file_name,
+        keptDocumentId: latestDoc.ingestion_id
       });
 
     } catch (error) {
