@@ -538,12 +538,8 @@ Generated on: ${new Date().toLocaleString()}
                                         // Try multiple sources for the extracted text with better fallback logic
                                         let extractedText = '';
                                         
-                                        // First check if we have the full processing result text
-                                        if (processingResult?.extracted_text) {
-                                          extractedText = processingResult.extracted_text;
-                                        }
-                                        // Then try various form field locations
-                                        else if (form.extracted_fields && Array.isArray(form.extracted_fields)) {
+                                        // Try various form field locations for extracted text
+                                        if (form.extracted_fields && Array.isArray(form.extracted_fields)) {
                                           const fullTextField = form.extracted_fields.find((f: any) => 
                                             f.field_name === 'Full_Extracted_Text' || 
                                             f.field_name === 'Full Extracted Text'
@@ -563,8 +559,9 @@ Generated on: ${new Date().toLocaleString()}
                                           extractedText = 'OCR processing completed but extracted text not available in expected format.';
                                         }
                                         
+                                        // Debug logging
                                         console.log('Form text extraction - length:', extractedText.length);
-                                        console.log('Form data structure:', form);
+                                        console.log('Form field data:', form.extracted_fields);
                                         
                                         const confidence = form.confidence || 85;
                                         const processingMethod = form.extracted_fields?.find((f: any) => f.field_name === 'Processing Method')?.field_value || 'OCR Processing';
@@ -583,11 +580,10 @@ ${extractedText}
 
 `;
                                       }).join('\n');
-                                    } else if (processingResult?.extracted_text) {
-                                      // If no forms but we have processing result, use that
-                                      allText = processingResult.extracted_text;
                                     } else {
-                                      allText = 'No forms detected or extracted text not available.';
+                                      // Try to get text from first form or fallback
+                                      allText = group.forms[0]?.extracted_fields?.find((f: any) => f.field_name === 'Full_Extracted_Text')?.field_value || 
+                                               'Processing completed but extracted text not accessible in current view.';
                                     }
                                     
                                     newWindow.document.write(`
