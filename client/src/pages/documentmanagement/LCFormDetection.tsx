@@ -528,13 +528,59 @@ Generated on: ${new Date().toLocaleString()}
                                 variant="outline" 
                                 className="border-blue-300 text-blue-700 hover:bg-blue-50"
                                 onClick={() => {
-                                  // Combine all pages for this document type
-                                  const combinedForm = {
-                                    ...group.forms[0],
-                                    form_type: `${docType} (All Pages)`,
-                                    extracted_fields: group.forms.flatMap(f => f.extracted_fields)
-                                  };
-                                  handleViewForm(combinedForm);
+                                  const newWindow = window.open('', '_blank');
+                                  if (newWindow) {
+                                    // Get all extracted text from detected forms
+                                    let allText = '';
+                                    
+                                    if (group.forms && group.forms.length > 0) {
+                                      allText = group.forms.map((form: any, idx: number) => {
+                                        const extractedText = form.extracted_fields?.find((f: any) => f.field_name === 'Full Extracted Text')?.field_value || 
+                                                           form.extractedText || 
+                                                           form.fullText ||
+                                                           'No extracted text available for this form';
+                                        
+                                        const confidence = form.confidence || 85;
+                                        const processingMethod = form.extracted_fields?.find((f: any) => f.field_name === 'Processing Method')?.field_value || 'OCR Processing';
+                                        
+                                        return `
+=== PAGE ${idx + 1} ===
+Document Type: ${form.form_type}
+Confidence: ${confidence}%
+Processing Method: ${processingMethod}
+
+EXTRACTED CONTENT:
+${extractedText}
+
+`;
+                                      }).join('\n');
+                                    } else {
+                                      allText = 'No extracted content available. Processing may still be in progress.';
+                                    }
+                                    
+                                    newWindow.document.write(`
+                                      <!DOCTYPE html>
+                                      <html>
+                                      <head>
+                                        <title>${docType} - All Pages</title>
+                                        <style>
+                                          body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+                                          .header { border-bottom: 2px solid #007acc; padding-bottom: 10px; margin-bottom: 20px; }
+                                          .content { white-space: pre-wrap; background: #f9f9f9; padding: 20px; border-radius: 8px; font-family: monospace; }
+                                          h1 { color: #333; }
+                                        </style>
+                                      </head>
+                                      <body>
+                                        <div class="header">
+                                          <h1>${docType} - All Pages</h1>
+                                          <p>Complete extracted content from all pages</p>
+                                        </div>
+                                        <div class="content">${allText}</div>
+                                      </body>
+                                      </html>
+                                    `);
+                                    newWindow.document.close();
+                                  }
                                 }}
                               >
                                 <Eye className="h-4 w-4 mr-1" />
@@ -612,11 +658,15 @@ function DocumentHistory() {
 
   const fetchDocumentHistory = async () => {
     try {
+      console.log('Fetching document history...');
       const response = await fetch('/api/form-detection/history');
       const data = await response.json();
+      console.log('Document history response:', data);
       setDocuments(data.documents || []);
+      console.log('Set documents:', data.documents?.length || 0);
     } catch (error) {
       console.error('Failed to fetch document history:', error);
+      setDocuments([]);
     } finally {
       setLoading(false);
     }
