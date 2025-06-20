@@ -79,8 +79,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const docId = Date.now().toString();
       
-      // Use Final Document Analyzer optimized for 17 document sets
-      const pythonProcess = spawn('python3', ['server/finalDocumentAnalyzer.py', req.file.path], {
+      // Use Clean Text Extractor for formatted text extraction
+      const pythonProcess = spawn('python3', ['server/cleanTextExtractor.py', req.file.path], {
         stdio: ['pipe', 'pipe', 'pipe'],
         timeout: 60000  // Increased timeout for 38-page processing
       });
