@@ -501,9 +501,9 @@ async function loadFromAzureDatabase() {
         
         console.log(`📋 Processing: ${req.file?.originalname} | LC Detection: ${isLCDocument}`);
         
-        // Use Fast OCR for immediate document processing
-        const scriptPath = path.join(__dirname, 'fastOCR.py');
-        console.log(`🚀 Using Fast OCR Processor: ${scriptPath}`);
+        // Use OpenCV OCR for robust text extraction
+        const scriptPath = path.join(__dirname, 'opencvOCR.py');
+        console.log(`🚀 Using OpenCV OCR Processor: ${scriptPath}`);
         const pythonProcess = spawn('python3', [scriptPath, filePath]);
         
         let output = '';
@@ -578,7 +578,7 @@ async function loadFromAzureDatabase() {
                 detectedForms,
                 totalForms: formsData.length,
                 totalPages: ocrResult.total_pages,
-                processingMethod: 'Fast PyMuPDF Processing',
+                processingMethod: 'OpenCV + Tesseract OCR',
                 status: 'completed'
               });
             } catch (parseError) {
