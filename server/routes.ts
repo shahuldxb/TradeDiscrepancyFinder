@@ -18,8 +18,16 @@ import { crewAI, processDocumentSetWithAgents } from "./crewai";
 import { runDiscrepancyAnalysis, getDiscrepancies } from "./discrepancyEngine";
 import { azureDataService } from "./azureDataService";
 import { azureAgentService } from "./azureAgentService";
-import fs from 'fs';
+import multer from 'multer';
 import path from 'path';
+import fs from 'fs';
+import { spawn } from 'child_process';
+import { nanoid } from 'nanoid';
+import sql from 'mssql';
+import { azureConfig, connectToAzure, saveToAzureDatabase } from './azureSqlConnection';
+
+// In-memory storage for processed documents
+const processedDocuments: any[] = [];
 import { ucpDataService } from "./ucpDataService";
 import { ucpPostgresService } from "./ucpPostgresService";
 import { documentaryCreditService } from "./documentaryCreditService";
@@ -547,16 +555,13 @@ async function loadFromAzureDatabase() {
               
               console.log(`📊 OCR processed ${detectedForms.length} forms successfully`);
               
-              // Store in Azure SQL database - simulate successful save for now
+              // Add to in-memory storage for immediate display in history
               try {
-                console.log(`✓ OCR document processed: ${req.file?.originalname} (${ocrResult.total_pages} pages, ${formsData.length} forms)`);
-                
-                // Add to in-memory storage for immediate display in history
                 const newDocument = {
                   id: docId,
                   filename: req.file?.originalname,
                   uploadDate: new Date(),
-                  processingMethod: "PyMuPDF Text Extraction",
+                  processingMethod: "Tesseract OCR",
                   totalForms: formsData.length,
                   fileSize: `${(req.file?.size / 1024 / 1024).toFixed(2)} MB`,
                   documentType: formsData[0]?.formType || 'Trade Finance Document',
@@ -568,9 +573,13 @@ async function loadFromAzureDatabase() {
                   detectedForms: formsData
                 };
                 
-                console.log('Document ready for history display');
-              } catch (dbError) {
-                console.error('Database save error:', dbError);
+                // Add to processedDocuments array at the top of the list
+                processedDocuments.unshift(newDocument);
+                
+                console.log(`✓ Document saved to memory: ${req.file?.originalname} (${ocrResult.total_pages} pages, ${formsData.length} forms)`);
+                console.log(`Total documents in history: ${processedDocuments.length}`);
+              } catch (error) {
+                console.error('Memory save error:', error);
               }
               
               resolve({
@@ -598,86 +607,36 @@ async function loadFromAzureDatabase() {
     }
   });
 
-  // Document history endpoint 
+  // Document history endpoint using in-memory storage
   app.get('/api/form-detection/history', async (req, res) => {
-    console.log('Loading document history...');
-    
-    // Try to connect to Azure SQL first
     try {
-      const sql = require('mssql');
-      const serverString = process.env.AZURE_SQL_SERVER || 'shahulmi.database.windows.net,1433';
-      const [server, portStr] = serverString.split(',');
-      const port = portStr ? parseInt(portStr) : 1433;
+      console.log('Loading document history from memory...');
       
-      const pool = await sql.connect({
-        server: server.trim(),
-        port: port,
-        database: process.env.AZURE_SQL_DATABASE || 'tf_genie',
-        user: 'shahul',
-        password: process.env.AZURE_SQL_PASSWORD || 'Apple123!@#',
-        options: {
-          encrypt: true,
-          trustServerCertificate: false,
-          connectTimeout: 10000,
-          requestTimeout: 10000
-        }
-      });
+      // Return processed documents from in-memory storage
+      const documents = processedDocuments.map(doc => ({
+        id: doc.id,
+        filename: doc.filename,
+        uploadDate: doc.uploadDate,
+        documentType: doc.documentType,
+        confidence: doc.confidence,
+        totalForms: doc.totalForms,
+        extractedText: doc.extractedText,
+        fullText: doc.fullText,
+        fileSize: doc.fileSize,
+        processedAt: doc.processedAt,
+        docId: doc.docId,
+        detectedForms: doc.detectedForms,
+        processingMethod: doc.processingMethod
+      }));
       
-      const result = await pool.request().query(`
-        SELECT TOP 20
-          ingestion_id,
-          original_filename,
-          created_date,
-          file_size,
-          extracted_text,
-          extracted_data
-        FROM TF_ingestion 
-        WHERE original_filename IS NOT NULL
-        ORDER BY created_date DESC
-      `);
-      
-      const documents = result.recordset.map(record => {
-        let detectedForms = [];
-        let totalForms = 1;
-        
-        try {
-          if (record.extracted_data) {
-            const parsedData = JSON.parse(record.extracted_data);
-            detectedForms = parsedData.detectedForms || parsedData.detected_forms || [];
-            totalForms = detectedForms.length || 1;
-          }
-        } catch (parseError) {
-          // Continue without parsed data
-        }
-        
-        return {
-          id: record.ingestion_id,
-          filename: record.original_filename,
-          uploadDate: record.created_date,
-          processingMethod: 'OpenCV + Tesseract OCR',
-          totalForms,
-          fileSize: record.file_size || 0,
-          documentType: getDocumentType(record.original_filename),
-          confidence: 85,
-          extractedText: record.extracted_text || 'Processing completed',
-          fullText: record.extracted_text || '',
-          processedAt: record.created_date,
-          docId: record.ingestion_id,
-          detectedForms
-        };
-      });
-      
-      await pool.close();
-      console.log(`Loaded ${documents.length} documents from Azure SQL`);
+      console.log(`Returning ${documents.length} processed documents from memory storage`);
       res.json({ documents, total: documents.length });
       
-    } catch (dbError) {
-      console.error('Azure SQL connection failed:', dbError.message);
-      
-      // Return documents based on your actual uploads
-      const documents = [
-        {
-          id: "lc_001",
+    } catch (error) {
+      console.error('History loading error:', error);
+      res.status(500).json({ error: 'Failed to load document history' });
+    }
+  });
           filename: "lc_1750221925806.pdf",
           uploadDate: new Date("2025-06-18"),
           processingMethod: "OpenCV + Tesseract OCR",
@@ -811,8 +770,8 @@ async function loadFromAzureDatabase() {
         }
       ];
       
-      console.log(`Returning ${documents.length} documents from fallback data`);
-      res.json({ documents, total: documents.length });
+      console.log(`No processed documents found, returning empty list`);
+      res.json({ documents: [], total: 0 });
     }
   });
 
