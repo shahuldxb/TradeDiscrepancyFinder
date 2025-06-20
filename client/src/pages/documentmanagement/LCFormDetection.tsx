@@ -217,40 +217,70 @@ ${'='.repeat(60)}
   };
 
   const handleExportData = (form: any) => {
-    // Prepare export data using actual extracted fields
     const formType = form.form_type || 'Unknown Form';
-    const extractedFields = form.extracted_fields.reduce((acc: any, field: any) => {
-      acc[field.field_name] = field.field_value;
-      return acc;
-    }, {});
+    const timestamp = Date.now();
     
-    const exportData = {
+    // Export JSON data
+    const jsonData = {
       form_type: formType,
       confidence: form.confidence || 0,
       extraction_date: new Date().toISOString(),
-      document_id: documentId,
-      extracted_fields: extractedFields,
-      page_numbers: form.page_numbers || [],
+      document_id: documentId || 'N/A',
+      page_range: form.page_range || 'N/A',
+      extracted_text: form.extracted_text || 'No content available',
+      text_length: form.text_length || 0,
       metadata: {
-        total_fields: form.extracted_fields.length,
+        processing_method: 'OpenCV + Tesseract OCR',
         processing_timestamp: new Date().toISOString()
       }
     };
 
-    // Create and download JSON file
-    const jsonBlob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(jsonBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${(form.form_type || 'unknown_form').replace(/\s+/g, '_')}_${documentId || 'export'}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    // Create JSON file
+    const jsonBlob = new Blob([JSON.stringify(jsonData, null, 2)], { type: 'application/json' });
+    const jsonUrl = URL.createObjectURL(jsonBlob);
+    const jsonLink = document.createElement('a');
+    jsonLink.href = jsonUrl;
+    jsonLink.download = `${formType.replace(/[^a-zA-Z0-9]/g, '_')}_${timestamp}.json`;
+    jsonLink.click();
+    URL.revokeObjectURL(jsonUrl);
+
+    // Create readable TXT file
+    const txtContent = `${formType} - Extracted Document
+${'='.repeat(80)}
+
+DOCUMENT INFORMATION
+${'='.repeat(80)}
+Form Type: ${formType}
+Confidence Score: ${form.confidence}%
+Page Range: ${form.page_range || 'N/A'}
+Text Length: ${form.text_length || 0} characters
+Extraction Date: ${new Date().toLocaleString()}
+Document ID: ${documentId || 'N/A'}
+Processing Method: OpenCV + Tesseract OCR
+
+${'='.repeat(80)}
+EXTRACTED TEXT CONTENT
+${'='.repeat(80)}
+
+${form.extracted_text || 'No content available'}
+
+${'='.repeat(80)}
+END OF DOCUMENT
+${'='.repeat(80)}
+Generated on: ${new Date().toLocaleString()}
+`;
+
+    const txtBlob = new Blob([txtContent], { type: 'text/plain; charset=utf-8' });
+    const txtUrl = URL.createObjectURL(txtBlob);
+    const txtLink = document.createElement('a');
+    txtLink.href = txtUrl;
+    txtLink.download = `${formType.replace(/[^a-zA-Z0-9]/g, '_')}_${timestamp}.txt`;
+    txtLink.click();
+    URL.revokeObjectURL(txtUrl);
 
     toast({
-      title: "Data Exported",
-      description: `${form.form_type || 'Form'} data exported as JSON file`,
+      title: "Files Exported",
+      description: `${formType} exported as JSON and readable TXT files`,
     });
   };
 
