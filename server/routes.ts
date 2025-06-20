@@ -631,18 +631,27 @@ async function loadFromAzureDatabase() {
                     formType: form.form_type,
                     confidence: Math.round((form.confidence || 0.8) * 100),
                     pageNumbers: form.pageNumbers || [1],
-                    extractedFields: form.extracted_fields,
+                    extractedFields: {
+                      'Full Extracted Text': form.extracted_text || form.fullText || '',
+                      'Document Classification': form.form_type,
+                      'Processing Statistics': `${form.text_length || 0} characters extracted`,
+                      'Page Range': form.page_range || 'Page 1'
+                    },
                     status: 'completed',
                     processingMethod: 'OCR Processing',
-                    fullText: form.extracted_fields?.['Full Extracted Text'] || form.fullText || ''
+                    fullText: form.extracted_text || form.fullText || '',
+                    form_type: form.form_type,
+                    extracted_text: form.extracted_text || form.fullText || ''
                   }))
                 };
                 
                 documentHistory.unshift(processedDocument);
                 fs.writeFileSync(historyFile, JSON.stringify(documentHistory, null, 2));
-                console.log(`✓ Document saved to file storage: ${processedDocument.filename}`);
+                console.log(`✓ NEW DOCUMENT SAVED: ${processedDocument.filename}`);
+                console.log(`✓ Document ID: ${processedDocument.id}`);
+                console.log(`✓ Forms count: ${processedDocument.totalForms}`);
+                console.log(`✓ Full text length: ${fullExtractedText.length}`);
                 console.log(`✓ Total documents in storage: ${documentHistory.length}`);
-                console.log(`✓ Document history file updated: ${historyFile}`);
                 
                 console.log(`✓ Document processed: ${req.file?.originalname} (${ocrResult.total_pages} pages, ${formsData.length} forms)`);
                 console.log(`Document ID: ${newDocument.id}, Extracted text length: ${fullExtractedText.length}`);

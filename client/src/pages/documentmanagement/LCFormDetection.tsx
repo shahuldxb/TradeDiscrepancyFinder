@@ -535,13 +535,16 @@ Generated on: ${new Date().toLocaleString()}
                                     
                                     if (group.forms && group.forms.length > 0) {
                                       allText = group.forms.map((form: any, idx: number) => {
-                                        const extractedText = form.extracted_fields?.find((f: any) => f.field_name === 'Full Extracted Text')?.field_value || 
-                                                           form.extractedText || 
+                                        const extractedText = form.extracted_fields?.['Full Extracted Text'] || 
+                                                           form.extracted_text || 
                                                            form.fullText ||
+                                                           form.extractedFields?.find((f: any) => f.field_name === 'Full Extracted Text')?.field_value ||
                                                            'No extracted text available for this form';
                                         
                                         const confidence = form.confidence || 85;
-                                        const processingMethod = form.extracted_fields?.find((f: any) => f.field_name === 'Processing Method')?.field_value || 'OCR Processing';
+                                        const processingMethod = form.extracted_fields?.['Processing Method'] || 
+                                                               form.extracted_fields?.find((f: any) => f.field_name === 'Processing Method')?.field_value || 
+                                                               'OCR Processing';
                                         
                                         return `
 === PAGE ${idx + 1} ===
@@ -778,9 +781,16 @@ function DocumentHistory() {
 
   const handleViewSplitDocument = (form: any, index: number) => {
     const formType = form.formType || form.form_type || 'Trade Finance Document';
-    const extractedText = form.extracted_text || form.fullText || form.extractedFields?.['Full Extracted Text'] || 'No extracted text available for this document.';
+    const extractedText = form.extractedFields?.['Full Extracted Text'] || 
+                         form.extracted_text || 
+                         form.fullText || 
+                         form.extractedFields?.find((f: any) => f.field_name === 'Full Extracted Text')?.field_value ||
+                         'No extracted text available for this document.';
     const confidence = form.confidence || 85;
-    const pageRange = form.page_range || form.pageNumbers?.join(', ') || 'N/A';
+    const pageRange = form.extractedFields?.['Page Range'] || 
+                     form.page_range || 
+                     form.pageNumbers?.join(', ') || 
+                     'N/A';
     
     const newWindow = window.open('', '_blank');
     if (newWindow) {
