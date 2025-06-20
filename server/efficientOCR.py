@@ -10,6 +10,9 @@ import os
 import fitz  # PyMuPDF
 import re
 from datetime import datetime
+import pytesseract
+from PIL import Image
+import io
 
 class EfficientOCRProcessor:
     def __init__(self):
@@ -43,18 +46,50 @@ class EfficientOCRProcessor:
                         'document_type': doc_type,
                         'confidence': confidence
                     })
+                    print(f"Page {page_num + 1}: Extracted {len(text)} characters", file=sys.stderr)
                 else:
-                    pages_data.append({
-                        'page_number': page_num + 1,
-                        'text': 'No text content available',
-                        'document_type': 'Trade Finance Document',
-                        'confidence': 50
-                    })
+                    # For pages with no direct text, use OCR
+                    print(f"Page {page_num + 1}: No direct text found, performing OCR...", file=sys.stderr)
+                    ocr_text = self.extract_text_with_ocr(page)
+                    
+                    if ocr_text.strip():
+                        doc_type, confidence = self.classify_document(ocr_text)
+                        pages_data.append({
+                            'page_number': page_num + 1,
+                            'text': ocr_text.strip(),
+                            'document_type': doc_type,
+                            'confidence': confidence
+                        })
+                        print(f"Page {page_num + 1}: OCR extracted {len(ocr_text)} characters", file=sys.stderr)
+                    else:
+                        pages_data.append({
+                            'page_number': page_num + 1,
+                            'text': f'Page {page_num + 1} - Unable to extract text content',
+                            'document_type': 'Trade Finance Document',
+                            'confidence': 30
+                        })
             
             doc.close()
             return pages_data
         except Exception as e:
             return [{'error': str(e), 'page_number': 1, 'text': '', 'document_type': 'Error', 'confidence': 0}]
+    
+    def extract_text_with_ocr(self, page):
+        """Extract text from PDF page using OCR"""
+        try:
+            # Convert page to image
+            pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))  # Higher resolution
+            img_data = pix.tobytes("png")
+            
+            # Convert to PIL Image
+            pil_image = Image.open(io.BytesIO(img_data))
+            
+            # Perform OCR with faster settings
+            text = pytesseract.image_to_string(pil_image, config='--psm 6 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,:/- ')
+            return text
+        except Exception as e:
+            print(f"OCR error: {e}", file=sys.stderr)
+            return ""
     
     def classify_document(self, text):
         """Classify document type based on text content"""

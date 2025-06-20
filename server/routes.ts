@@ -520,6 +520,7 @@ async function loadFromAzureDatabase() {
         pythonProcess.on('close', async (code: number) => {
           if (code === 0) {
             try {
+              console.log(`Raw OCR output: ${output.substring(0, 500)}...`);
               const ocrResult = JSON.parse(output);
               
               if (ocrResult.error) {
@@ -529,7 +530,7 @@ async function loadFromAzureDatabase() {
               
               // Extract detected forms from OCR results
               const formsData = ocrResult.detected_forms || [];
-              console.log(`📋 OCR detected ${formsData.length} forms`);
+              console.log(`📋 OCR detected ${formsData.length} forms with text content`);
               
               const detectedForms = formsData.map((form: any, index: number) => ({
                 id: form.id || `${docId}_form_${index + 1}`,
@@ -577,7 +578,7 @@ async function loadFromAzureDatabase() {
                 detectedForms,
                 totalForms: formsData.length,
                 totalPages: ocrResult.total_pages,
-                processingMethod: 'OpenCV + Tesseract OCR',
+                processingMethod: 'PyMuPDF + Tesseract OCR',
                 status: 'completed'
               });
             } catch (parseError) {
