@@ -590,6 +590,9 @@ async function loadFromAzureDatabase() {
                 // Save to persistent storage
                 documentStorage.saveDocuments(processedDocuments);
                 
+                // Save to persistent storage
+                documentStorage.saveDocuments(processedDocuments);
+                
                 console.log(`✓ Document saved to memory: ${req.file?.originalname} (${ocrResult.total_pages} pages, ${formsData.length} forms)`);
                 console.log(`Total documents in history: ${processedDocuments.length}`);
                 console.log(`Full text length: ${fullExtractedText.length} characters`);
