@@ -627,32 +627,10 @@ async function loadFromAzureDatabase() {
                   }))
                 };
                 
-                // Direct file save without external modules
-                const historyDir = path.join(process.cwd(), 'form_outputs');
-                const historyFile = path.join(historyDir, 'document_history.json');
-                
+                // Save to Azure SQL database using existing saveToAzureDatabase function
                 try {
-                  if (!fs.existsSync(historyDir)) {
-                    fs.mkdirSync(historyDir, { recursive: true });
-                  }
-                  
-                  let documents = [];
-                  if (fs.existsSync(historyFile)) {
-                    try {
-                      const content = fs.readFileSync(historyFile, 'utf8');
-                      documents = JSON.parse(content);
-                    } catch (e) {
-                      documents = [];
-                    }
-                  }
-                  
-                  documents = documents.filter(doc => doc.filename !== processedDocument.filename);
-                  documents.unshift(processedDocument);
-                  
-                  fs.writeFileSync(historyFile, JSON.stringify(documents, null, 2), 'utf8');
-                  console.log(`✅ DOCUMENT SAVED: ${processedDocument.filename} (${documents.length} total)`);
-                  console.log(`✅ File written to: ${historyFile}`);
-                  console.log(`✅ File exists: ${fs.existsSync(historyFile)}`);
+                  await saveToAzureDatabase(docId, req.file, ocrResult, formsData);
+                  console.log(`✅ Document saved to Azure SQL: ${processedDocument.filename}`);
                   
                   res.json({
                     docId: docId,
@@ -661,11 +639,11 @@ async function loadFromAzureDatabase() {
                     processingMethod: 'Robust OCR Extraction',
                     status: 'completed',
                     saved: true,
-                    message: `Document saved: ${processedDocument.filename} (${formsData.length} forms)`
+                    message: `Document saved to Azure SQL: ${processedDocument.filename} (${formsData.length} forms)`
                   });
                   
                 } catch (saveError) {
-                  console.error('Save error:', saveError);
+                  console.error('Azure SQL save error:', saveError);
                   res.json({
                     docId: docId,
                     detectedForms: formsData,
@@ -713,29 +691,61 @@ async function loadFromAzureDatabase() {
 
   // Persistent document history will be imported in upload handler
 
-  // Document history endpoint (no authentication to avoid session issues)
-  app.get('/api/form-detection/history', (req, res) => {
-    const historyFile = path.join(process.cwd(), 'form_outputs', 'document_history.json');
-    let documents = [];
-    
+  // Document history endpoint using Azure SQL database
+  app.get('/api/form-detection/history', async (req, res) => {
     try {
-      if (fs.existsSync(historyFile)) {
-        const content = fs.readFileSync(historyFile, 'utf8');
-        documents = JSON.parse(content);
-        console.log(`✅ History loaded: ${documents.length} documents`);
-      } else {
-        console.log(`❌ History file missing: ${historyFile}`);
-        // Create empty file
-        fs.mkdirSync(path.dirname(historyFile), { recursive: true });
-        fs.writeFileSync(historyFile, '[]', 'utf8');
-      }
+      await sql.connect(azureSqlConfig);
+      
+      const result = await sql.query`
+        SELECT 
+          doc_id, filename, upload_date, document_type, confidence, 
+          total_forms, extracted_text, file_size, processed_at, processing_method
+        FROM TF_ingestion 
+        ORDER BY upload_date DESC
+      `;
+      
+      const documents = result.recordset.map(record => ({
+        id: record.doc_id,
+        filename: record.filename,
+        uploadDate: record.upload_date,
+        documentType: record.document_type,
+        confidence: record.confidence || 80,
+        totalForms: record.total_forms || 1,
+        extractedText: record.extracted_text?.substring(0, 200) + '...' || 'No preview available',
+        fullText: record.extracted_text || 'No content available',
+        fileSize: record.file_size || 'Unknown',
+        processedAt: record.processed_at,
+        docId: record.doc_id,
+        processingMethod: record.processing_method || 'OCR Processing',
+        detectedForms: [{
+          id: `${record.doc_id}_form_1`,
+          formType: record.document_type,
+          form_type: record.document_type,
+          confidence: record.confidence || 80,
+          pageNumbers: [1],
+          extractedFields: {
+            'Full Extracted Text': record.extracted_text || '',
+            'Document Classification': record.document_type,
+            'Processing Statistics': `${record.extracted_text?.length || 0} characters extracted`,
+            'Page Range': 'Page 1'
+          },
+          status: 'completed',
+          processingMethod: 'OCR Processing',
+          fullText: record.extracted_text || '',
+          extracted_text: record.extracted_text || '',
+          page_range: 'Page 1'
+        }]
+      }));
+      
+      console.log(`✅ Loaded ${documents.length} documents from Azure SQL TF_ingestion`);
+      
+      res.setHeader('Cache-Control', 'no-cache');
+      res.json({ documents, total: documents.length });
+      
     } catch (error) {
-      console.error('History error:', error.message);
-      documents = [];
+      console.error('Azure SQL history error:', error.message);
+      res.json({ documents: [], total: 0, error: error.message });
     }
-    
-    res.setHeader('Cache-Control', 'no-cache');
-    res.json({ documents, total: documents.length });
   });
 
   function getDocumentType(filename) {
