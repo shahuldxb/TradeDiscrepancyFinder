@@ -604,6 +604,10 @@ function DocumentHistory() {
 
   React.useEffect(() => {
     fetchDocumentHistory();
+    
+    // Auto-refresh every 30 seconds to catch new uploads
+    const interval = setInterval(fetchDocumentHistory, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const fetchDocumentHistory = async () => {
