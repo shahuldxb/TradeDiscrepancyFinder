@@ -433,8 +433,16 @@ async function loadFromAzureDatabase() {
         
         console.log(`📋 Processing: ${req.file?.originalname} | LC Detection: ${isLCDocument}`);
         
+        // Verify intelligent splitter exists first
+        const intelligentSplitterPath = path.join(__dirname, 'intelligentFormSplitter.py');
+        const realSplitterPath = path.join(__dirname, 'realFormSplitter.py');
+        
+        console.log(`📋 Checking splitter files...`);
+        console.log(`Intelligent splitter: ${intelligentSplitterPath}`);
+        console.log(`Real splitter: ${realSplitterPath}`);
+        
         // Use Intelligent Form Splitter for document type-based grouping
-        const scriptPath = path.join(__dirname, 'intelligentFormSplitter.py');
+        const scriptPath = intelligentSplitterPath;
         console.log(`🚀 Using Intelligent Form Splitter: ${scriptPath}`);
         console.log(`📋 Processing with INTELLIGENT form splitter - groups by document type, not page-by-page`);
         const pythonProcess = spawn('python3', [scriptPath, filePath]);
