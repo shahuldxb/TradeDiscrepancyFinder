@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Upload, FileText, CheckCircle, Clock, Scissors, Eye, ChevronRight, ChevronDown, Download } from 'lucide-react';
+import { Upload, FileText, CheckCircle, Clock, Scissors, Eye, ChevronRight, ChevronDown, Download, Trash2 } from 'lucide-react';
 
 interface ProcessingStatus {
   upload?: 'processing' | 'completed' | 'error';
@@ -642,6 +642,35 @@ function DocumentHistory() {
     setExpandedDocs(newExpanded);
   };
 
+  const handleDeleteDocument = async (docId: string, filename: string) => {
+    if (!confirm(`Are you sure you want to delete "${filename}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/form-detection/delete/${docId}`, {
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Document Deleted",
+          description: `"${filename}" has been deleted successfully.`,
+        });
+        // Refresh the document list
+        fetchDocumentHistory();
+      } else {
+        throw new Error('Delete failed');
+      }
+    } catch (error) {
+      toast({
+        title: "Delete Failed",
+        description: "Failed to delete the document. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleViewSplitDocument = (form: any, index: number) => {
     const newWindow = window.open('', '_blank');
     if (newWindow) {
@@ -741,6 +770,16 @@ function DocumentHistory() {
               }}>
                 <Download className="h-4 w-4 mr-1" />
                 Export Data
+              </Button>
+              
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={() => handleDeleteDocument(doc.id, doc.filename)}
+                className="text-red-600 hover:text-red-800 hover:bg-red-50"
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Delete
               </Button>
               
               {doc.detectedForms && doc.detectedForms.length > 1 && (

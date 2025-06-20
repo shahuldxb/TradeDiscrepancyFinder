@@ -168,6 +168,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete document endpoint
+  app.delete('/api/form-detection/delete/:docId', async (req, res) => {
+    try {
+      const { docId } = req.params;
+      console.log(`Deleting document: ${docId}`);
+      
+      const { connectToAzureSQL } = await import('./azureSqlConnection');
+      const pool = await connectToAzureSQL();
+      
+      // Delete from related tables first (foreign key constraints)
+      await pool.request()
+        .input('ingestionId', docId)
+        .query('DELETE FROM TF_ingestion_fields WHERE ingestion_id = @ingestionId');
+      
+      await pool.request()
+        .input('ingestionId', docId)
+        .query('DELETE FROM TF_ingestion_TXT WHERE ingestion_id = @ingestionId');
+        
+      await pool.request()
+        .input('ingestionId', docId)
+        .query('DELETE FROM TF_ingestion_Pdf WHERE ingestion_id = @ingestionId');
+      
+      // Delete main record
+      const result = await pool.request()
+        .input('ingestionId', docId)
+        .query('DELETE FROM TF_ingestion WHERE ingestion_id = @ingestionId');
+      
+      await pool.close();
+      
+      if (result.rowsAffected[0] > 0) {
+        console.log(`Successfully deleted document ${docId}`);
+        res.json({ success: true, message: 'Document deleted successfully' });
+      } else {
+        res.status(404).json({ success: false, message: 'Document not found' });
+      }
+      
+    } catch (error) {
+      console.error('Delete document error:', error);
+      res.status(500).json({ success: false, message: 'Failed to delete document' });
+    }
+  });
+
   // Status endpoint for form detection
   app.get('/api/form-detection/status/:docId', async (req, res) => {
     try {
