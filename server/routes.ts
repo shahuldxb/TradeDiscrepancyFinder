@@ -79,8 +79,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const docId = Date.now().toString();
       
-      // Use Efficient OCR Analyzer for fast scanned document processing
-      const pythonProcess = spawn('python3', ['server/efficientOCRAnalyzer.py', req.file.path], {
+      // Use Final Document Analyzer optimized for 17 document sets
+      const pythonProcess = spawn('python3', ['server/finalDocumentAnalyzer.py', req.file.path], {
         stdio: ['pipe', 'pipe', 'pipe'],
         timeout: 60000  // Increased timeout for 38-page processing
       });
