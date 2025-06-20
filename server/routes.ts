@@ -465,6 +465,14 @@ async function loadFromAzureDatabase() {
               const formsData = splitterResult.detected_forms || [];
               console.log(`✅ Real Form Splitter separated document into ${formsData.length} individual forms`);
               
+              // Save to Azure SQL database first
+              try {
+                await saveToAzureDatabase(docId, req.file, splitterResult, formsData);
+                console.log(`✅ Document saved to Azure SQL: ${req.file?.originalname}`);
+              } catch (saveError) {
+                console.error('Azure SQL save error:', saveError);
+              }
+
               // Return ONLY Real Form Splitter results - NO other processing
               return res.json({
                 docId: docId,
@@ -475,13 +483,7 @@ async function loadFromAzureDatabase() {
                 message: `Successfully split document into ${formsData.length} individual forms`
               });
               
-              // Save to Azure SQL database
-              try {
-                await saveToAzureDatabase(docId, req.file, splitterResult, formsData);
-                console.log(`✓ Document saved to Azure SQL: ${req.file?.originalname}`);
-              } catch (saveError) {
-                console.error('Azure SQL save error:', saveError);
-              }
+
             } catch (parseError) {
               reject(parseError);
             }

@@ -64,6 +64,10 @@ def extract_and_split_forms(pdf_path):
             # Clean and format the extracted text
             text = text.strip() if text.strip() else f"Page {page_num + 1} - OCR processing completed"
             
+            # Skip if text is too short
+            if len(text) < 20:
+                continue
+            
             # Classify this specific page
             doc_type, confidence = classify_document_content(text)
             

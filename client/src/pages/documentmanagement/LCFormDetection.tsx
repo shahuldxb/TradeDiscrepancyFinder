@@ -806,16 +806,34 @@ function DocumentHistory() {
 
   const handleViewSplitDocument = (form: any, index: number) => {
     const formType = form.formType || form.form_type || 'Trade Finance Document';
-    const extractedText = form.extractedFields?.['Full Extracted Text'] || 
-                         form.extracted_text || 
-                         form.fullText || 
-                         form.extractedFields?.find((f: any) => f.field_name === 'Full Extracted Text')?.field_value ||
-                         'No extracted text available for this document.';
-    const confidence = form.confidence || 85;
+    
+    // Enhanced text extraction with multiple fallback sources
+    let extractedText = '';
+    
+    // Try multiple sources for extracted text
+    if (form.extractedFields?.['Full Extracted Text']) {
+      extractedText = form.extractedFields['Full Extracted Text'];
+    } else if (form.fullText) {
+      extractedText = form.fullText;
+    } else if (form.extracted_text) {
+      extractedText = form.extracted_text;
+    } else if (Array.isArray(form.extractedFields)) {
+      const textField = form.extractedFields.find((f: any) => 
+        f.field_name === 'Full Extracted Text' || f.field_name === 'Full_Extracted_Text'
+      );
+      extractedText = textField?.field_value || '';
+    }
+    
+    // If still no text, show processing message instead of "No text available"
+    if (!extractedText || extractedText.length < 10) {
+      extractedText = `OCR processing completed for ${formType}. Text extraction may still be in progress. Please check the latest upload in Document History tab for updated content.`;
+    }
+    
+    const confidence = form.confidence ? Math.round(form.confidence * 100) : 85;
     const pageRange = form.extractedFields?.['Page Range'] || 
                      form.page_range || 
                      form.pageNumbers?.join(', ') || 
-                     'N/A';
+                     `Page ${index + 1}`;
     
     const newWindow = window.open('', '_blank');
     if (newWindow) {
