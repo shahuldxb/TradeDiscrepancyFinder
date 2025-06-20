@@ -433,10 +433,10 @@ async function loadFromAzureDatabase() {
         
         console.log(`📋 Processing: ${req.file?.originalname} | LC Detection: ${isLCDocument}`);
         
-        // Use Real Form Splitter for proper document separation
-        const scriptPath = path.join(__dirname, 'realFormSplitter.py');
-        console.log(`🚀 Using Real Form Splitter: ${scriptPath}`);
-        console.log(`📋 Processing with NEW form splitter to separate individual documents`);
+        // Use Intelligent Form Splitter for document type-based grouping
+        const scriptPath = path.join(__dirname, 'intelligentFormSplitter.py');
+        console.log(`🚀 Using Intelligent Form Splitter: ${scriptPath}`);
+        console.log(`📋 Processing with INTELLIGENT form splitter - groups by document type, not page-by-page`);
         const pythonProcess = spawn('python3', [scriptPath, filePath]);
         
         let output = '';
@@ -451,19 +451,23 @@ async function loadFromAzureDatabase() {
         });
 
         pythonProcess.on('close', async (code: number) => {
+          console.log(`Intelligent Form Splitter process exited with code: ${code}`);
+          console.log(`Output received: ${output.substring(0, 1000)}...`);
+          console.log(`Error output: ${errorOutput}`);
+          
           if (code === 0) {
             try {
-              console.log(`Raw Form Splitter output: ${output.substring(0, 500)}...`);
               const splitterResult = JSON.parse(output);
+              console.log('Parsed intelligent splitter result:', JSON.stringify(splitterResult, null, 2));
               
               if (splitterResult.error || splitterResult.status !== 'success') {
-                reject(new Error(splitterResult.error || 'Form splitting failed'));
+                reject(new Error(splitterResult.error || 'Intelligent form splitting failed'));
                 return;
               }
               
-              // Extract individual forms from Real Form Splitter - NO GROUPING
+              // Extract document groups from Intelligent Form Splitter - GROUPED BY DOCUMENT TYPE
               const formsData = splitterResult.detected_forms || [];
-              console.log(`✅ Real Form Splitter separated document into ${formsData.length} individual forms`);
+              console.log(`✅ Intelligent Form Splitter grouped ${splitterResult.total_pages} pages into ${formsData.length} document types`);
               
               // Save to Azure SQL database first
               try {
@@ -473,14 +477,14 @@ async function loadFromAzureDatabase() {
                 console.error('Azure SQL save error:', saveError);
               }
 
-              // Return ONLY Real Form Splitter results - NO other processing
+              // Return ONLY Intelligent Form Splitter results - GROUPED BY DOCUMENT TYPE
               return res.json({
                 docId: docId,
                 detectedForms: formsData,
                 totalForms: formsData.length,
-                processingMethod: 'Real Form Splitter',
+                processingMethod: 'Intelligent Document Grouping',
                 status: 'completed',
-                message: `Successfully split document into ${formsData.length} individual forms`
+                message: `Successfully grouped document into ${formsData.length} document types`
               });
               
 
