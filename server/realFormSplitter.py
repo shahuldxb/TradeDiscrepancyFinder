@@ -63,62 +63,67 @@ def extract_and_split_forms(pdf_path):
                         pil_image = Image.open(io.BytesIO(img_data))
                         text = pytesseract.image_to_string(pil_image, config='--psm 6')
                     except Exception as ocr_error:
-                        print(f"OCR failed for page {page_num + 1}: {str(ocr_error)}", file=sys.stderr)
                         text = f"Page {page_num + 1} - OCR processing failed"
                 
-            # Clean and format the extracted text
-            text = text.strip() if text.strip() else f"Page {page_num + 1} - OCR processing completed"
-            
-            # Skip if text is too short
-            if len(text) < 20:
-                continue
-            
-            # Classify this specific page
-            doc_type, confidence = classify_document_content(text)
-            
-            # Create individual form entry
-            form_data = {
-                'id': f"form_{page_num + 1}_{int(datetime.now().timestamp() * 1000)}",
-                'form_type': doc_type,
-                'formType': doc_type,
-                'confidence': confidence,
-                'page_number': page_num + 1,
-                'page_numbers': [page_num + 1],
-                'pages': [page_num + 1],
-                'page_range': f"Page {page_num + 1}",
-                'extracted_text': text.strip(),
-                'text_length': len(text.strip()),
-                'extractedFields': {
-                    'Full Extracted Text': text.strip(),
-                    'Document Classification': doc_type,
-                    'Processing Statistics': f"{len(text.strip())} characters extracted from page {page_num + 1}",
-                    'Page Number': str(page_num + 1)
-                },
-                'fullText': text.strip(),
-                'processingMethod': 'Direct OCR Text Extraction',
-                'status': 'completed'
-            }
-            
+                # Clean and format the extracted text
+                text = text.strip() if text.strip() else f"Page {page_num + 1} - OCR processing completed"
+                
+                # Skip if text is too short
+                if len(text) < 20:
+                    continue
+                
+                # Classify this specific page
+                doc_type, confidence = classify_document_content(text)
+                
+                # Create individual form entry
+                form_data = {
+                    'id': f"form_{page_num + 1}_{int(datetime.now().timestamp() * 1000)}",
+                    'form_type': doc_type,
+                    'formType': doc_type,
+                    'confidence': confidence,
+                    'page_number': page_num + 1,
+                    'page_numbers': [page_num + 1],
+                    'pages': [page_num + 1],
+                    'page_range': f"Page {page_num + 1}",
+                    'extracted_text': text.strip(),
+                    'text_length': len(text.strip()),
+                    'extractedFields': {
+                        'Full Extracted Text': text.strip(),
+                        'Document Classification': doc_type,
+                        'Processing Statistics': f"{len(text.strip())} characters extracted from page {page_num + 1}",
+                        'Page Number': str(page_num + 1)
+                    },
+                    'fullText': text.strip(),
+                    'processingMethod': 'Direct OCR Text Extraction',
+                    'status': 'completed'
+                }
+                
                 individual_forms.append(form_data)
+                
             except Exception as page_error:
-                print(f"Error processing page {page_num + 1}: {str(page_error)}", file=sys.stderr)
                 continue
             
         doc.close()
         
+        if not individual_forms:
+            return {
+                'error': 'No forms could be processed from the PDF',
+                'forms': [],
+                'processing_method': 'Failed Processing',
+                'document_count': 0
+            }
+        
         return {
-            'status': 'success',
-            'total_pages': len(individual_forms),
-            'detected_forms': individual_forms,
+            'forms': individual_forms,
             'processing_method': 'Individual Page Classification',
             'document_count': len(individual_forms)
         }
-        
     except Exception as e:
         return {
-            'status': 'error',
-            'error': str(e),
-            'detected_forms': []
+            'error': f'Error processing PDF: {str(e)}',
+            'forms': [],
+            'processing_method': 'Failed Processing',
+            'document_count': 0
         }
 
 def main():
