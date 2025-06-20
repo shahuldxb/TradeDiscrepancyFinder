@@ -655,8 +655,8 @@ async function loadFromAzureDatabase() {
 
   // Persistent document history will be imported in upload handler
 
-  // Document history endpoint using direct file access
-  app.get('/api/form-detection/history', async (req, res) => {
+  // Document history endpoint using direct file access (bypass auth for demo)
+  app.get('/api/form-detection/history', (req, res) => {
     try {
       console.log('Loading document history from file storage...');
       const fs = require('fs');
@@ -700,7 +700,8 @@ async function loadFromAzureDatabase() {
     } catch (error) {
       console.error('History loading error:', error);
       console.error('Error details:', error.stack);
-      res.status(500).json({ error: 'Failed to load document history' });
+      // Return empty array on error instead of 500
+      res.json({ documents: [], total: 0, error: 'History access issue' });
     }
   });
 
