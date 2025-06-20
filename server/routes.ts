@@ -584,9 +584,9 @@ async function loadFromAzureDatabase() {
                   }))
                 };
                 
-                // Save to Azure SQL database
+                // Save to existing Azure SQL database using current function
                 console.log('Saving document to Azure SQL database...');
-                await saveDocumentToAzureDatabase(newDocument);
+                await saveToAzureDatabase(filePath, formsData);
                 console.log(`✓ Document saved to Azure SQL database: ${newDocument.filename}`);
                 
                 console.log(`✓ Document processed: ${req.file?.originalname} (${ocrResult.total_pages} pages, ${formsData.length} forms)`);
@@ -629,7 +629,7 @@ async function loadFromAzureDatabase() {
   app.get('/api/form-detection/history', async (req, res) => {
     try {
       console.log('Loading document history from Azure SQL database...');
-      const documents = await loadDocumentsFromAzureDatabase();
+      const documents = await loadFromAzureDatabase();
       console.log(`✓ Successfully loaded ${documents.length} documents from Azure SQL`);
       
       console.log(`Current document count: ${documents.length}`);
