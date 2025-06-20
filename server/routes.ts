@@ -668,6 +668,9 @@ async function loadFromAzureDatabase() {
       if (fs.existsSync(historyFile)) {
         const data = fs.readFileSync(historyFile, 'utf8');
         documents = JSON.parse(data);
+        console.log(`✓ Successfully loaded ${documents.length} documents from history file`);
+      } else {
+        console.log(`⚠ History file not found: ${historyFile}`);
       }
       
       console.log(`Current document count: ${documents.length}`);
