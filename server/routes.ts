@@ -24,7 +24,7 @@ import fs from 'fs';
 import { spawn } from 'child_process';
 import { nanoid } from 'nanoid';
 import sql from 'mssql';
-import { azureConfig, connectToAzure, saveToAzureDatabase } from './azureSqlConnection';
+import { connectToAzure, saveToAzureDatabase } from './azureSqlConnection';
 
 // In-memory storage for processed documents
 const processedDocuments: any[] = [];
@@ -579,6 +579,106 @@ async function loadFromAzureDatabase() {
     } catch (error) {
       console.error('Azure SQL history error:', error.message);
       res.json({ documents: [], total: 0, error: error.message });
+    }
+  });
+
+  // Bulk delete endpoint - keep only the latest document
+  app.delete('/api/form-detection/cleanup-old', async (req, res) => {
+    try {
+      console.log('🧹 Starting cleanup of old documents...');
+      
+      const azureConfig = {
+        user: process.env.AZURE_SQL_USER || 'shahulmi',
+        password: process.env.AZURE_SQL_PASSWORD,
+        server: process.env.AZURE_SQL_SERVER || 'shahulmi.database.windows.net',
+        database: process.env.AZURE_SQL_DATABASE || 'tf_genie',
+        options: {
+          encrypt: true,
+          trustServerCertificate: false,
+          enableArithAbort: true,
+          connectionTimeout: 30000,
+          requestTimeout: 30000
+        }
+      };
+      
+      const pool = new sql.ConnectionPool(azureConfig);
+      await pool.connect();
+      
+      // Get the latest document ID (most recent upload)
+      const latestDocQuery = `
+        SELECT TOP 1 doc_id, filename, upload_date 
+        FROM TF_ingestion 
+        ORDER BY upload_date DESC
+      `;
+      
+      const latestResult = await pool.request().query(latestDocQuery);
+      
+      if (latestResult.recordset.length === 0) {
+        await pool.close();
+        return res.json({ 
+          success: false, 
+          message: 'No documents found in database',
+          remaining: 0 
+        });
+      }
+
+      const latestDoc = latestResult.recordset[0];
+      console.log(`📄 Latest document: ${latestDoc.filename} (ID: ${latestDoc.doc_id})`);
+
+      // Count total documents before cleanup
+      const countQuery = 'SELECT COUNT(*) as total FROM TF_ingestion';
+      const countResult = await pool.request().query(countQuery);
+      const totalDocs = countResult.recordset[0].total;
+      
+      console.log(`📊 Total documents before cleanup: ${totalDocs}`);
+
+      if (totalDocs <= 1) {
+        await pool.close();
+        return res.json({ 
+          success: true, 
+          message: 'Only one document exists, no cleanup needed',
+          remaining: 1,
+          keptDocument: latestDoc.filename
+        });
+      }
+
+      // Delete all documents except the latest one
+      const deleteQuery = `
+        DELETE FROM TF_ingestion 
+        WHERE doc_id != @latestDocId
+      `;
+      
+      console.log('🗑️ Deleting old documents...');
+      const deleteRequest = pool.request();
+      deleteRequest.input('latestDocId', sql.VarChar(50), latestDoc.doc_id);
+      const deleteResult = await deleteRequest.query(deleteQuery);
+      
+      const deletedCount = deleteResult.rowsAffected[0];
+      console.log(`✅ Deleted ${deletedCount} old documents`);
+      console.log(`📄 Kept latest document: ${latestDoc.filename}`);
+      
+      // Verify cleanup
+      const finalCountResult = await pool.request().query(countQuery);
+      const remainingDocs = finalCountResult.recordset[0].total;
+      
+      await pool.close();
+      
+      res.json({
+        success: true,
+        message: `Successfully deleted ${deletedCount} old documents`,
+        deletedCount,
+        remaining: remainingDocs,
+        keptDocument: latestDoc.filename,
+        keptDocumentId: latestDoc.doc_id
+      });
+
+    } catch (error) {
+      console.error('❌ Cleanup error:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: error.message,
+        message: 'Failed to cleanup old documents'
+      });
     }
   });
 
