@@ -615,6 +615,8 @@ async function loadFromAzureDatabase() {
                 documentHistory.unshift(newDocument);
                 fs.writeFileSync(historyFile, JSON.stringify(documentHistory, null, 2));
                 console.log(`✓ Document saved to file storage: ${newDocument.filename}`);
+                console.log(`✓ Total documents in storage: ${documentHistory.length}`);
+                console.log(`✓ Document history file updated: ${historyFile}`);
                 
                 console.log(`✓ Document processed: ${req.file?.originalname} (${ocrResult.total_pages} pages, ${formsData.length} forms)`);
                 console.log(`Document ID: ${newDocument.id}, Extracted text length: ${fullExtractedText.length}`);
@@ -664,10 +666,13 @@ async function loadFromAzureDatabase() {
         const historyContent = fs.readFileSync(historyFile, 'utf8');
         documents = JSON.parse(historyContent);
         console.log(`Found ${documents.length} documents in file storage`);
+        console.log(`First document filename: ${documents[0]?.filename || 'N/A'}`);
       } else {
         console.log('No history file found, returning empty array');
+        console.log(`Expected file path: ${historyFile}`);
       }
       
+      res.setHeader('Cache-Control', 'no-cache');
       res.json({ documents, total: documents.length });
       
     } catch (error) {

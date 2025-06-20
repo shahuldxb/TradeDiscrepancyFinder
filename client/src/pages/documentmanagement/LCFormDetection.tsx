@@ -716,6 +716,9 @@ function DocumentHistory() {
     );
   }
 
+  console.log('DocumentHistory render - documents length:', documents.length);
+  console.log('DocumentHistory render - documents data:', documents);
+
   if (documents.length === 0) {
     return (
       <div className="text-center py-8">
@@ -723,6 +726,9 @@ function DocumentHistory() {
         <p className="mt-2 text-lg font-medium text-gray-900">No Documents Found</p>
         <p className="text-sm text-gray-500">
           Upload documents to see them appear in your history
+        </p>
+        <p className="text-xs text-gray-400 mt-2">
+          Debug: Documents array length = {documents.length}
         </p>
       </div>
     );
@@ -810,8 +816,11 @@ function DocumentHistory() {
 
   return (
     <div className="space-y-4">
+      <div className="text-sm text-blue-600 mb-4">
+        Found {documents.length} document(s) in history
+      </div>
       {documents.map((doc, index) => (
-        <Card key={index} className="border-l-4 border-l-green-600">
+        <Card key={doc.id || index} className="border-l-4 border-l-green-600">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg">{doc.filename}</CardTitle>
