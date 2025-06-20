@@ -823,10 +823,95 @@ function DocumentHistory() {
                 Delete
               </Button>
               
-              {/* Split documents button hidden per user request */}
+              {doc.detectedForms && doc.detectedForms.length > 1 && (
+                <Button 
+                  size="sm" 
+                  variant="ghost" 
+                  onClick={() => toggleExpanded(doc.id)}
+                  className="text-blue-600 hover:text-blue-800"
+                >
+                  {expandedDocs.has(doc.id) ? (
+                    <ChevronDown className="h-4 w-4 mr-1" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 mr-1" />
+                  )}
+                  Show Split Documents ({doc.detectedForms.length})
+                </Button>
+              )}
             </div>
 
-            {/* Split Documents Section - Hidden per user request */}
+            {/* Split Documents Section */}
+            {doc.detectedForms && doc.detectedForms.length > 1 && expandedDocs.has(doc.id) && (
+              <div className="mt-4 border-t pt-4">
+                <h4 className="text-sm font-medium text-gray-900 mb-3">Split Documents:</h4>
+                <div className="space-y-3">
+                  {doc.detectedForms.map((form: any, formIndex: number) => (
+                    <div key={form.id || formIndex} className="bg-gray-50 p-3 rounded-lg border">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Badge variant="outline" className="text-xs">
+                              {form.formType || form.form_type}
+                            </Badge>
+                            <span className="text-xs text-gray-600">
+                              {form.page_range || `Page ${formIndex + 1}`}
+                            </span>
+                            <span className="text-xs text-green-600 font-medium">
+                              {form.confidence || 85}% confidence
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-700 line-clamp-2">
+                            {form.extracted_text?.substring(0, 150) || 
+                             'No content available'}
+                            {form.extracted_text?.length > 150 && '...'}
+                          </p>
+                        </div>
+                        
+                        <div className="flex gap-1 ml-3">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 px-2 text-xs"
+                            onClick={() => handleViewSplitDocument(form, formIndex)}
+                          >
+                            <Eye className="h-3 w-3 mr-1" />
+                            View
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 px-2 text-xs"
+                            onClick={() => {
+                              const splitData = {
+                                formId: form.id,
+                                formType: form.formType || form.form_type,
+                                confidence: form.confidence,
+                                pageRange: form.page_range,
+                                extractedText: form.extracted_text,
+                                exportDate: new Date().toISOString()
+                              };
+                              
+                              const jsonBlob = new Blob([JSON.stringify(splitData, null, 2)], { type: 'application/json' });
+                              const url = URL.createObjectURL(jsonBlob);
+                              const link = document.createElement('a');
+                              link.href = url;
+                              link.download = `${(form.formType || form.form_type || 'split_document').replace(/\s+/g, '_')}_${Date.now()}.json`;
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                              URL.revokeObjectURL(url);
+                            }}
+                          >
+                            <Download className="h-3 w-3 mr-1" />
+                            Export
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       ))}

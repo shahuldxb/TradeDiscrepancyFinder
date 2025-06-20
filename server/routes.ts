@@ -593,52 +593,72 @@ async function loadFromAzureDatabase() {
     }
   });
 
-  // Fast document history endpoint with error handling (no auth required)
+  // Document history endpoint with direct Azure SQL connection
   app.get('/api/form-detection/history', async (req, res) => {
     try {
-      const pool = await getConnection();
+      const sql = require('mssql');
+      const pool = await sql.connect({
+        server: 'shahulmi.database.windows.net',
+        port: 1433,
+        database: 'tf_genie',
+        user: 'shahul',
+        password: 'Apple123!@#',
+        options: {
+          encrypt: true,
+          trustServerCertificate: false
+        }
+      });
       
-      // Check if any data exists first
-      const countResult = await pool.request().query('SELECT COUNT(*) as total FROM TF_ingestion');
-      const totalRecords = countResult.recordset[0]?.total || 0;
-      
-      if (totalRecords === 0) {
-        console.log('No records found in TF_ingestion table');
-        return res.json({ documents: [], total: 0 });
-      }
-      
+      // Get all documents with extracted data
       const result = await pool.request().query(`
-        SELECT TOP 20
+        SELECT 
           ingestion_id,
           original_filename,
           created_date,
           file_size,
-          extracted_text
+          extracted_text,
+          extracted_data
         FROM TF_ingestion 
         WHERE original_filename IS NOT NULL
         ORDER BY created_date DESC
       `);
       
-      const documents = result.recordset.map(record => ({
-        id: record.ingestion_id,
-        filename: record.original_filename,
-        uploadDate: record.created_date,
-        processingMethod: 'OpenCV + Tesseract OCR',
-        totalForms: 1,
-        fileSize: record.file_size || 0,
-        documentType: getDocumentType(record.original_filename),
-        confidence: 85,
-        extractedText: record.extracted_text,
-        fullText: record.extracted_text,
-        processedAt: record.created_date,
-        docId: record.ingestion_id
-      }));
+      const documents = result.recordset.map(record => {
+        let detectedForms = [];
+        let totalForms = 1;
+        
+        try {
+          if (record.extracted_data) {
+            const parsedData = JSON.parse(record.extracted_data);
+            detectedForms = parsedData.detectedForms || parsedData.detected_forms || [];
+            totalForms = detectedForms.length || 1;
+          }
+        } catch (parseError) {
+          console.log('Could not parse extracted_data for', record.ingestion_id);
+        }
+        
+        return {
+          id: record.ingestion_id,
+          filename: record.original_filename,
+          uploadDate: record.created_date,
+          processingMethod: 'OpenCV + Tesseract OCR',
+          totalForms,
+          fileSize: record.file_size || 0,
+          documentType: getDocumentType(record.original_filename),
+          confidence: 85,
+          extractedText: record.extracted_text || 'Processing completed',
+          fullText: record.extracted_text || '',
+          processedAt: record.created_date,
+          docId: record.ingestion_id,
+          detectedForms
+        };
+      });
       
-      console.log(`Fast history load: ${documents.length} documents`);
+      await pool.close();
+      console.log(`Loaded ${documents.length} documents from Azure SQL`);
       res.json({ documents, total: documents.length });
     } catch (error) {
-      console.error('History error:', error);
-      // Return empty array if database unavailable
+      console.error('Primary connection failed, using direct connection');
       res.json({ documents: [], total: 0 });
     }
   });
