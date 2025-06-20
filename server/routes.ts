@@ -584,43 +584,13 @@ async function loadFromAzureDatabase() {
                   }))
                 };
                 
-                // Save to simple array storage for immediate testing
-                console.log('Creating document storage manually...');
-                const fs = require('fs');
-                const path = require('path');
+                // Save to Azure SQL database
+                console.log('Saving document to Azure SQL database...');
+                await saveDocumentToAzureDatabase(newDocument);
+                console.log(`✓ Document saved to Azure SQL database: ${newDocument.filename}`);
                 
-                const historyFile = path.join(__dirname, '../form_outputs/document_history.json');
-                const historyDir = path.dirname(historyFile);
-                
-                // Ensure directory exists
-                if (!fs.existsSync(historyDir)) {
-                  fs.mkdirSync(historyDir, { recursive: true });
-                }
-                
-                // Load existing documents
-                let existingDocuments = [];
-                try {
-                  if (fs.existsSync(historyFile)) {
-                    const data = fs.readFileSync(historyFile, 'utf8');
-                    existingDocuments = JSON.parse(data);
-                  }
-                } catch (error) {
-                  console.log('No existing history file, creating new one');
-                  existingDocuments = [];
-                }
-                
-                // Add new document to the beginning
-                existingDocuments.unshift(newDocument);
-                
-                // Save updated documents
-                fs.writeFileSync(historyFile, JSON.stringify(existingDocuments, null, 2));
-                
-                console.log(`✓ Document saved manually to storage file: ${existingDocuments.length} total documents`);
-                
-                console.log(`✓ Document saved to file storage: ${req.file?.originalname} (${ocrResult.total_pages} pages, ${formsData.length} forms)`);
-                console.log(`Total documents in history: ${existingDocuments.length}`);
+                console.log(`✓ Document processed: ${req.file?.originalname} (${ocrResult.total_pages} pages, ${formsData.length} forms)`);
                 console.log(`Document ID: ${newDocument.id}, Extracted text length: ${fullExtractedText.length}`);
-                console.log(`Storage file path: ${historyFile}`);
                 console.log(`Full text length: ${fullExtractedText.length} characters`);
                 console.log(`Document preview: ${newDocument.extractedText.substring(0, 100)}...`);
                 console.log(`Document preview: ${newDocument.extractedText.substring(0, 100)}...`);
@@ -655,23 +625,12 @@ async function loadFromAzureDatabase() {
 
   // Persistent document history will be imported in upload handler
 
-  // Document history endpoint using direct file access (bypass auth for demo)
-  app.get('/api/form-detection/history', (req, res) => {
+  // Document history endpoint using Azure SQL database
+  app.get('/api/form-detection/history', async (req, res) => {
     try {
-      console.log('Loading document history from file storage...');
-      const fs = require('fs');
-      const path = require('path');
-      
-      const historyFile = path.join(__dirname, '../form_outputs/document_history.json');
-      let documents = [];
-      
-      if (fs.existsSync(historyFile)) {
-        const data = fs.readFileSync(historyFile, 'utf8');
-        documents = JSON.parse(data);
-        console.log(`✓ Successfully loaded ${documents.length} documents from history file`);
-      } else {
-        console.log(`⚠ History file not found: ${historyFile}`);
-      }
+      console.log('Loading document history from Azure SQL database...');
+      const documents = await loadDocumentsFromAzureDatabase();
+      console.log(`✓ Successfully loaded ${documents.length} documents from Azure SQL`);
       
       console.log(`Current document count: ${documents.length}`);
       
