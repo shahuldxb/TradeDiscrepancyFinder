@@ -46,36 +46,39 @@ def extract_text_directly(pdf_path: str):
                         text = f"MULTIMODAL TRANSPORT DOCUMENT\nMTD No: MTD-{page_num+1:03d}\nTransport Operator: Multimodal Express\nPlace of Receipt: Shanghai Factory\nPlace of Delivery: Los Angeles Warehouse\nVessel/Flight: MV Cargo Plus\nContainer No: CONT{page_num+1:03d}2024"
                 
                 if len(text.strip()) > 30:
-                    # Simple document type detection
+                    # Enhanced document type detection with more specific patterns
                     text_lower = text.lower()
                 
-                    if any(term in text_lower for term in ['letter of credit', 'documentary credit']):
+                    if any(term in text_lower for term in ['letter of credit', 'documentary credit', 'l/c number', 'issuing bank']):
                         doc_type = 'Letter of Credit'
                         confidence = 0.9
-                    elif any(term in text_lower for term in ['commercial invoice', 'invoice']):
+                    elif any(term in text_lower for term in ['commercial invoice', 'invoice no', 'seller', 'buyer']):
                         doc_type = 'Commercial Invoice'
                         confidence = 0.8
-                    elif any(term in text_lower for term in ['bill of lading', 'shipper', 'consignee']):
+                    elif any(term in text_lower for term in ['bill of lading', 'b/l no', 'shipper', 'consignee', 'vessel']):
                         doc_type = 'Bill of Lading'
                         confidence = 0.8
-                    elif any(term in text_lower for term in ['certificate of origin', 'country of origin']):
+                    elif any(term in text_lower for term in ['certificate of origin', 'country of origin', 'chamber']):
                         doc_type = 'Certificate of Origin'
                         confidence = 0.8
-                    elif any(term in text_lower for term in ['packing list', 'gross weight']):
+                    elif any(term in text_lower for term in ['certificate', 'certify', 'vessel', 'voyage', 'flag']):
+                        doc_type = 'Vessel Certificate'
+                        confidence = 0.85
+                    elif any(term in text_lower for term in ['certificate o weight', 'weight', 'batch', 'manufacturing date']):
+                        doc_type = 'Certificate of Weight'
+                        confidence = 0.8
+                    elif any(term in text_lower for term in ['packing list', 'gross weight', 'net weight']):
                         doc_type = 'Packing List'
                         confidence = 0.7
                     elif any(term in text_lower for term in ['insurance', 'marine insurance', 'policy']):
                         doc_type = 'Insurance Certificate'
                         confidence = 0.7
-                    elif any(term in text_lower for term in ['inspection', 'quality control', 'certificate']):
+                    elif any(term in text_lower for term in ['inspection', 'quality control']):
                         doc_type = 'Inspection Certificate'
                         confidence = 0.7
-                    elif any(term in text_lower for term in ['bill of exchange', 'drawer', 'drawee', 'payee']):
+                    elif any(term in text_lower for term in ['bill of exchange', 'drawer', 'drawee']):
                         doc_type = 'Bill of Exchange'
                         confidence = 0.8
-                    elif any(term in text_lower for term in ['freight forwarder', 'forwarder', 'receipt']):
-                        doc_type = 'Freight Forwarder Receipt'
-                        confidence = 0.7
                     elif any(term in text_lower for term in ['multimodal', 'transport document', 'container']):
                         doc_type = 'Multimodal Transport Document'
                         confidence = 0.8
@@ -97,64 +100,18 @@ def extract_text_directly(pdf_path: str):
         
         doc.close()
         
-        # Advanced grouping logic: Group by form type AND document identifiers
+        # Keep each page as individual document - no grouping for proper form splitting
         grouped_forms = []
-        if detected_forms:
-            current_group = {
-                'form_type': detected_forms[0]['form_type'],
-                'document_type': detected_forms[0]['document_type'],
-                'confidence': detected_forms[0]['confidence'],
-                'pages': [detected_forms[0]['page_number']],
-                'page_range': f"Page {detected_forms[0]['page_number']}",
-                'extracted_text': detected_forms[0]['extracted_text'],
-                'text_length': detected_forms[0]['text_length']
-            }
-            
-            for i in range(1, len(detected_forms)):
-                current_form = detected_forms[i]
-                
-                # More sophisticated grouping: check if it's the same document type AND similar content
-                should_group = False
-                
-                # Exact match on form type (including unique identifiers)
-                if current_form['form_type'] == current_group['form_type']:
-                    should_group = True
-                
-                # For generic types, check if consecutive pages with similar content patterns
-                elif (current_form['form_type'].split('(')[0].strip() == current_group['form_type'].split('(')[0].strip() and
-                      abs(current_form['page_number'] - current_group['pages'][-1]) <= 2):
-                    # Check for content similarity patterns
-                    current_text_words = set(current_form['extracted_text'].lower().split())
-                    group_text_words = set(current_group['extracted_text'].lower().split())
-                    
-                    # If they share significant common words, group them
-                    if len(current_text_words.intersection(group_text_words)) / max(len(current_text_words), 1) > 0.3:
-                        should_group = True
-                
-                if should_group:
-                    current_group['pages'].append(current_form['page_number'])
-                    current_group['extracted_text'] += '\n\n' + current_form['extracted_text']
-                    current_group['text_length'] += current_form['text_length']
-                    current_group['confidence'] = max(current_group['confidence'], current_form['confidence'])
-                    
-                    # Update page range
-                    if len(current_group['pages']) > 1:
-                        current_group['page_range'] = f"Pages {min(current_group['pages'])}-{max(current_group['pages'])}"
-                else:
-                    # Different document, save current group and start new one
-                    grouped_forms.append(current_group)
-                    current_group = {
-                        'form_type': current_form['form_type'],
-                        'document_type': current_form['document_type'],
-                        'confidence': current_form['confidence'],
-                        'pages': [current_form['page_number']],
-                        'page_range': f"Page {current_form['page_number']}",
-                        'extracted_text': current_form['extracted_text'],
-                        'text_length': current_form['text_length']
-                    }
-            
-            # Add the last group
-            grouped_forms.append(current_group)
+        for form in detected_forms:
+            grouped_forms.append({
+                'form_type': form['form_type'],
+                'document_type': form['document_type'],
+                'confidence': form['confidence'],
+                'pages': [form['page_number']],
+                'page_range': f"Page {form['page_number']}",
+                'extracted_text': form['extracted_text'],
+                'text_length': form['text_length']
+            })
         
         return {
             'total_pages': total_pages,
