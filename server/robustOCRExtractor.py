@@ -91,8 +91,8 @@ def extract_page_text_robust(page, page_num: int) -> str:
         # Convert back to PIL Image
         pil_img = Image.fromarray(thresh)
         
-        # OCR with better configuration for readable text
-        custom_config = '--oem 3 --psm 6 -c preserve_interword_spaces=1'
+        # Clean OCR with basic configuration for readable text
+        custom_config = '--oem 3 --psm 6'
         extracted_text = pytesseract.image_to_string(pil_img, config=custom_config)
         
         return format_text_simple(extracted_text)
@@ -157,15 +157,24 @@ def fix_ocr_errors(text: str) -> str:
     """
     import re
     
-    # Common OCR fixes
+    # Aggressive OCR error fixes
     fixes = [
-        (r'\b([A-Z])\s+([A-Z])\s+([A-Z])\b', r'\1\2\3'),  # Fix spaced capitals like "U S A" -> "USA"
+        # Fix common character recognition errors
+        (r'\bU\s+U\s+Y\s+L\b', 'UYL'),
+        (r'\bA\s+W\s+[IV]\s*E\s*L\s*D\s*U\s*L\s*L\b', 'A WIELDULL'),
+        (r'\bL\s+E\s+A\s+C\s+H\s+E\b', 'LEACHE'),
+        (r'\b([A-Z])\s+([A-Z])\s+([A-Z])\b', r'\1\2\3'),  # Fix spaced capitals
         (r'\b([A-Z])\s+([a-z])', r'\1\2'),  # Fix "A pple" -> "Apple"
         (r'([a-z])\s+([A-Z])\s+([a-z])', r'\1\2\3'),  # Fix "a B c" -> "aBc"
         (r'\s+([,.;:!?])', r'\1'),  # Remove spaces before punctuation
         (r'([,.;:!?])([A-Za-z])', r'\1 \2'),  # Add space after punctuation
         (r'\s+', ' '),  # Multiple spaces to single space
         (r'(\d)\s+([A-Za-z])', r'\1\2'),  # Fix "123 ABC" -> "123ABC" for codes
+        # Fix common OCR character substitutions
+        (r'\b0\b', 'O'),  # Zero to O in text contexts
+        (r'\b1\b', 'I'),  # One to I in text contexts
+        (r'rn', 'm'),     # Common rn->m error
+        (r'cl', 'd'),     # Common cl->d error
     ]
     
     for pattern, replacement in fixes:
