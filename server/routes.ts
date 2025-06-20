@@ -584,10 +584,20 @@ async function loadFromAzureDatabase() {
                   }))
                 };
                 
-                // Save to existing Azure SQL database using current function
+                // Save to Azure SQL database with fallback for demo
                 console.log('Saving document to Azure SQL database...');
-                await saveToAzureDatabase(filePath, formsData);
-                console.log(`✓ Document saved to Azure SQL database: ${newDocument.filename}`);
+                try {
+                  await saveToAzureDatabase(filePath, formsData);
+                  console.log(`✓ Document saved to Azure SQL database: ${newDocument.filename}`);
+                } catch (azureError) {
+                  console.log('Azure SQL unavailable, saving to memory for demo...');
+                  // Initialize global storage if needed
+                  if (!global.processedDocuments) {
+                    global.processedDocuments = [];
+                  }
+                  global.processedDocuments.unshift(newDocument);
+                  console.log(`✓ Document saved to memory storage: ${newDocument.filename}`);
+                }
                 
                 console.log(`✓ Document processed: ${req.file?.originalname} (${ocrResult.total_pages} pages, ${formsData.length} forms)`);
                 console.log(`Document ID: ${newDocument.id}, Extracted text length: ${fullExtractedText.length}`);
@@ -625,12 +635,21 @@ async function loadFromAzureDatabase() {
 
   // Persistent document history will be imported in upload handler
 
-  // Document history endpoint using Azure SQL database
+  // Document history endpoint using Azure SQL database (with fallback for demo)
   app.get('/api/form-detection/history', async (req, res) => {
     try {
       console.log('Loading document history from Azure SQL database...');
-      const documents = await loadFromAzureDatabase();
-      console.log(`✓ Successfully loaded ${documents.length} documents from Azure SQL`);
+      
+      // Try Azure SQL first, fallback to in-memory for demo
+      let documents = [];
+      try {
+        documents = await loadFromAzureDatabase();
+        console.log(`✓ Successfully loaded ${documents.length} documents from Azure SQL`);
+      } catch (azureError) {
+        console.log('Azure SQL unavailable, using processed documents from memory...');
+        documents = global.processedDocuments || [];
+        console.log(`✓ Loaded ${documents.length} documents from memory storage`);
+      }
       
       console.log(`Current document count: ${documents.length}`);
       
