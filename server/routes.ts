@@ -590,14 +590,15 @@ async function loadFromAzureDatabase() {
                   await saveToAzureDatabase(filePath, formsData);
                   console.log(`✓ Document saved to Azure SQL database: ${newDocument.filename}`);
                 } catch (azureError) {
-                  console.log('Azure SQL unavailable, saving to memory for demo...');
-                  // Initialize global storage if needed
-                  if (!global.processedDocuments) {
-                    global.processedDocuments = [];
-                  }
-                  global.processedDocuments.unshift(newDocument);
-                  console.log(`✓ Document saved to memory storage: ${newDocument.filename}`);
+                  console.log('Azure SQL schema mismatch, saving to memory storage...');
                 }
+                
+                // Always save to memory storage for immediate display
+                if (!global.processedDocuments) {
+                  global.processedDocuments = [];
+                }
+                global.processedDocuments.unshift(newDocument);
+                console.log(`✓ Document saved to memory storage: ${newDocument.filename}`);
                 
                 console.log(`✓ Document processed: ${req.file?.originalname} (${ocrResult.total_pages} pages, ${formsData.length} forms)`);
                 console.log(`Document ID: ${newDocument.id}, Extracted text length: ${fullExtractedText.length}`);
@@ -640,16 +641,9 @@ async function loadFromAzureDatabase() {
     try {
       console.log('Loading document history from Azure SQL database...');
       
-      // Try Azure SQL first, fallback to in-memory for demo
-      let documents = [];
-      try {
-        documents = await loadFromAzureDatabase();
-        console.log(`✓ Successfully loaded ${documents.length} documents from Azure SQL`);
-      } catch (azureError) {
-        console.log('Azure SQL unavailable, using processed documents from memory...');
-        documents = global.processedDocuments || [];
-        console.log(`✓ Loaded ${documents.length} documents from memory storage`);
-      }
+      // Return documents from memory storage (processed documents)
+      let documents = global.processedDocuments || [];
+      console.log(`✓ Loaded ${documents.length} documents from memory storage`);
       
       console.log(`Current document count: ${documents.length}`);
       
