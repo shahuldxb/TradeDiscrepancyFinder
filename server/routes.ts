@@ -620,6 +620,7 @@ async function loadFromAzureDatabase() {
                 console.log(`✓ Document saved to file storage: ${req.file?.originalname} (${ocrResult.total_pages} pages, ${formsData.length} forms)`);
                 console.log(`Total documents in history: ${existingDocuments.length}`);
                 console.log(`Document ID: ${newDocument.id}, Extracted text length: ${fullExtractedText.length}`);
+                console.log(`Storage file path: ${historyFile}`);
                 console.log(`Full text length: ${fullExtractedText.length} characters`);
                 console.log(`Document preview: ${newDocument.extractedText.substring(0, 100)}...`);
                 console.log(`Document preview: ${newDocument.extractedText.substring(0, 100)}...`);
@@ -692,11 +693,13 @@ async function loadFromAzureDatabase() {
         processingMethod: doc.processingMethod
       }));
       
-      console.log(`Returning ${formattedDocuments.length} processed documents from persistent storage`);
+      console.log(`Returning ${formattedDocuments.length} processed documents from file storage`);
+      console.log(`History file path: ${historyFile}`);
       res.json({ documents: formattedDocuments, total: formattedDocuments.length });
       
     } catch (error) {
       console.error('History loading error:', error);
+      console.error('Error details:', error.stack);
       res.status(500).json({ error: 'Failed to load document history' });
     }
   });
