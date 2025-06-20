@@ -584,16 +584,11 @@ async function loadFromAzureDatabase() {
                   }))
                 };
                 
-                // Add to global storage array at the top of the list
-                globalProcessedDocuments.unshift(newDocument);
+                // Save to persistent storage
+                const updatedDocuments = documentHistory.addDocument(newDocument);
                 
-                // Also add to local array if it exists
-                if (typeof processedDocuments !== 'undefined') {
-                  processedDocuments.unshift(newDocument);
-                }
-                
-                console.log(`✓ Document saved to global storage: ${req.file?.originalname} (${ocrResult.total_pages} pages, ${formsData.length} forms)`);
-                console.log(`Total documents in history: ${globalProcessedDocuments.length}`);
+                console.log(`✓ Document saved to persistent storage: ${req.file?.originalname} (${ocrResult.total_pages} pages, ${formsData.length} forms)`);
+                console.log(`Total documents in history: ${updatedDocuments.length}`);
                 console.log(`Full text length: ${fullExtractedText.length} characters`);
                 console.log(`Document preview: ${newDocument.extractedText.substring(0, 100)}...`);
                 console.log(`Document preview: ${newDocument.extractedText.substring(0, 100)}...`);
@@ -626,18 +621,21 @@ async function loadFromAzureDatabase() {
     }
   });
 
-  // Document history endpoint using in-memory storage
+  // Import persistent document history module
+  const documentHistory = require('./documentHistory.js');
+
+  // Document history endpoint using persistent file storage
   app.get('/api/form-detection/history', async (req, res) => {
     try {
-      console.log('Loading document history from memory...');
+      console.log('Loading document history from persistent storage...');
+      const documents = documentHistory.loadDocuments();
+      console.log(`Current document count: ${documents.length}`);
       
-      // Return processed documents from in-memory storage
-      console.log(`Current processedDocuments count: ${processedDocuments.length}`);
-      if (processedDocuments.length > 0) {
-        console.log(`First document: ${processedDocuments[0].filename}`);
+      if (documents.length > 0) {
+        console.log(`First document: ${documents[0].filename}`);
       }
       
-      const documents = processedDocuments.map(doc => ({
+      const formattedDocuments = documents.map(doc => ({
         id: doc.id,
         filename: doc.filename,
         uploadDate: doc.uploadDate,
@@ -653,8 +651,8 @@ async function loadFromAzureDatabase() {
         processingMethod: doc.processingMethod
       }));
       
-      console.log(`Returning ${documents.length} processed documents from memory storage`);
-      res.json({ documents, total: documents.length });
+      console.log(`Returning ${formattedDocuments.length} processed documents from persistent storage`);
+      res.json({ documents: formattedDocuments, total: formattedDocuments.length });
       
     } catch (error) {
       console.error('History loading error:', error);
