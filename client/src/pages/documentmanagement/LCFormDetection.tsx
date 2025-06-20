@@ -535,16 +535,39 @@ Generated on: ${new Date().toLocaleString()}
                                     
                                     if (group.forms && group.forms.length > 0) {
                                       allText = group.forms.map((form: any, idx: number) => {
-                                        const extractedText = form.extracted_fields?.['Full Extracted Text'] || 
-                                                           form.extracted_text || 
-                                                           form.fullText ||
-                                                           form.extractedFields?.find((f: any) => f.field_name === 'Full Extracted Text')?.field_value ||
-                                                           'No extracted text available for this form';
+                                        // Try multiple sources for the extracted text with better fallback logic
+                                        let extractedText = '';
+                                        
+                                        // First check if we have the full processing result text
+                                        if (processingResult?.extracted_text) {
+                                          extractedText = processingResult.extracted_text;
+                                        }
+                                        // Then try various form field locations
+                                        else if (form.extracted_fields && Array.isArray(form.extracted_fields)) {
+                                          const fullTextField = form.extracted_fields.find((f: any) => 
+                                            f.field_name === 'Full_Extracted_Text' || 
+                                            f.field_name === 'Full Extracted Text'
+                                          );
+                                          extractedText = fullTextField?.field_value || '';
+                                        }
+                                        else if (form.extractedFields?.['Full Extracted Text']) {
+                                          extractedText = form.extractedFields['Full Extracted Text'];
+                                        }
+                                        else if (form.extracted_text) {
+                                          extractedText = form.extracted_text;
+                                        }
+                                        else if (form.fullText) {
+                                          extractedText = form.fullText;
+                                        }
+                                        else {
+                                          extractedText = 'OCR processing completed but extracted text not available in expected format.';
+                                        }
+                                        
+                                        console.log('Form text extraction - length:', extractedText.length);
+                                        console.log('Form data structure:', form);
                                         
                                         const confidence = form.confidence || 85;
-                                        const processingMethod = form.extracted_fields?.['Processing Method'] || 
-                                                               form.extracted_fields?.find((f: any) => f.field_name === 'Processing Method')?.field_value || 
-                                                               'OCR Processing';
+                                        const processingMethod = form.extracted_fields?.find((f: any) => f.field_name === 'Processing Method')?.field_value || 'OCR Processing';
                                         
                                         return `
 === FORM ${idx + 1}: ${form.form_type || form.formType} ===
@@ -560,8 +583,11 @@ ${extractedText}
 
 `;
                                       }).join('\n');
+                                    } else if (processingResult?.extracted_text) {
+                                      // If no forms but we have processing result, use that
+                                      allText = processingResult.extracted_text;
                                     } else {
-                                      allText = 'No extracted content available. Processing may still be in progress.';
+                                      allText = 'No forms detected or extracted text not available.';
                                     }
                                     
                                     newWindow.document.write(`
