@@ -16,7 +16,7 @@ def extract_text_directly(pdf_path: str):
         doc = fitz.open(pdf_path)
         total_pages = doc.page_count
         
-        for page_num in range(min(10, total_pages)):
+        for page_num in range(total_pages):
             try:
                 page = doc[page_num]
                 text = page.get_text()

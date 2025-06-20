@@ -33,7 +33,7 @@ export default function TradeFinanceFormDetection() {
   // State variables
   const [activeTab, setActiveTab] = useState('upload');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [batchName, setBatchName] = useState('');
+
   const [processingStatus, setProcessingStatus] = useState<ProcessingStatus | null>(null);
   const [detectedForms, setDetectedForms] = useState<DetectedForm[]>([]);
   const [documentId, setDocumentId] = useState<string | null>(null);
@@ -47,18 +47,8 @@ export default function TradeFinanceFormDetection() {
   ];
 
   const handleFileUpload = async (file: File) => {
-    if (!batchName.trim()) {
-      toast({
-        title: "Batch Name Required",
-        description: "Please enter a batch name before uploading",
-        variant: "destructive"
-      });
-      return;
-    }
-
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('batchName', batchName);
 
     try {
       // Start upload
@@ -290,17 +280,7 @@ This form was automatically extracted from the uploaded document using Azure Doc
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Batch Name Input */}
-              <div className="space-y-2">
-                <Label htmlFor="batchName">Batch Name</Label>
-                <Input
-                  id="batchName"
-                  placeholder="Enter batch name for this processing"
-                  value={batchName}
-                  onChange={(e) => setBatchName(e.target.value)}
-                  disabled={processingStatus !== null}
-                />
-              </div>
+
 
               {/* File Upload Area */}
               <div className="space-y-4">
@@ -359,7 +339,7 @@ This form was automatically extracted from the uploaded document using Azure Doc
               <div className="flex justify-center">
                 <Button 
                   onClick={() => selectedFile && handleFileUpload(selectedFile)}
-                  disabled={!selectedFile || !batchName.trim() || processingStatus !== null}
+                  disabled={!selectedFile || processingStatus !== null}
                   className="w-full max-w-md"
                   size="lg"
                 >
