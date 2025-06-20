@@ -546,20 +546,10 @@ async function loadFromAzureDatabase() {
               
               console.log(`📊 OCR processed ${detectedForms.length} forms successfully`);
               
-              // For history, use the first/primary form from either processing type
-              const formsArray = analysisResult.detected_forms || analysisResult.constituent_documents || [];
-              const primaryForm = formsArray[0] || {
-                form_type: 'Unknown Document',
-                document_type: 'Unknown Document',
-                confidence: 0.3,
-                extracted_text: 'No content extracted',
-                text_length: 0
-              };
-              
-              // Store in Azure SQL database instead of JSON file
+              // Store in Azure SQL database
               try {
-                await saveToAzureDatabase(docId, req.file, analysisResult, formsData);
-                console.log(`✓ Multi-page document processed: ${req.file?.originalname} (${analysisResult.total_pages} pages, ${formsData.length} forms) - saved to Azure SQL`);
+                await saveToAzureDatabase(docId, req.file, ocrResult, formsData);
+                console.log(`✓ OCR document processed: ${req.file?.originalname} (${ocrResult.total_pages} pages, ${formsData.length} forms) - saved to Azure SQL`);
               } catch (dbError) {
                 console.error('Database save error:', dbError);
                 // Continue with response even if database save fails
@@ -568,17 +558,17 @@ async function loadFromAzureDatabase() {
               resolve({
                 docId,
                 detectedForms,
-                totalForms: formsArray.length,
-                totalPages: analysisResult.total_pages,
-                processingMethod: analysisResult.processing_method,
+                totalForms: formsData.length,
+                totalPages: ocrResult.total_pages,
+                processingMethod: 'OpenCV + Tesseract OCR',
                 status: 'completed'
               });
             } catch (parseError) {
               reject(parseError);
             }
           } else {
-            console.error(`❌ Python process failed with code ${code}: ${errorOutput}`);
-            reject(new Error(`Multi-page processing failed: ${errorOutput}`));
+            console.error(`❌ OCR processing failed with code ${code}: ${errorOutput}`);
+            reject(new Error(`OCR processing failed: ${errorOutput}`));
           }
         });
       });
