@@ -593,12 +593,14 @@ async function loadFromAzureDatabase() {
                   console.log('Azure SQL schema mismatch, saving to memory storage...');
                 }
                 
-                // Save to file-based storage for persistence
+                // Save to file-based storage for persistence (AFTER AZURE SQL)
                 const historyDir = path.join(process.cwd(), 'form_outputs');
                 const historyFile = path.join(historyDir, 'document_history.json');
                 
+                console.log(`📁 Ensuring history directory exists: ${historyDir}`);
                 if (!fs.existsSync(historyDir)) {
                   fs.mkdirSync(historyDir, { recursive: true });
+                  console.log(`✓ Created directory: ${historyDir}`);
                 }
                 
                 let documentHistory = [];
@@ -606,10 +608,13 @@ async function loadFromAzureDatabase() {
                   try {
                     const historyContent = fs.readFileSync(historyFile, 'utf8');
                     documentHistory = JSON.parse(historyContent);
+                    console.log(`📄 Loaded existing history: ${documentHistory.length} documents`);
                   } catch (error) {
-                    console.log('Creating new document history file');
+                    console.log('Error reading existing history, creating new file');
                     documentHistory = [];
                   }
+                } else {
+                  console.log('📄 No existing history file, starting fresh');
                 }
                 
                 // Add the newly processed document to history
@@ -650,19 +655,26 @@ async function loadFromAzureDatabase() {
                 documentHistory = documentHistory.filter(doc => doc.filename !== processedDocument.filename);
                 
                 documentHistory.unshift(processedDocument);
-                fs.writeFileSync(historyFile, JSON.stringify(documentHistory, null, 2));
-                console.log(`✓ NEW DOCUMENT SAVED: ${processedDocument.filename}`);
-                console.log(`✓ Document ID: ${processedDocument.id}`);
-                console.log(`✓ Forms count: ${processedDocument.totalForms}`);
-                console.log(`✓ Full text length: ${fullExtractedText.length}`);
-                console.log(`✓ Total documents in storage: ${documentHistory.length}`);
-                console.log(`✓ First form type: ${processedDocument.detectedForms[0]?.formType}`);
-                console.log(`✓ First form extracted text length: ${processedDocument.detectedForms[0]?.extracted_text?.length || 0}`);
+                
+                try {
+                  fs.writeFileSync(historyFile, JSON.stringify(documentHistory, null, 2));
+                  console.log(`✅ NEW DOCUMENT SAVED TO HISTORY: ${processedDocument.filename}`);
+                  console.log(`✅ Document ID: ${processedDocument.id}`);
+                  console.log(`✅ Forms count: ${processedDocument.totalForms}`);
+                  console.log(`✅ Full text length: ${fullExtractedText.length}`);
+                  console.log(`✅ Total documents in storage: ${documentHistory.length}`);
+                  console.log(`✅ History file written to: ${historyFile}`);
+                  console.log(`✅ First form type: ${processedDocument.detectedForms[0]?.formType}`);
+                  console.log(`✅ First form extracted text length: ${processedDocument.detectedForms[0]?.extracted_text?.length || 0}`);
+                } catch (writeError) {
+                  console.error(`❌ ERROR writing history file: ${writeError.message}`);
+                  console.error(`❌ Attempted to write to: ${historyFile}`);
+                }
                 
                 console.log(`✓ Document processed: ${req.file?.originalname} (${ocrResult.total_pages} pages, ${formsData.length} forms)`);
-                console.log(`Document ID: ${newDocument.id}, Extracted text length: ${fullExtractedText.length}`);
+                console.log(`Document ID: ${docId}, Extracted text length: ${fullExtractedText.length}`);
                 console.log(`Full text length: ${fullExtractedText.length} characters`);
-                console.log(`Document preview: ${newDocument.extractedText.substring(0, 100)}...`);
+                console.log(`Document preview: ${processedDocument.extractedText.substring(0, 100)}...`);
                 console.log(`Document preview: ${newDocument.extractedText.substring(0, 100)}...`);
               } catch (error) {
                 console.error('Memory save error:', error);
