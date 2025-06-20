@@ -152,29 +152,31 @@ export default function TradeFinanceFormDetection() {
   };
 
   const handleViewForm = (form: any) => {
-    // Generate form content for viewing using actual extracted fields
-    const extractedFieldsText = form.extracted_fields
-      .map((field: any) => `${field.field_name}: ${field.field_value}`)
-      .join('\n\n');
-      
     const formType = form.form_type || 'Unknown Form';
-    const formContent = `
-${formType} - Extracted Data
-${'='.repeat(40)}
+    
+    // Use the properly formatted extracted text from the form
+    const extractedText = form.extracted_text || 'No text content available';
+    
+    const formContent = `${formType} - Document Content
+${'='.repeat(60)}
 
-Confidence Score: ${form.confidence}%
-Extraction Date: ${new Date().toLocaleString()}
-
-Field Details:
-${extractedFieldsText}
-
-Processing Information:
-- Document ID: ${documentId || 'N/A'}
+Document Information:
 - Form Type: ${formType}
-- Total Fields Extracted: ${Object.keys(form.extractedFields || form.extracted_fields || {}).length}
-- Page Numbers: ${form.pageNumbers?.join(', ') || form.page_numbers?.join(', ') || 'N/A'}
+- Confidence Score: ${form.confidence}%
+- Page Range: ${form.page_range || 'N/A'}
+- Text Length: ${form.text_length || 0} characters
+- Processing Date: ${new Date().toLocaleString()}
+- Document ID: ${documentId || 'N/A'}
 
-This form was automatically extracted from the uploaded document using Azure Document Intelligence.
+${'='.repeat(60)}
+EXTRACTED TEXT CONTENT
+${'='.repeat(60)}
+
+${extractedText}
+
+${'='.repeat(60)}
+Processing completed using OpenCV + Tesseract OCR
+${'='.repeat(60)}
 `;
 
     // Open in new window with formatted content

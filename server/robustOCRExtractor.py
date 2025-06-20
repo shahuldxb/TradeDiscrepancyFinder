@@ -103,7 +103,7 @@ def extract_page_text_robust(page, page_num: int) -> str:
 
 def format_text_simple(raw_text: str) -> str:
     """
-    Simple text formatting for readability
+    Format text for maximum readability with proper line breaks
     """
     if not raw_text:
         return ""
@@ -111,50 +111,72 @@ def format_text_simple(raw_text: str) -> str:
     # Basic cleanup
     text = raw_text.strip()
     
-    # Remove excessive whitespace
-    text = re.sub(r'\s+', ' ', text)
+    # Preserve natural line breaks from OCR
+    lines = text.split('\n')
+    formatted_lines = []
     
-    # Split into lines and clean
-    lines = []
-    current_line = ""
-    words = text.split()
+    for line in lines:
+        line = line.strip()
+        if line:
+            # Split very long lines into readable chunks
+            if len(line) > 120:
+                words = line.split()
+                current_line = ""
+                
+                for word in words:
+                    if len(current_line + " " + word) < 100:
+                        current_line += (" " + word if current_line else word)
+                    else:
+                        if current_line:
+                            formatted_lines.append(current_line)
+                        current_line = word
+                
+                if current_line:
+                    formatted_lines.append(current_line)
+            else:
+                formatted_lines.append(line)
     
-    for word in words:
-        if len(current_line + " " + word) < 80:
-            current_line += (" " + word if current_line else word)
-        else:
-            if current_line:
-                lines.append(current_line)
-            current_line = word
+    # Join with proper line breaks
+    formatted = "\n".join(formatted_lines)
     
-    if current_line:
-        lines.append(current_line)
-    
-    # Join with line breaks for readability
-    formatted = "\n".join(lines)
-    
-    # Add document structure
-    if len(formatted) > 100:
-        formatted = add_document_structure(formatted)
+    # Add document structure markers
+    formatted = add_document_structure(formatted)
     
     return formatted
 
 def add_document_structure(text: str) -> str:
     """
-    Add basic document structure
+    Add readable document structure with proper formatting
     """
-    # Look for common document patterns
     lines = text.split('\n')
     structured_lines = []
     
-    for line in lines:
+    # Add document header
+    structured_lines.append("=" * 60)
+    structured_lines.append("EXTRACTED DOCUMENT CONTENT")
+    structured_lines.append("=" * 60)
+    structured_lines.append("")
+    
+    for i, line in enumerate(lines):
         line = line.strip()
         if line:
-            # Add section headers for document types
-            if any(keyword in line.lower() for keyword in ['invoice', 'certificate', 'letter', 'bill']):
-                if structured_lines and not structured_lines[-1].startswith('---'):
-                    structured_lines.append('--- Document Section ---')
-            structured_lines.append(line)
+            # Add section breaks for new topics
+            if any(keyword in line.lower() for keyword in ['invoice', 'certificate', 'letter', 'bill', 'document']):
+                if structured_lines and not structured_lines[-1].startswith('---') and len(structured_lines) > 4:
+                    structured_lines.append("")
+                    structured_lines.append("-" * 40)
+                    structured_lines.append("DOCUMENT SECTION")
+                    structured_lines.append("-" * 40)
+                    structured_lines.append("")
+            
+            # Add line numbers for reference
+            structured_lines.append(f"{i+1:3d}. {line}")
+    
+    # Add footer
+    structured_lines.append("")
+    structured_lines.append("=" * 60)
+    structured_lines.append("END OF DOCUMENT")
+    structured_lines.append("=" * 60)
     
     return '\n'.join(structured_lines)
 
