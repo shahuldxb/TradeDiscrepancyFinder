@@ -88,7 +88,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const docId = Date.now().toString();
       
       // Use Robust OCR Extractor for reliable text extraction
-      const pythonProcess = spawn('python3', ['server/robustOCRExtractor.py', req.file.path], {
+      const pythonProcess = spawn('python3', ['server/realFormSplitter.py', req.file.path], {
         stdio: ['pipe', 'pipe', 'pipe'],
         timeout: 60000  // Increased timeout for 38-page processing
       });
@@ -117,9 +117,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const analysisResult = JSON.parse(output);
               console.log('Parsed analysis result:', JSON.stringify(analysisResult, null, 2));
               
-              // Handle multiple detected forms from Fast LC Processor
+              // Handle individual forms from Real Form Splitter - NO GROUPING
               const formsData = analysisResult.detected_forms || [];
-              console.log(`Real Form Splitter extracted ${formsData.length} individual forms`);
+              console.log(`✅ Real Form Splitter extracted ${formsData.length} individual forms (NO GROUPING)`);
               
               const detectedForms = formsData.map((form: any, index: number) => ({
                 id: `${docId}_form_${index + 1}`,
@@ -397,7 +397,7 @@ async function loadFromAzureDatabase() {
   }
 }
 
-  // Form detection upload endpoint with real OCR processing
+  // MAIN Form detection upload endpoint - Real Form Splitter only
   app.post('/api/form-detection/upload', upload.single('file'), async (req, res) => {
     console.log('=== UPLOAD ENDPOINT CALLED ===');
     try {
