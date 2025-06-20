@@ -719,7 +719,16 @@ function DocumentHistory() {
   console.log('DocumentHistory render - documents length:', documents.length);
   console.log('DocumentHistory render - documents data:', documents);
 
-  if (documents.length === 0) {
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <span className="ml-2">Loading document history...</span>
+      </div>
+    );
+  }
+
+  if (!documents || documents.length === 0) {
     return (
       <div className="text-center py-8">
         <FileText className="mx-auto h-12 w-12 text-gray-400" />
@@ -728,7 +737,7 @@ function DocumentHistory() {
           Upload documents to see them appear in your history
         </p>
         <p className="text-xs text-gray-400 mt-2">
-          Debug: Documents array length = {documents.length}
+          Debug: Documents array length = {documents?.length || 0}
         </p>
       </div>
     );

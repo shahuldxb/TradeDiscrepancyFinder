@@ -612,9 +612,35 @@ async function loadFromAzureDatabase() {
                   }
                 }
                 
-                documentHistory.unshift(newDocument);
+                // Add the newly processed document to history
+                const processedDocument = {
+                  id: docId,
+                  filename: req.file?.originalname || 'Unknown',
+                  uploadDate: new Date().toISOString(),
+                  documentType: formsData[0]?.form_type || 'Trade Finance Document',
+                  confidence: Math.round((formsData[0]?.confidence || 0.8) * 100),
+                  totalForms: formsData.length,
+                  extractedText: fullExtractedText.substring(0, 200) + '...',
+                  fullText: fullExtractedText,
+                  fileSize: `${(req.file?.size / 1024 / 1024).toFixed(1)} MB`,
+                  processedAt: new Date().toISOString(),
+                  docId: docId,
+                  processingMethod: 'Robust OCR Extraction',
+                  detectedForms: formsData.map(form => ({
+                    id: form.id,
+                    formType: form.form_type,
+                    confidence: Math.round((form.confidence || 0.8) * 100),
+                    pageNumbers: form.pageNumbers || [1],
+                    extractedFields: form.extracted_fields,
+                    status: 'completed',
+                    processingMethod: 'OCR Processing',
+                    fullText: form.extracted_fields?.['Full Extracted Text'] || form.fullText || ''
+                  }))
+                };
+                
+                documentHistory.unshift(processedDocument);
                 fs.writeFileSync(historyFile, JSON.stringify(documentHistory, null, 2));
-                console.log(`✓ Document saved to file storage: ${newDocument.filename}`);
+                console.log(`✓ Document saved to file storage: ${processedDocument.filename}`);
                 console.log(`✓ Total documents in storage: ${documentHistory.length}`);
                 console.log(`✓ Document history file updated: ${historyFile}`);
                 
