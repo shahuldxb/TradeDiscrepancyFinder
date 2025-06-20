@@ -70,8 +70,7 @@ export default function TradeFinanceFormDetection() {
       // Store document ID for form operations
       setDocumentId(result.docId || `doc_${Date.now()}`);
       
-      // Auto-navigate to Processing Progress tab immediately after upload starts
-      setActiveTab('progress');
+      // Tab navigation is handled by the button click
       
       // Show processing progress with real-time updates
       setProcessingStatus({ upload: 'completed', ocr: 'processing' });
@@ -343,7 +342,12 @@ This form was automatically extracted from the uploaded document using Azure Doc
               {/* Upload Button */}
               <div className="flex justify-center">
                 <Button 
-                  onClick={() => selectedFile && handleFileUpload(selectedFile)}
+                  onClick={() => {
+                    if (selectedFile) {
+                      setActiveTab('progress'); // Auto-navigate to progress tab
+                      handleFileUpload(selectedFile);
+                    }
+                  }}
                   disabled={!selectedFile || processingStatus !== null}
                   className="w-full max-w-md"
                   size="lg"

@@ -79,8 +79,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const docId = Date.now().toString();
       
-      // Use Clean Text Extractor for formatted text extraction
-      const pythonProcess = spawn('python3', ['server/cleanTextExtractor.py', req.file.path], {
+      // Use Robust OCR Extractor for reliable text extraction
+      const pythonProcess = spawn('python3', ['server/robustOCRExtractor.py', req.file.path], {
         stdio: ['pipe', 'pipe', 'pipe'],
         timeout: 60000  // Increased timeout for 38-page processing
       });
