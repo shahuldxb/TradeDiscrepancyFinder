@@ -584,18 +584,18 @@ async function loadFromAzureDatabase() {
                   }))
                 };
                 
-                // Add to processedDocuments array at the top of the list
-                processedDocuments.unshift(newDocument);
+                // Add to global storage array at the top of the list
+                globalProcessedDocuments.unshift(newDocument);
                 
-                // Save to persistent storage
-                documentStorage.saveDocuments(processedDocuments);
+                // Also add to local array if it exists
+                if (typeof processedDocuments !== 'undefined') {
+                  processedDocuments.unshift(newDocument);
+                }
                 
-                // Save to persistent storage
-                documentStorage.saveDocuments(processedDocuments);
-                
-                console.log(`✓ Document saved to memory: ${req.file?.originalname} (${ocrResult.total_pages} pages, ${formsData.length} forms)`);
-                console.log(`Total documents in history: ${processedDocuments.length}`);
+                console.log(`✓ Document saved to global storage: ${req.file?.originalname} (${ocrResult.total_pages} pages, ${formsData.length} forms)`);
+                console.log(`Total documents in history: ${globalProcessedDocuments.length}`);
                 console.log(`Full text length: ${fullExtractedText.length} characters`);
+                console.log(`Document preview: ${newDocument.extractedText.substring(0, 100)}...`);
                 console.log(`Document preview: ${newDocument.extractedText.substring(0, 100)}...`);
               } catch (error) {
                 console.error('Memory save error:', error);
