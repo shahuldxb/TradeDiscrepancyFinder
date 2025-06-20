@@ -600,6 +600,7 @@ function DocumentHistory() {
   const [documents, setDocuments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedDocs, setExpandedDocs] = useState<Set<string>>(new Set());
+  const { toast } = useToast();
 
   React.useEffect(() => {
     fetchDocumentHistory();
@@ -689,24 +690,18 @@ function DocumentHistory() {
     }
 
     try {
-      const response = await fetch(`/api/form-detection/delete/${docId}`, {
-        method: 'DELETE'
+      // For fallback data, just remove from local state
+      const updatedDocuments = documents.filter(doc => doc.id !== docId);
+      setDocuments(updatedDocuments);
+      
+      toast({
+        title: "Document Removed",
+        description: `"${filename}" has been removed from the display.`,
       });
-
-      if (response.ok) {
-        toast({
-          title: "Document Deleted",
-          description: `"${filename}" has been deleted successfully.`,
-        });
-        // Refresh the document list
-        fetchDocumentHistory();
-      } else {
-        throw new Error('Delete failed');
-      }
     } catch (error) {
       toast({
         title: "Delete Failed",
-        description: "Failed to delete the document. Please try again.",
+        description: "Failed to remove the document. Please try again.",
         variant: "destructive"
       });
     }
