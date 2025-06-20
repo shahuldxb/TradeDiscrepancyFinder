@@ -713,27 +713,29 @@ async function loadFromAzureDatabase() {
 
   // Persistent document history will be imported in upload handler
 
-  // Document history endpoint
-  app.get('/api/form-detection/history', async (req, res) => {
+  // Document history endpoint (no authentication to avoid session issues)
+  app.get('/api/form-detection/history', (req, res) => {
+    const historyFile = path.join(process.cwd(), 'form_outputs', 'document_history.json');
+    let documents = [];
+    
     try {
-      const historyFile = path.join(process.cwd(), 'form_outputs', 'document_history.json');
-      let documents = [];
-      
       if (fs.existsSync(historyFile)) {
         const content = fs.readFileSync(historyFile, 'utf8');
         documents = JSON.parse(content);
-        console.log(`✅ Loaded ${documents.length} documents from history file`);
+        console.log(`✅ History loaded: ${documents.length} documents`);
       } else {
-        console.log(`❌ History file not found: ${historyFile}`);
+        console.log(`❌ History file missing: ${historyFile}`);
+        // Create empty file
+        fs.mkdirSync(path.dirname(historyFile), { recursive: true });
+        fs.writeFileSync(historyFile, '[]', 'utf8');
       }
-      
-      res.setHeader('Cache-Control', 'no-cache');
-      res.json({ documents, total: documents.length });
-      
     } catch (error) {
-      console.error('History loading error:', error);
-      res.json({ documents: [], total: 0 });
+      console.error('History error:', error.message);
+      documents = [];
     }
+    
+    res.setHeader('Cache-Control', 'no-cache');
+    res.json({ documents, total: documents.length });
   });
 
   function getDocumentType(filename) {
