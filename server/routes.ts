@@ -638,24 +638,8 @@ async function loadFromAzureDatabase() {
       res.json({ documents, total: documents.length });
     } catch (error) {
       console.error('History error:', error);
-      // Return sample data to prevent empty history tab
-      const sampleDocs = [
-        {
-          id: "sample_1",
-          filename: "commercial_invoice.pdf",
-          uploadDate: new Date(),
-          processingMethod: "OpenCV + Tesseract OCR",
-          totalForms: 1,
-          fileSize: 125000,
-          documentType: "Commercial Invoice",
-          confidence: 87,
-          extractedText: "Commercial Invoice processed successfully with improved OCR formatting",
-          fullText: "Document processing completed with enhanced text extraction",
-          processedAt: new Date(),
-          docId: "sample_1"
-        }
-      ];
-      res.json({ documents: sampleDocs, total: 1 });
+      // Return empty array if database unavailable
+      res.json({ documents: [], total: 0 });
     }
   });
 
