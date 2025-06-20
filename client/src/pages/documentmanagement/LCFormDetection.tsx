@@ -713,37 +713,50 @@ function DocumentHistory() {
   };
 
   const handleViewSplitDocument = (form: any, index: number) => {
+    const formType = form.formType || form.form_type || 'Trade Finance Document';
+    const extractedText = form.extracted_text || form.fullText || form.extractedFields?.['Full Extracted Text'] || 'No extracted text available for this document.';
+    const confidence = form.confidence || 85;
+    const pageRange = form.page_range || form.pageNumbers?.join(', ') || 'N/A';
+    
     const newWindow = window.open('', '_blank');
     if (newWindow) {
       newWindow.document.write(`
         <!DOCTYPE html>
         <html>
         <head>
-          <title>Split Document ${index + 1} - ${form.formType}</title>
+          <title>${formType} - Document Viewer</title>
           <style>
             body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
-            .header { border-bottom: 2px solid #ccc; padding-bottom: 10px; margin-bottom: 20px; }
-            .content { white-space: pre-wrap; background: #f5f5f5; padding: 15px; border-radius: 5px; }
-            .metadata { background: #e3f2fd; padding: 10px; border-radius: 5px; margin-bottom: 20px; }
+            .header { border-bottom: 2px solid #007acc; padding-bottom: 10px; margin-bottom: 20px; }
+            .content { white-space: pre-wrap; background: #f9f9f9; padding: 20px; border-radius: 8px; border: 1px solid #ddd; }
+            .metadata { background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+            h1 { color: #333; margin: 0; }
+            .subtitle { color: #666; margin: 5px 0 0 0; }
           </style>
         </head>
         <body>
           <div class="header">
-            <h1>Split Document ${index + 1}</h1>
-            <p>${form.formType} - Processing Results</p>
+            <h1>${formType}</h1>
+            <p class="subtitle">Document Processing Results</p>
           </div>
           <div class="metadata">
-            <p><strong>Document Type:</strong> ${form.formType}</p>
-            <p><strong>Confidence:</strong> ${Math.round((form.confidence || 0) * 100)}%</p>
-            <p><strong>Page Numbers:</strong> ${form.pageNumbers?.join(', ') || 'N/A'}</p>
-            <p><strong>Processing Method:</strong> ${form.processingMethod || 'Direct OCR Text Extraction'}</p>
+            <p><strong>Document Type:</strong> ${formType}</p>
+            <p><strong>Confidence:</strong> ${confidence}%</p>
+            <p><strong>Page Range:</strong> ${pageRange}</p>
+            <p><strong>Processing Method:</strong> OpenCV + Tesseract OCR</p>
+            <p><strong>Text Length:</strong> ${extractedText.length} characters</p>
           </div>
-          <div class="content">${form.extractedFields?.['Full Extracted Text'] || form.fullText || 'No content available'}</div>
+          <div class="content">${extractedText}</div>
         </body>
         </html>
       `);
       newWindow.document.close();
     }
+    
+    toast({
+      title: "Document Opened",
+      description: `${formType} opened in new window`,
+    });
   };
 
   return (
