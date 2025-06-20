@@ -587,37 +587,13 @@ async function loadFromAzureDatabase() {
                 // Save to Azure SQL database with fallback for demo
                 console.log('Saving document to Azure SQL database...');
                 try {
-                  await saveToAzureDatabase(filePath, formsData);
-                  console.log(`✓ Document saved to Azure SQL database: ${newDocument.filename}`);
+                  await saveToAzureDatabase(docId, req.file, ocrResult, formsData);
+                  console.log(`✓ Document saved to Azure SQL database: ${req.file?.originalname}`);
                 } catch (azureError) {
-                  console.log('Azure SQL schema mismatch, saving to memory storage...');
+                  console.log('Azure SQL schema mismatch, using file storage...');
                 }
                 
-                // Save to file-based storage for persistence (AFTER AZURE SQL)
-                const historyDir = path.join(process.cwd(), 'form_outputs');
-                const historyFile = path.join(historyDir, 'document_history.json');
-                
-                console.log(`📁 Ensuring history directory exists: ${historyDir}`);
-                if (!fs.existsSync(historyDir)) {
-                  fs.mkdirSync(historyDir, { recursive: true });
-                  console.log(`✓ Created directory: ${historyDir}`);
-                }
-                
-                let documentHistory = [];
-                if (fs.existsSync(historyFile)) {
-                  try {
-                    const historyContent = fs.readFileSync(historyFile, 'utf8');
-                    documentHistory = JSON.parse(historyContent);
-                    console.log(`📄 Loaded existing history: ${documentHistory.length} documents`);
-                  } catch (error) {
-                    console.log('Error reading existing history, creating new file');
-                    documentHistory = [];
-                  }
-                } else {
-                  console.log('📄 No existing history file, starting fresh');
-                }
-                
-                // Add the newly processed document to history
+                // Save document to reliable storage system
                 const processedDocument = {
                   id: docId,
                   filename: req.file?.originalname || 'Unknown',
@@ -651,25 +627,18 @@ async function loadFromAzureDatabase() {
                   }))
                 };
                 
-                // Remove any existing document with same filename to avoid duplicates
-                documentHistory = documentHistory.filter(doc => doc.filename !== processedDocument.filename);
+                // Save using reliable document storage
+                const saveSuccess = documentStorage.saveDocument(processedDocument);
                 
-                documentHistory.unshift(processedDocument);
-                
-                try {
-                  fs.writeFileSync(historyFile, JSON.stringify(documentHistory, null, 2));
-                  console.log(`✅ NEW DOCUMENT SAVED TO HISTORY: ${processedDocument.filename}`);
-                  console.log(`✅ Document ID: ${processedDocument.id}`);
-                  console.log(`✅ Forms count: ${processedDocument.totalForms}`);
-                  console.log(`✅ Full text length: ${fullExtractedText.length}`);
-                  console.log(`✅ Total documents in storage: ${documentHistory.length}`);
-                  console.log(`✅ History file written to: ${historyFile}`);
-                  console.log(`✅ First form type: ${processedDocument.detectedForms[0]?.formType}`);
-                  console.log(`✅ First form extracted text length: ${processedDocument.detectedForms[0]?.extracted_text?.length || 0}`);
-                } catch (writeError) {
-                  console.error(`❌ ERROR writing history file: ${writeError.message}`);
-                  console.error(`❌ Attempted to write to: ${historyFile}`);
-                }
+                res.json({
+                  docId: docId,
+                  detectedForms: formsData,
+                  totalForms: formsData.length,
+                  processingMethod: 'Robust OCR Extraction',
+                  status: 'completed',
+                  saved: saveSuccess,
+                  message: `Document processed: ${processedDocument.filename} (${formsData.length} forms detected)`
+                });
                 
                 console.log(`✓ Document processed: ${req.file?.originalname} (${ocrResult.total_pages} pages, ${formsData.length} forms)`);
                 console.log(`Document ID: ${docId}, Extracted text length: ${fullExtractedText.length}`);
@@ -707,23 +676,11 @@ async function loadFromAzureDatabase() {
 
   // Persistent document history will be imported in upload handler
 
-  // Document history endpoint using file storage
+  // Document history endpoint using reliable storage
   app.get('/api/form-detection/history', async (req, res) => {
     try {
-      console.log('Loading document history from file...');
-      
-      const historyFile = path.join(process.cwd(), 'form_outputs', 'document_history.json');
-      let documents = [];
-      
-      if (fs.existsSync(historyFile)) {
-        const historyContent = fs.readFileSync(historyFile, 'utf8');
-        documents = JSON.parse(historyContent);
-        console.log(`Found ${documents.length} documents in file storage`);
-        console.log(`First document filename: ${documents[0]?.filename || 'N/A'}`);
-      } else {
-        console.log('No history file found, returning empty array');
-        console.log(`Expected file path: ${historyFile}`);
-      }
+      console.log('Loading document history...');
+      const documents = documentStorage.getDocuments();
       
       res.setHeader('Cache-Control', 'no-cache');
       res.json({ documents, total: documents.length });
