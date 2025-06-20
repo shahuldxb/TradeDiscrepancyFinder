@@ -119,7 +119,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               
               // Handle multiple detected forms from Fast LC Processor
               const formsData = analysisResult.detected_forms || [];
-              console.log(`Forms data array length: ${formsData.length}`);
+              console.log(`Real Form Splitter extracted ${formsData.length} individual forms`);
               
               const detectedForms = formsData.map((form: any, index: number) => ({
                 id: `${docId}_form_${index + 1}`,
@@ -453,29 +453,30 @@ async function loadFromAzureDatabase() {
         pythonProcess.on('close', async (code: number) => {
           if (code === 0) {
             try {
-              console.log(`Raw OCR output: ${output.substring(0, 500)}...`);
-              const ocrResult = JSON.parse(output);
+              console.log(`Raw Form Splitter output: ${output.substring(0, 500)}...`);
+              const splitterResult = JSON.parse(output);
               
-              if (ocrResult.error) {
-                reject(new Error(ocrResult.error));
+              if (splitterResult.error || splitterResult.status !== 'success') {
+                reject(new Error(splitterResult.error || 'Form splitting failed'));
                 return;
               }
               
-              // Extract detected forms from OCR results
-              const formsData = ocrResult.detected_forms || [];
-              console.log(`📋 OCR detected ${formsData.length} forms with text content`);
+              // Extract individual forms from Real Form Splitter - NO GROUPING
+              const formsData = splitterResult.detected_forms || [];
+              console.log(`✅ Real Form Splitter separated document into ${formsData.length} individual forms`);
               
+              // Keep each form as individual document from Real Form Splitter
               const detectedForms = formsData.map((form: any, index: number) => ({
                 id: form.id || `${docId}_form_${index + 1}`,
-                formType: form.formType || form.form_type,
+                formType: form.form_type || form.formType,
                 confidence: form.confidence,
-                pageNumbers: form.page_numbers || [index + 1],
+                pageNumbers: form.page_numbers || [form.page_number],
                 page_range: form.page_range,
                 extractedFields: form.extractedFields || { 'Full Extracted Text': form.extracted_text },
                 extracted_text: form.extracted_text,
                 fullText: form.fullText || form.extracted_text,
                 status: 'completed',
-                processingMethod: form.processingMethod || 'OpenCV + Tesseract OCR'
+                processingMethod: 'Real Form Splitter'
               }));
               
               console.log(`📊 OCR processed ${detectedForms.length} forms successfully`);
@@ -581,7 +582,7 @@ async function loadFromAzureDatabase() {
                   });
                 }
                 
-                console.log(`✓ Document processed: ${req.file?.originalname} (${ocrResult.total_pages} pages, ${formsData.length} forms)`);
+                console.log(`✓ Document processed: ${req.file?.originalname} (${splitterResult.total_pages} pages, ${formsData.length} individual forms)`);
                 console.log(`Document ID: ${docId}, Extracted text length: ${fullExtractedText.length}`);
                 console.log(`Full text length: ${fullExtractedText.length} characters`);
                 console.log(`Document preview: ${processedDocument.extractedText.substring(0, 100)}...`);
@@ -594,8 +595,8 @@ async function loadFromAzureDatabase() {
                 docId,
                 detectedForms,
                 totalForms: formsData.length,
-                totalPages: ocrResult.total_pages,
-                processingMethod: 'Tesseract OCR',
+                totalPages: splitterResult.total_pages,
+                processingMethod: 'Real Form Splitter',
                 status: 'completed'
               });
             } catch (parseError) {
