@@ -593,12 +593,28 @@ async function loadFromAzureDatabase() {
                   console.log('Azure SQL schema mismatch, saving to memory storage...');
                 }
                 
-                // Always save to memory storage for immediate display
-                if (!global.processedDocuments) {
-                  global.processedDocuments = [];
+                // Save to file-based storage for persistence
+                const historyDir = path.join(process.cwd(), 'form_outputs');
+                const historyFile = path.join(historyDir, 'document_history.json');
+                
+                if (!fs.existsSync(historyDir)) {
+                  fs.mkdirSync(historyDir, { recursive: true });
                 }
-                global.processedDocuments.unshift(newDocument);
-                console.log(`✓ Document saved to memory storage: ${newDocument.filename}`);
+                
+                let documentHistory = [];
+                if (fs.existsSync(historyFile)) {
+                  try {
+                    const historyContent = fs.readFileSync(historyFile, 'utf8');
+                    documentHistory = JSON.parse(historyContent);
+                  } catch (error) {
+                    console.log('Creating new document history file');
+                    documentHistory = [];
+                  }
+                }
+                
+                documentHistory.unshift(newDocument);
+                fs.writeFileSync(historyFile, JSON.stringify(documentHistory, null, 2));
+                console.log(`✓ Document saved to file storage: ${newDocument.filename}`);
                 
                 console.log(`✓ Document processed: ${req.file?.originalname} (${ocrResult.total_pages} pages, ${formsData.length} forms)`);
                 console.log(`Document ID: ${newDocument.id}, Extracted text length: ${fullExtractedText.length}`);
@@ -636,46 +652,26 @@ async function loadFromAzureDatabase() {
 
   // Persistent document history will be imported in upload handler
 
-  // Document history endpoint using Azure SQL database (with fallback for demo)
+  // Document history endpoint using file storage
   app.get('/api/form-detection/history', async (req, res) => {
     try {
-      console.log('Loading document history from Azure SQL database...');
+      console.log('Loading document history from file...');
       
-      // Return documents from memory storage (processed documents)
-      let documents = global.processedDocuments || [];
-      console.log(`✓ Loaded ${documents.length} documents from memory storage`);
+      const historyFile = path.join(process.cwd(), 'form_outputs', 'document_history.json');
+      let documents = [];
       
-      console.log(`Current document count: ${documents.length}`);
-      
-      if (documents.length > 0) {
-        console.log(`First document: ${documents[0].filename}`);
-        console.log(`First document extracted text length: ${documents[0].fullText?.length || 0}`);
+      if (fs.existsSync(historyFile)) {
+        const historyContent = fs.readFileSync(historyFile, 'utf8');
+        documents = JSON.parse(historyContent);
+        console.log(`Found ${documents.length} documents in file storage`);
+      } else {
+        console.log('No history file found, returning empty array');
       }
       
-      const formattedDocuments = documents.map(doc => ({
-        id: doc.id,
-        filename: doc.filename,
-        uploadDate: doc.uploadDate,
-        documentType: doc.documentType,
-        confidence: doc.confidence,
-        totalForms: doc.totalForms,
-        extractedText: doc.extractedText,
-        fullText: doc.fullText,
-        fileSize: doc.fileSize,
-        processedAt: doc.processedAt,
-        docId: doc.docId,
-        detectedForms: doc.detectedForms,
-        processingMethod: doc.processingMethod
-      }));
-      
-      console.log(`Returning ${formattedDocuments.length} processed documents from file storage`);
-      console.log(`History file path: ${historyFile}`);
-      res.json({ documents: formattedDocuments, total: formattedDocuments.length });
+      res.json({ documents, total: documents.length });
       
     } catch (error) {
       console.error('History loading error:', error);
-      console.error('Error details:', error.stack);
-      // Return empty array on error instead of 500
       res.json({ documents: [], total: 0, error: 'History access issue' });
     }
   });
