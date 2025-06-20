@@ -134,21 +134,6 @@ const navigationItems = [
     description: "Advanced Document Processing Pipeline",
     subItems: [
       {
-        name: "Upload & Ingestion",
-        href: "/document-management-new",
-        description: "Step 2-3: Upload PDF and slice/OCR processing",
-      },
-      {
-        name: "Validation Review",
-        href: "/document-management-new/validation",
-        description: "Step 4-6: Document detection and validation",
-      },
-      {
-        name: "Document Registration",
-        href: "/document-management-new/registration",
-        description: "Step 7-12: Form registration and approval",
-      },
-      {
         name: "Form Detection",
         href: "/form-detection",
         description: "Document form detection and splitting",
