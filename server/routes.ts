@@ -627,23 +627,27 @@ async function loadFromAzureDatabase() {
                   docId: docId,
                   processingMethod: 'Robust OCR Extraction',
                   detectedForms: formsData.map(form => ({
-                    id: form.id,
+                    id: form.id || `form_${Date.now()}`,
                     formType: form.form_type,
+                    form_type: form.form_type,
                     confidence: Math.round((form.confidence || 0.8) * 100),
-                    pageNumbers: form.pageNumbers || [1],
+                    pageNumbers: form.pages || [1],
                     extractedFields: {
-                      'Full Extracted Text': form.extracted_text || form.fullText || '',
+                      'Full Extracted Text': form.extracted_text || '',
                       'Document Classification': form.form_type,
                       'Processing Statistics': `${form.text_length || 0} characters extracted`,
                       'Page Range': form.page_range || 'Page 1'
                     },
                     status: 'completed',
                     processingMethod: 'OCR Processing',
-                    fullText: form.extracted_text || form.fullText || '',
-                    form_type: form.form_type,
-                    extracted_text: form.extracted_text || form.fullText || ''
+                    fullText: form.extracted_text || '',
+                    extracted_text: form.extracted_text || '',
+                    page_range: form.page_range
                   }))
                 };
+                
+                // Remove any existing document with same filename to avoid duplicates
+                documentHistory = documentHistory.filter(doc => doc.filename !== processedDocument.filename);
                 
                 documentHistory.unshift(processedDocument);
                 fs.writeFileSync(historyFile, JSON.stringify(documentHistory, null, 2));
@@ -652,6 +656,8 @@ async function loadFromAzureDatabase() {
                 console.log(`✓ Forms count: ${processedDocument.totalForms}`);
                 console.log(`✓ Full text length: ${fullExtractedText.length}`);
                 console.log(`✓ Total documents in storage: ${documentHistory.length}`);
+                console.log(`✓ First form type: ${processedDocument.detectedForms[0]?.formType}`);
+                console.log(`✓ First form extracted text length: ${processedDocument.detectedForms[0]?.extracted_text?.length || 0}`);
                 
                 console.log(`✓ Document processed: ${req.file?.originalname} (${ocrResult.total_pages} pages, ${formsData.length} forms)`);
                 console.log(`Document ID: ${newDocument.id}, Extracted text length: ${fullExtractedText.length}`);

@@ -547,13 +547,16 @@ Generated on: ${new Date().toLocaleString()}
                                                                'OCR Processing';
                                         
                                         return `
-=== PAGE ${idx + 1} ===
-Document Type: ${form.form_type}
+=== FORM ${idx + 1}: ${form.form_type || form.formType} ===
+Document Type: ${form.form_type || form.formType}
 Confidence: ${confidence}%
 Processing Method: ${processingMethod}
+Page Range: ${form.page_range || form.pageNumbers?.join(', ') || 'N/A'}
 
 EXTRACTED CONTENT:
 ${extractedText}
+
+================================================
 
 `;
                                       }).join('\n');
