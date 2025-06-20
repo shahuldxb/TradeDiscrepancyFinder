@@ -604,7 +604,7 @@ async function loadFromAzureDatabase() {
       
       // Get the latest document ID (most recent upload)
       const latestDocQuery = `
-        SELECT TOP 1 ingestion_id, file_name, created_date 
+        SELECT TOP 1 ingestion_id, original_filename, created_date 
         FROM TF_ingestion 
         ORDER BY ingestion_id DESC
       `;
@@ -621,7 +621,7 @@ async function loadFromAzureDatabase() {
       }
 
       const latestDoc = latestResult.recordset[0];
-      console.log(`📄 Latest document: ${latestDoc.file_name} (ID: ${latestDoc.ingestion_id})`);
+      console.log(`📄 Latest document: ${latestDoc.original_filename} (ID: ${latestDoc.ingestion_id})`);
 
       // Count total documents before cleanup
       const countQuery = 'SELECT COUNT(*) as total FROM TF_ingestion';
@@ -636,7 +636,7 @@ async function loadFromAzureDatabase() {
           success: true, 
           message: 'Only one document exists, no cleanup needed',
           remaining: 1,
-          keptDocument: latestDoc.file_name
+          keptDocument: latestDoc.original_filename
         });
       }
 
@@ -653,7 +653,7 @@ async function loadFromAzureDatabase() {
       
       const deletedCount = deleteResult.rowsAffected[0];
       console.log(`✅ Deleted ${deletedCount} old documents`);
-      console.log(`📄 Kept latest document: ${latestDoc.file_name}`);
+      console.log(`📄 Kept latest document: ${latestDoc.original_filename}`);
       
       // Verify cleanup
       const finalCountResult = await pool.request().query(countQuery);
@@ -666,7 +666,7 @@ async function loadFromAzureDatabase() {
         message: `Successfully deleted ${deletedCount} old documents`,
         deletedCount,
         remaining: remainingDocs,
-        keptDocument: latestDoc.file_name,
+        keptDocument: latestDoc.original_filename,
         keptDocumentId: latestDoc.ingestion_id
       });
 
