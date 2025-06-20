@@ -19,6 +19,8 @@ interface ProcessingStatus {
 interface DetectedForm {
   form_type: string;
   confidence: number;
+  page_range?: string;
+  pages?: number[];
   extracted_fields: Array<{
     field_name: string;
     field_value: string;

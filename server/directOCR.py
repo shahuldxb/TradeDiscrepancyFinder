@@ -97,10 +97,53 @@ def extract_text_directly(pdf_path: str):
         
         doc.close()
         
+        # Group consecutive pages by form type
+        grouped_forms = []
+        if detected_forms:
+            current_group = {
+                'form_type': detected_forms[0]['form_type'],
+                'document_type': detected_forms[0]['document_type'],
+                'confidence': detected_forms[0]['confidence'],
+                'pages': [detected_forms[0]['page_number']],
+                'page_range': f"Page {detected_forms[0]['page_number']}",
+                'extracted_text': detected_forms[0]['extracted_text'],
+                'text_length': detected_forms[0]['text_length']
+            }
+            
+            for i in range(1, len(detected_forms)):
+                current_form = detected_forms[i]
+                
+                # If same form type as current group, add to group
+                if current_form['form_type'] == current_group['form_type']:
+                    current_group['pages'].append(current_form['page_number'])
+                    current_group['extracted_text'] += '\n\n' + current_form['extracted_text']
+                    current_group['text_length'] += current_form['text_length']
+                    current_group['confidence'] = max(current_group['confidence'], current_form['confidence'])
+                    
+                    # Update page range
+                    if len(current_group['pages']) > 1:
+                        current_group['page_range'] = f"Pages {min(current_group['pages'])}-{max(current_group['pages'])}"
+                else:
+                    # Different form type, save current group and start new one
+                    grouped_forms.append(current_group)
+                    current_group = {
+                        'form_type': current_form['form_type'],
+                        'document_type': current_form['document_type'],
+                        'confidence': current_form['confidence'],
+                        'pages': [current_form['page_number']],
+                        'page_range': f"Page {current_form['page_number']}",
+                        'extracted_text': current_form['extracted_text'],
+                        'text_length': current_form['text_length']
+                    }
+            
+            # Add the last group
+            grouped_forms.append(current_group)
+        
         return {
             'total_pages': total_pages,
-            'detected_forms': detected_forms,
-            'processing_method': 'Direct OCR Text Extraction',
+            'detected_forms': grouped_forms,
+            'individual_pages': detected_forms,  # Keep individual page data for reference
+            'processing_method': 'Form Type Grouping',
             'processed_pages': [f['page_number'] for f in detected_forms]
         }
         
