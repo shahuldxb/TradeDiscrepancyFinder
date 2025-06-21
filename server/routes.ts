@@ -472,6 +472,31 @@ async function loadFromAzureDatabase() {
               try {
                 await saveToAzureDatabase(docId, req.file, analysisResult, formsData);
                 console.log(`✅ Document saved to Azure SQL: ${req.file?.originalname}`);
+                
+                // Execute 3-step pipeline after saving to main table
+                try {
+                  console.log('🚀 Executing 3-step pipeline for document processing...');
+                  
+                  const { documentPipelineService } = await import('./documentPipelineService');
+                  
+                  // Prepare data for pipeline
+                  const extractedTexts = formsData.map(form => 
+                    form.extracted_text || form.fullText || form.extractedFields?.['Full Extracted Text'] || ''
+                  );
+                  
+                  const pipelineResult = await documentPipelineService.executeFullPipeline(
+                    docId,
+                    formsData,
+                    extractedTexts
+                  );
+                  
+                  console.log(`✅ Pipeline completed: ${pipelineResult.summary.totalPdfs} PDFs, ${pipelineResult.summary.totalTextRecords} texts, ${pipelineResult.summary.totalFields} fields`);
+                  
+                } catch (pipelineError) {
+                  console.error('❌ Pipeline execution failed:', pipelineError);
+                  // Continue without failing the main upload
+                }
+                
               } catch (saveError) {
                 console.error('Azure SQL save error:', saveError);
               }
@@ -483,7 +508,7 @@ async function loadFromAzureDatabase() {
                 totalForms: formsData.length,
                 processingMethod: 'OpenCV + Tesseract OCR',
                 status: 'completed',
-                message: `Successfully processed ${formsData.length} forms with OCR`
+                message: `Successfully processed ${formsData.length} forms with OCR and pipeline`
               });
               
 

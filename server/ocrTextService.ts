@@ -26,8 +26,8 @@ export class OcrTextService {
       
       const query = `
         INSERT INTO TF_ingestion_TXT (
-          pdf_id, text_content, file_name, 
-          classification, confidence_score, text_length
+          pdfId, textContent, fileName, 
+          classification, confidenceScore, textLength
         )
         VALUES (
           @pdfId, @textContent, @fileName,
@@ -90,10 +90,10 @@ export class OcrTextService {
       const pool = await connectToAzureSQL();
       
       const query = `
-        SELECT id, text_content, file_name, classification, 
-               confidence_score, text_length, created_date
+        SELECT id, textContent, fileName, classification, 
+               confidenceScore, textLength, createdDate
         FROM TF_ingestion_TXT 
-        WHERE pdf_id = @pdfId
+        WHERE pdfId = @pdfId
       `;
       
       const result = await pool.request()
@@ -115,13 +115,13 @@ export class OcrTextService {
       const pool = await connectToAzureSQL();
       
       const query = `
-        SELECT t.id, t.text_content, t.file_name, t.classification,
-               t.confidence_score, t.text_length, t.created_date,
-               p.page_range, p.classification as pdf_classification
+        SELECT t.id, t.textContent, t.fileName, t.classification,
+               t.confidenceScore, t.textLength, t.createdDate,
+               p.pageRange, p.classification as pdf_classification
         FROM TF_ingestion_TXT t
-        INNER JOIN TF_ingestion_Pdf p ON t.pdf_id = p.id
+        INNER JOIN TF_ingestion_Pdf p ON t.pdfId = p.id
         WHERE p.ingestion_id = @ingestionId
-        ORDER BY p.created_date ASC
+        ORDER BY p.createdDate ASC
       `;
       
       const result = await pool.request()

@@ -25,8 +25,8 @@ export class FieldExtractionService {
       
       const query = `
         INSERT INTO TF_ingestion_fields (
-          pdf_id, field_name, field_value, confidence_score,
-          position_coordinates, data_type
+          pdfId, fieldName, fieldValue, confidenceScore,
+          positionCoordinates, dataType
         )
         VALUES (
           @pdfId, @fieldName, @fieldValue, @confidenceScore,
@@ -178,11 +178,11 @@ export class FieldExtractionService {
       const pool = await connectToAzureSQL();
       
       const query = `
-        SELECT id, field_name, field_value, confidence_score,
-               position_coordinates, data_type, created_date
+        SELECT id, fieldName, fieldValue, confidenceScore,
+               positionCoordinates, dataType, createdDate
         FROM TF_ingestion_fields 
-        WHERE pdf_id = @pdfId
-        ORDER BY created_date ASC
+        WHERE pdfId = @pdfId
+        ORDER BY createdDate ASC
       `;
       
       const result = await pool.request()
@@ -204,13 +204,13 @@ export class FieldExtractionService {
       const pool = await connectToAzureSQL();
       
       const query = `
-        SELECT f.id, f.field_name, f.field_value, f.confidence_score,
-               f.position_coordinates, f.data_type, f.created_date,
-               p.classification, p.page_range
+        SELECT f.id, f.fieldName, f.fieldValue, f.confidenceScore,
+               f.positionCoordinates, f.dataType, f.createdDate,
+               p.classification, p.pageRange
         FROM TF_ingestion_fields f
-        INNER JOIN TF_ingestion_Pdf p ON f.pdf_id = p.id
+        INNER JOIN TF_ingestion_Pdf p ON f.pdfId = p.id
         WHERE p.ingestion_id = @ingestionId
-        ORDER BY p.created_date ASC, f.created_date ASC
+        ORDER BY p.createdDate ASC, f.createdDate ASC
       `;
       
       const result = await pool.request()
