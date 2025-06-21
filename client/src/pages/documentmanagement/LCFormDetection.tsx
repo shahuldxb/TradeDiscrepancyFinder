@@ -807,27 +807,45 @@ function DocumentHistory() {
   const handleViewSplitDocument = (form: any, index: number) => {
     const formType = form.formType || form.form_type || 'Trade Finance Document';
     
-    // Enhanced text extraction with multiple fallback sources
+    console.log('ViewSplitDocument - Form:', form);
+    console.log('ViewSplitDocument - Documents available:', documents.length);
+    console.log('ViewSplitDocument - First document:', documents[0]);
+    
+    // Get the latest document which should have the authentic extracted text
     let extractedText = '';
     
-    // Try multiple sources for extracted text - prioritize fullText from OpenCV OCR
-    if (form.fullText) {
-      extractedText = form.fullText;
-    } else if (form.extractedFields?.['Full Extracted Text']) {
-      extractedText = form.extractedFields['Full Extracted Text'];
-    } else if (form.extracted_text) {
-      extractedText = form.extracted_text;
-    } else if (Array.isArray(form.extractedFields)) {
-      const textField = form.extractedFields.find((f: any) => 
-        f.field_name === 'Full Extracted Text' || f.field_name === 'Full_Extracted_Text'
-      );
-      extractedText = textField?.field_value || '';
+    if (documents.length > 0) {
+      const latestDoc = documents[0]; // Most recent document from Azure database
+      console.log('ViewSplitDocument - Latest doc fullText length:', latestDoc.fullText?.length);
+      console.log('ViewSplitDocument - Latest doc extractedText length:', latestDoc.extractedText?.length);
+      
+      // Use the authentic extracted text from the Azure database
+      extractedText = latestDoc.fullText || latestDoc.extractedText || '';
+      
+      // For multi-form documents, show a relevant portion
+      if (extractedText && latestDoc.totalForms > 1 && index >= 0) {
+        const formCount = latestDoc.totalForms;
+        const textLength = extractedText.length;
+        
+        // Split text into sections for each form
+        if (formCount > 1) {
+          const sectionLength = Math.floor(textLength / formCount);
+          const startPos = index * sectionLength;
+          const endPos = Math.min(startPos + sectionLength + 200, textLength);
+          
+          if (startPos < textLength && endPos > startPos) {
+            const sectionText = extractedText.substring(startPos, endPos);
+            if (sectionText.trim().length > 50) {
+              extractedText = sectionText;
+              console.log('ViewSplitDocument - Using section text, length:', sectionText.length);
+            }
+          }
+        }
+      }
     }
     
-    // If still no text, show processing message instead of "No text available"
-    if (!extractedText || extractedText.length < 10) {
-      extractedText = `OCR processing completed for ${formType}. Text extraction may still be in progress. Please check the latest upload in Document History tab for updated content.`;
-    }
+    console.log('ViewSplitDocument - Final extracted text length:', extractedText.length);
+    console.log('ViewSplitDocument - Text preview:', extractedText.substring(0, 100) + '...');
     
     const confidence = form.confidence ? Math.round(form.confidence * 100) : 85;
     const pageRange = form.extractedFields?.['Page Range'] || 
