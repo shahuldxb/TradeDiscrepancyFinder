@@ -473,43 +473,73 @@ async function loadFromAzureDatabase() {
                 await saveToAzureDatabase(docId, req.file, analysisResult, formsData);
                 console.log(`✅ Document saved to Azure SQL: ${req.file?.originalname}`);
                 
-                // Execute 3-step pipeline after saving to main table
+                // Automatically execute 3-step pipeline after main document save
                 try {
-                  console.log('🚀 Executing 3-step pipeline for document processing...');
+                  console.log('🚀 Auto-executing 3-step pipeline for document processing...');
                   
                   const { documentPipelineService } = await import('./documentPipelineService');
                   
-                  // Prepare data for pipeline
+                  // Prepare extracted texts from forms
                   const extractedTexts = formsData.map(form => 
                     form.extracted_text || form.fullText || form.extractedFields?.['Full Extracted Text'] || ''
                   );
                   
+                  // Execute full pipeline automatically
                   const pipelineResult = await documentPipelineService.executeFullPipeline(
                     docId,
                     formsData,
                     extractedTexts
                   );
                   
-                  console.log(`✅ Pipeline completed: ${pipelineResult.summary.totalPdfs} PDFs, ${pipelineResult.summary.totalTextRecords} texts, ${pipelineResult.summary.totalFields} fields`);
+                  console.log(`✅ Auto-pipeline completed: ${pipelineResult.summary.totalPdfs} PDFs, ${pipelineResult.summary.totalTextRecords} texts, ${pipelineResult.summary.totalFields} fields extracted`);
+                  
+                  // Add pipeline results to response for user feedback
+                  return res.json({
+                    docId: docId,
+                    detectedForms: formsData,
+                    totalForms: formsData.length,
+                    processingMethod: 'OpenCV + Tesseract OCR',
+                    status: 'completed',
+                    message: `Successfully processed ${formsData.length} forms with OCR and 3-step pipeline`,
+                    pipelineResults: {
+                      totalPdfs: pipelineResult.summary.totalPdfs,
+                      totalTexts: pipelineResult.summary.totalTextRecords,
+                      totalFields: pipelineResult.summary.totalFields,
+                      pipelineStatus: 'completed'
+                    }
+                  });
                   
                 } catch (pipelineError) {
-                  console.error('❌ Pipeline execution failed:', pipelineError);
-                  // Continue without failing the main upload
+                  console.error('❌ Auto-pipeline execution failed:', pipelineError);
+                  // Return success for main upload even if pipeline fails
+                  return res.json({
+                    docId: docId,
+                    detectedForms: formsData,
+                    totalForms: formsData.length,
+                    processingMethod: 'OpenCV + Tesseract OCR',
+                    status: 'completed',
+                    message: `Successfully processed ${formsData.length} forms with OCR (pipeline failed)`,
+                    pipelineResults: {
+                      pipelineStatus: 'failed',
+                      error: pipelineError.message
+                    }
+                  });
                 }
                 
               } catch (saveError) {
                 console.error('Azure SQL save error:', saveError);
+                return res.json({
+                  docId: docId,
+                  detectedForms: formsData,
+                  totalForms: formsData.length,
+                  processingMethod: 'OpenCV + Tesseract OCR',
+                  status: 'completed',
+                  message: `Successfully processed ${formsData.length} forms with OCR (database save failed)`,
+                  saveError: saveError.message
+                });
               }
 
-              // Return OpenCV OCR results with real extracted text
-              return res.json({
-                docId: docId,
-                detectedForms: formsData,
-                totalForms: formsData.length,
-                processingMethod: 'OpenCV + Tesseract OCR',
-                status: 'completed',
-                message: `Successfully processed ${formsData.length} forms with OCR and pipeline`
-              });
+              // This return is now handled in the save block above with pipeline integration
               
 
             } catch (parseError) {
