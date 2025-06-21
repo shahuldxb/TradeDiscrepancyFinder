@@ -35,6 +35,7 @@ export default function TradeFinanceFormDetection() {
   // State variables
   const [activeTab, setActiveTab] = useState('upload');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedDocumentId, setSelectedDocumentId] = useState<string>('');
 
   const [processingStatus, setProcessingStatus] = useState<ProcessingStatus | null>(null);
   const [detectedForms, setDetectedForms] = useState<DetectedForm[]>([]);
@@ -299,11 +300,12 @@ Generated on: ${new Date().toLocaleString()}
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="upload">Upload & Processing</TabsTrigger>
           <TabsTrigger value="progress">Processing Progress</TabsTrigger>
           <TabsTrigger value="forms">Detected Forms</TabsTrigger>
           <TabsTrigger value="history">Document History</TabsTrigger>
+          <TabsTrigger value="pipeline">Pipeline Data</TabsTrigger>
         </TabsList>
 
         {/* Upload Tab */}
@@ -663,6 +665,11 @@ ${extractedText}
               <DocumentHistory />
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Pipeline Data Tab */}
+        <TabsContent value="pipeline">
+          <PipelineDataView ingestionId={selectedDocumentId} />
         </TabsContent>
       </Tabs>
     </div>
