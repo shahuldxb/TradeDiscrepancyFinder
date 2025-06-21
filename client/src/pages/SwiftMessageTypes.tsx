@@ -1089,52 +1089,6 @@ export default function SwiftMessageTypes() {
             )}
           </div>
         </TabsContent>
-
-        <TabsContent value="details">
-          <Card>
-            <CardHeader>
-              <CardTitle>Message Details</CardTitle>
-              <CardDescription>
-                {selectedMessage ? `Details for ${selectedMessage.message_type}` : "Select a message type to view details"}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {selectedMessage ? (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                      <h3 className="font-semibold">Message Information</h3>
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Message Type:</span>
-                          <Badge variant="outline">{selectedMessage.message_type}</Badge>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Category:</span>
-                          <span>{selectedMessage.category}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="space-y-4">
-                      <h3 className="font-semibold">Usage Information</h3>
-                      <div className="space-y-2">
-                        <div>
-                          <span className="text-gray-600 block mb-1">Purpose:</span>
-                          <p className="text-sm">{selectedMessage.purpose}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <AlertTriangle className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                  <p className="text-gray-600">Select a message type to view details</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
     </div>
   );
