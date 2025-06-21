@@ -87,10 +87,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const docId = Date.now().toString();
       
-      // Use Robust OCR Extractor for reliable text extraction
-      const pythonProcess = spawn('python3', ['server/realFormSplitter.py', req.file.path], {
+      // Use Fast Form Splitter for optimized processing
+      const pythonProcess = spawn('python3', ['server/fastFormSplitter.py', req.file.path], {
         stdio: ['pipe', 'pipe', 'pipe'],
-        timeout: 60000  // Increased timeout for 38-page processing
+        timeout: 30000  // Fast processing timeout
       });
 
       let output = '';
@@ -98,7 +98,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       pythonProcess.stdout.on('data', (data: Buffer) => {
         output += data.toString();
-        console.log('Python stdout:', data.toString());
       });
 
       pythonProcess.stderr.on('data', (data: Buffer) => {

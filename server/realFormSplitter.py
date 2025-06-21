@@ -50,8 +50,8 @@ def extract_and_split_forms(pdf_path):
                 # If minimal text, use OCR (which is needed for scanned PDFs)
                 if len(text.strip()) < 50:
                     try:
-                        # Convert page to image for OCR
-                        mat = fitz.Matrix(2, 2)  # 2x scaling
+                        # Convert page to image for OCR with optimized settings
+                        mat = fitz.Matrix(1.5, 1.5)  # Reduced scaling for speed
                         pix = page.get_pixmap(matrix=mat)
                         img_data = pix.tobytes("png")
                         
@@ -61,11 +61,9 @@ def extract_and_split_forms(pdf_path):
                         import io
                         
                         pil_image = Image.open(io.BytesIO(img_data))
-                        # Use OCR with better configuration for scanned documents
-                        text = pytesseract.image_to_string(pil_image, config='--psm 6 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,/:()- ')
-                        print(f"OCR extracted {len(text)} chars from page {page_num + 1}", file=sys.stderr)
+                        # Use faster OCR configuration
+                        text = pytesseract.image_to_string(pil_image, config='--psm 6 --oem 3')
                     except Exception as ocr_error:
-                        print(f"OCR failed for page {page_num + 1}: {str(ocr_error)}", file=sys.stderr)
                         text = f"Page {page_num + 1} - OCR processing failed"
                 
                 # Clean and format the extracted text
