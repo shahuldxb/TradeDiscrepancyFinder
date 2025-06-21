@@ -486,8 +486,8 @@ export default function SwiftMessageTypes() {
                           </tr>
                         </thead>
                         <tbody>
-                          {mandatoryFields.map((field: any) => (
-                            <tr key={field.field_id || field.field_code} className="border-b hover:bg-red-25 transition-colors">
+                          {mandatoryFields.map((field: any, index: number) => (
+                            <tr key={`mandatory-${field.field_id || field.field_code || index}`} className="border-b hover:bg-red-25 transition-colors">
                               <td className="p-3 font-mono text-blue-600">{field.field_id || 'N/A'}</td>
                               <td className="p-3">
                                 <div className="flex flex-col min-w-[6rem]">
@@ -547,8 +547,8 @@ export default function SwiftMessageTypes() {
                           </tr>
                         </thead>
                         <tbody>
-                          {optionalFields.map((field: any) => (
-                            <tr key={field.field_id || field.field_code} className="border-b hover:bg-gray-50 transition-colors">
+                          {optionalFields.map((field: any, index: number) => (
+                            <tr key={`optional-${field.field_id || field.field_code || index}`} className="border-b hover:bg-gray-50 transition-colors">
                               <td className="p-3 font-mono text-blue-600">{field.field_id || 'N/A'}</td>
                               <td className="p-3">
                                 <div className="flex flex-col min-w-[6rem]">

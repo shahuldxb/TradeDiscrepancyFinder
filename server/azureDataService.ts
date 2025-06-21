@@ -240,7 +240,7 @@ export class AzureDataService {
     try {
       const pool = await connectToAzureSQL();
       
-      // Query fields from swift.ucp_message_field_rules with correct column names
+      // Query fields from swift.ucp_message_field_rules with exact column names
       let query = `
         SELECT 
           ruleid as field_id,
@@ -248,10 +248,10 @@ export class AzureDataService {
           fieldtag as tag,
           fieldname as field_name,
           CASE WHEN mandatoryfield = true THEN 1 ELSE 0 END as is_mandatory,
-          validationpattern as content_options,
+          COALESCE(validationpattern, 'Field validation pattern') as content_options,
           id as sequence,
           createddate as created_at,
-          modifieddate as updated_at
+          COALESCE(modifieddate, createddate) as updated_at
         FROM swift.ucp_message_field_rules 
         WHERE fieldtag IS NOT NULL
       `;
@@ -337,13 +337,15 @@ export class AzureDataService {
     try {
       const pool = await connectToAzureSQL();
       
-      // Query validation rules from swift.ucp_message_field_rules with correct column names
+      // Query validation rules from swift.ucp_message_field_rules with exact column names
       let query = `
-        SELECT ruleid as rule_id, fieldname as rule_name, conditionalrule as rule_description, 
+        SELECT ruleid as rule_id, fieldname as rule_name, 
+               COALESCE(conditionalrule, fieldname) as rule_description, 
                fieldtag as field_tag, messagetype as message_type, 
-               validationpattern as validation_type, crossfieldvalidation as rule_condition, 
-               'Validation failed' as error_message, isactive as is_active, 
-               createddate as created_at, modifieddate as updated_at
+               COALESCE(validationpattern, 'Pattern validation') as validation_type, 
+               COALESCE(crossfieldvalidation, 'Field validation') as rule_condition, 
+               'Validation failed for field' as error_message, isactive as is_active, 
+               createddate as created_at, COALESCE(modifieddate, createddate) as updated_at
         FROM swift.ucp_message_field_rules 
         WHERE isactive = true
       `;

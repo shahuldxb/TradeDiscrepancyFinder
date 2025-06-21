@@ -720,6 +720,41 @@ async function loadFromAzureDatabase() {
     }
   });
 
+  // SWIFT Message Details API endpoint
+  app.get('/api/swift/message-details/:messageType', async (req, res) => {
+    try {
+      const messageType = req.params.messageType;
+      
+      // Get message type info
+      const messageTypes = await azureDataService.getSwiftMessageTypes();
+      const messageTypeInfo = messageTypes.find((mt: any) => mt.message_type === messageType);
+      
+      // Get fields for this message type
+      const fields = await azureDataService.getSwiftFields(messageType);
+      
+      // Get validation rules for this message type
+      const validationRules = await azureDataService.getValidationRules(messageType);
+      
+      const messageDetails = {
+        messageType: messageTypeInfo,
+        fields: fields,
+        validationRules: validationRules,
+        statistics: {
+          totalFields: fields.length,
+          mandatoryFields: fields.filter((f: any) => f.is_mandatory).length,
+          optionalFields: fields.filter((f: any) => !f.is_mandatory).length,
+          validationRules: validationRules.length
+        }
+      };
+      
+      console.log(`Returning message details for ${messageType}`);
+      res.json(messageDetails);
+    } catch (error) {
+      console.error('Error fetching message details:', error);
+      res.status(500).json({ error: 'Failed to fetch message details' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
