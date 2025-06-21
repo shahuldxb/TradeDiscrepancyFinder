@@ -337,18 +337,18 @@ export class AzureDataService {
     try {
       const pool = await connectToAzureSQL();
       
-      // Query validation rules from swift.ucp_message_field_rules table - use only confirmed columns
+      // Query only basic columns that definitely exist
       let query = `
-        SELECT ruleid as rule_id, fieldname as rule_name, 
-               fieldname as rule_description, 
-               fieldtag as field_tag, messagetype as message_type, 
-               'Pattern validation' as validation_type, 
-               'Field validation rule' as rule_condition, 
-               isactive as is_active, 
-               createddate as created_at, 
-               createddate as updated_at
+        SELECT 
+          ruleid,
+          fieldname,
+          fieldtag,
+          messagetype,
+          mandatoryfield,
+          isactive,
+          createddate
         FROM swift.ucp_message_field_rules 
-        WHERE isactive = true
+        WHERE isactive = 1
       `;
       
       const conditions = [];
@@ -370,17 +370,17 @@ export class AzureDataService {
       console.log(`Found ${result.recordset.length} validation rules`);
       
       return result.recordset.map((rule: any) => ({
-        rule_id: rule.rule_id,
-        rule_name: rule.rule_name,
-        rule_description: rule.rule_description,
-        field_tag: rule.field_tag,
-        message_type: rule.message_type,
-        validation_type: rule.validation_type,
-        rule_condition: rule.rule_condition,
-        error_message: rule.error_message,
-        is_active: rule.is_active,
-        created_at: rule.created_at,
-        updated_at: rule.updated_at
+        rule_id: rule.ruleid,
+        rule_name: rule.fieldname,
+        rule_description: `Validation rule for ${rule.fieldname}`,
+        field_tag: rule.fieldtag,
+        message_type: rule.messagetype,
+        validation_type: 'Pattern validation',
+        rule_condition: 'Field validation rule',
+        error_message: 'Validation failed',
+        is_active: rule.isactive,
+        created_at: rule.createddate,
+        updated_at: rule.createddate
       }));
     } catch (error) {
       console.error('Error fetching validation rules:', error);
