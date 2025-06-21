@@ -403,8 +403,8 @@ export default function Sidebar() {
     if (location.startsWith('/lifecycle/') && !newExpanded.has('Lifecycle Management')) {
       newExpanded.add('Lifecycle Management');
       shouldUpdate = true;
-    } else if (location.startsWith('/swift/') && !newExpanded.has('SWIFT Messages')) {
-      newExpanded.add('SWIFT Messages');
+    } else if (location.startsWith('/swift/') && !newExpanded.has('SWIFT & Messaging')) {
+      newExpanded.add('SWIFT & Messaging');
       shouldUpdate = true;
     } else if (location.startsWith('/incoterms/') && !newExpanded.has('Incoterms Management')) {
       newExpanded.add('Incoterms Management');
