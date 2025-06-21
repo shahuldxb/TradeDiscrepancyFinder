@@ -248,12 +248,12 @@ export class AzureDataService {
           fieldtag as tag,
           fieldname as field_name,
           CASE WHEN mandatoryfield = true THEN 1 ELSE 0 END as is_mandatory,
-          COALESCE(validationpattern, 'Field validation pattern') as content_options,
-          id as sequence,
+          validationpattern as content_options,
+          ruleid as sequence,
           createddate as created_at,
-          COALESCE(modifieddate, createddate) as updated_at
+          createddate as updated_at
         FROM swift.ucp_message_field_rules 
-        WHERE fieldtag IS NOT NULL
+        WHERE fieldtag IS NOT NULL AND isactive = true
       `;
       
       // Add message type filter if provided
@@ -261,7 +261,7 @@ export class AzureDataService {
         query += `AND messagetype = '${messageTypeId}' `;
       }
       
-      query += `ORDER BY id, ruleid`;
+      query += `ORDER BY ruleid`;
       
       const result = await pool.request().query(query);
       
@@ -340,12 +340,12 @@ export class AzureDataService {
       // Query validation rules from swift.ucp_message_field_rules with exact column names
       let query = `
         SELECT ruleid as rule_id, fieldname as rule_name, 
-               COALESCE(conditionalrule, fieldname) as rule_description, 
+               conditionalrule as rule_description, 
                fieldtag as field_tag, messagetype as message_type, 
-               COALESCE(validationpattern, 'Pattern validation') as validation_type, 
-               COALESCE(crossfieldvalidation, 'Field validation') as rule_condition, 
+               validationpattern as validation_type, 
+               crossfieldvalidation as rule_condition, 
                'Validation failed for field' as error_message, isactive as is_active, 
-               createddate as created_at, COALESCE(modifieddate, createddate) as updated_at
+               createddate as created_at, modifieddate as updated_at
         FROM swift.ucp_message_field_rules 
         WHERE isactive = true
       `;
