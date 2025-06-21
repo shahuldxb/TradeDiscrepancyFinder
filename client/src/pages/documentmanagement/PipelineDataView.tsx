@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FileText, Database, Settings } from 'lucide-react';
 
 interface PipelinePdf {
@@ -49,21 +50,23 @@ export default function PipelineDataView({ ingestionId }: PipelineDataViewProps)
   const [activeTab, setActiveTab] = useState('pdfs');
   const [selectedId, setSelectedId] = useState('');
 
+  // Fetch document history for dropdown
+  const { data: historyData } = useQuery({
+    queryKey: ['/api/form-detection/history'],
+  });
+
+  const documents = historyData?.documents || [];
+
   // Auto-select the latest document if no ID provided
   useEffect(() => {
     if (!ingestionId || ingestionId === '') {
-      fetch('/api/form-detection/history')
-        .then(res => res.json())
-        .then(data => {
-          if (data.documents && data.documents.length > 0) {
-            setSelectedId(data.documents[0].id);
-          }
-        })
-        .catch(err => console.error('Failed to fetch latest document:', err));
+      if (documents.length > 0) {
+        setSelectedId(documents[0].id);
+      }
     } else {
       setSelectedId(ingestionId);
     }
-  }, [ingestionId]);
+  }, [ingestionId, documents]);
 
   const { data: pdfData, isLoading: pdfsLoading } = useQuery({
     queryKey: [`/api/pipeline/pdfs/${selectedId}`],
@@ -113,8 +116,24 @@ export default function PipelineDataView({ ingestionId }: PipelineDataViewProps)
           3-Step Pipeline Data
         </CardTitle>
         <CardDescription>
-          Document processing results for ingestion ID: {selectedId}
+          Document processing results for selected document
         </CardDescription>
+        
+        {/* Document Selector */}
+        <div className="pt-4">
+          <Select value={selectedId} onValueChange={setSelectedId}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select a document to view pipeline data" />
+            </SelectTrigger>
+            <SelectContent>
+              {documents.map((doc: any) => (
+                <SelectItem key={doc.id} value={doc.id}>
+                  {doc.filename} - {doc.documentType} ({new Date(doc.uploadDate).toLocaleDateString()})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
