@@ -681,6 +681,53 @@ async function loadFromAzureDatabase() {
     return 'Trade Finance Document';
   }
 
+  // Document Pipeline API endpoints - 3-step processing
+  app.post('/api/document-pipeline/execute', async (req, res) => {
+    try {
+      const { ingestionId, detectedForms, extractedTexts } = req.body;
+      
+      if (!ingestionId || !detectedForms || !extractedTexts) {
+        return res.status(400).json({ 
+          error: 'Missing required fields: ingestionId, detectedForms, extractedTexts' 
+        });
+      }
+      
+      const { documentPipelineService } = await import('./documentPipelineService');
+      const result = await documentPipelineService.executeFullPipeline(
+        ingestionId, 
+        detectedForms, 
+        extractedTexts
+      );
+      
+      res.json({
+        success: true,
+        result,
+        message: `Pipeline completed: ${result.summary.totalPdfs} PDFs, ${result.summary.totalTextRecords} texts, ${result.summary.totalFields} fields`
+      });
+    } catch (error) {
+      console.error('Pipeline execution error:', error);
+      res.status(500).json({ error: 'Failed to execute pipeline' });
+    }
+  });
+
+  app.get('/api/document-pipeline/results/:ingestionId', async (req, res) => {
+    try {
+      const ingestionId = parseInt(req.params.ingestionId);
+      
+      const { documentPipelineService } = await import('./documentPipelineService');
+      const results = await documentPipelineService.getPipelineResults(ingestionId);
+      
+      res.json({
+        success: true,
+        ingestionId,
+        results
+      });
+    } catch (error) {
+      console.error('Error getting pipeline results:', error);
+      res.status(500).json({ error: 'Failed to get pipeline results' });
+    }
+  });
+
   // SWIFT API endpoints for Azure database integration
   app.get("/api/swift/message-types-azure", async (req, res) => {
     try {
