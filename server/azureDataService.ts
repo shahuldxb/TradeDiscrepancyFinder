@@ -195,35 +195,22 @@ export class AzureDataService {
     try {
       const pool = await connectToAzureSQL();
       
-      // First check the column structure to understand what's available
-      const columnsResult = await pool.request().query(`
-        SELECT COLUMN_NAME 
-        FROM INFORMATION_SCHEMA.COLUMNS 
-        WHERE TABLE_SCHEMA = 'swift' AND TABLE_NAME = 'message_types'
-        ORDER BY ORDINAL_POSITION
-      `);
-      
-      console.log('Available columns in swift.message_types:', columnsResult.recordset.map(c => c.COLUMN_NAME));
-      
-      // Query all message types using SELECT * to see actual column structure
+      // Query from public schema swift_message_types table
       const result = await pool.request().query(`
-        SELECT * FROM swift.message_types ORDER BY 1
+        SELECT * FROM swift_message_types ORDER BY message_type_id
       `);
       
-      // Log first row to understand the actual data structure
-      if (result.recordset.length > 0) {
-        console.log('Sample row from swift.message_types:', Object.keys(result.recordset[0]));
-      }
+      console.log(`Found ${result.recordset.length} SWIFT message types`);
       
-      // Map the results with proper fallbacks for descriptions and purposes
+      // Map the results with authentic data structure
       return result.recordset.map((row: any) => ({
-        message_type: row.MessageType || row.message_type || `MT${row.MessageTypeCode || row.message_type_code || ''}`,
-        message_type_code: row.MessageTypeCode || row.message_type_code || row.Code || '',
-        message_type_name: row.MessageTypeName || row.message_type_name || row.Name || row.Description || 'SWIFT Message',
-        description: row.Description || row.MessageDescription || row.Purpose || row.MessageTypeName || `${row.MessageType || 'SWIFT'} message for trade finance operations`,
-        category: row.Category || row.category || String(row.MessageTypeCode || row.message_type_code || '').charAt(0) || '7',
-        purpose: row.Purpose || row.MessagePurpose || row.Description || `Processing and handling of ${row.MessageType || 'SWIFT'} messages for documentary credits and trade finance`,
-        is_active: row.IsActive !== undefined ? row.IsActive : (row.is_active !== undefined ? row.is_active : true)
+        message_type_id: row.message_type_id,
+        message_type: row.message_type,
+        message_type_name: row.message_type_name,
+        description: row.description,
+        category: row.category,
+        purpose: row.purpose,
+        is_active: row.is_active !== false
       }));
     } catch (error) {
       console.error('Error fetching SWIFT message types:', error);
@@ -235,11 +222,11 @@ export class AzureDataService {
     try {
       const pool = await connectToAzureSQL();
       
-      // Query the message_fields table with optional message type filtering
+      // Query from public schema swift_fields table
       let query = `
         SELECT field_id, message_type_id, tag, field_name, is_mandatory, 
                content_options, sequence, created_at, updated_at 
-        FROM swift.message_fields 
+        FROM swift_fields 
       `;
       
       // Add message type filter if provided
@@ -247,7 +234,7 @@ export class AzureDataService {
         query += `WHERE message_type_id = ${messageTypeId} `;
       }
       
-      query += `ORDER BY sequence`;
+      query += `ORDER BY sequence, field_id`;
       
       const result = await pool.request().query(query);
       
