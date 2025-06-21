@@ -474,16 +474,19 @@ async function loadFromAzureDatabase() {
                 console.log(`✅ Document saved to Azure SQL: ${req.file?.originalname}`);
                 
                 // Automatically execute 3-step pipeline after main document save
+                console.log('🚀 Auto-executing 3-step pipeline for document processing...');
+                
+                // Import pipeline service dynamically  
+                const { documentPipelineService } = await import('./documentPipelineService');
+                
+                // Prepare extracted texts from forms
+                const extractedTexts = formsData.map(form => 
+                  form.extracted_text || form.fullText || form.extractedFields?.['Full Extracted Text'] || ''
+                );
+                
+                console.log(`Pipeline input: ${formsData.length} forms, ${extractedTexts.length} texts`);
+                
                 try {
-                  console.log('🚀 Auto-executing 3-step pipeline for document processing...');
-                  
-                  const { documentPipelineService } = await import('./documentPipelineService');
-                  
-                  // Prepare extracted texts from forms
-                  const extractedTexts = formsData.map(form => 
-                    form.extracted_text || form.fullText || form.extractedFields?.['Full Extracted Text'] || ''
-                  );
-                  
                   // Execute full pipeline automatically
                   const pipelineResult = await documentPipelineService.executeFullPipeline(
                     docId,
@@ -491,9 +494,12 @@ async function loadFromAzureDatabase() {
                     extractedTexts
                   );
                   
-                  console.log(`✅ Auto-pipeline completed: ${pipelineResult.summary.totalPdfs} PDFs, ${pipelineResult.summary.totalTextRecords} texts, ${pipelineResult.summary.totalFields} fields extracted`);
+                  console.log(`✅ Auto-pipeline completed successfully!`);
+                  console.log(`   - ${pipelineResult.summary.totalPdfs} PDFs processed`);
+                  console.log(`   - ${pipelineResult.summary.totalTextRecords} texts stored`);
+                  console.log(`   - ${pipelineResult.summary.totalFields} fields extracted`);
                   
-                  // Add pipeline results to response for user feedback
+                  // Return success with pipeline results
                   return res.json({
                     docId: docId,
                     detectedForms: formsData,
@@ -510,7 +516,9 @@ async function loadFromAzureDatabase() {
                   });
                   
                 } catch (pipelineError) {
-                  console.error('❌ Auto-pipeline execution failed:', pipelineError);
+                  console.error('❌ Auto-pipeline execution failed:', pipelineError.message);
+                  console.error('Pipeline error stack:', pipelineError.stack);
+                  
                   // Return success for main upload even if pipeline fails
                   return res.json({
                     docId: docId,
@@ -518,7 +526,7 @@ async function loadFromAzureDatabase() {
                     totalForms: formsData.length,
                     processingMethod: 'OpenCV + Tesseract OCR',
                     status: 'completed',
-                    message: `Successfully processed ${formsData.length} forms with OCR (pipeline failed)`,
+                    message: `Successfully processed ${formsData.length} forms with OCR (pipeline failed: ${pipelineError.message})`,
                     pipelineResults: {
                       pipelineStatus: 'failed',
                       error: pipelineError.message
