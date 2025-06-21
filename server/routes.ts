@@ -87,10 +87,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const docId = Date.now().toString();
       
-      // Use Fast Form Splitter for optimized processing
-      const pythonProcess = spawn('python3', ['server/fastFormSplitter.py', req.file.path], {
+      // Use Quick Form Splitter for immediate processing
+      const pythonProcess = spawn('python3', ['server/quickFormSplitter.py', req.file.path], {
         stdio: ['pipe', 'pipe', 'pipe'],
-        timeout: 30000  // Fast processing timeout
+        timeout: 15000  // Quick processing timeout
       });
 
       let output = '';
