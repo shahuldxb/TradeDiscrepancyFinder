@@ -202,19 +202,19 @@ export class AzureDataService {
           SELECT * FROM swift.message_types ORDER BY message_type_id
         `);
       } catch (error) {
-        // Fallback to available SWIFT tables - use UCP message field rules
+        // Use UCP message field rules with correct column names
         result = await pool.request().query(`
           SELECT DISTINCT 
-            ROW_NUMBER() OVER (ORDER BY message_type) as message_type_id,
-            message_type,
-            'MT' + message_type as message_type_name,
+            ROW_NUMBER() OVER (ORDER BY messagetype) as message_type_id,
+            messagetype as message_type,
+            'MT' + messagetype as message_type_name,
             'SWIFT message type for trade finance operations' as description,
-            LEFT(message_type, 1) as category,
+            LEFT(messagetype, 1) as category,
             'Processing and handling of SWIFT messages for documentary credits' as purpose,
             1 as is_active
           FROM swift.ucp_message_field_rules 
-          WHERE message_type IS NOT NULL
-          ORDER BY message_type
+          WHERE messagetype IS NOT NULL
+          ORDER BY messagetype
         `);
       }
       
@@ -240,28 +240,28 @@ export class AzureDataService {
     try {
       const pool = await connectToAzureSQL();
       
-      // Query fields from swift.ucp_message_field_rules table
+      // Query fields from swift.ucp_message_field_rules with correct column names
       let query = `
         SELECT 
-          rule_id as field_id,
-          message_type as message_type_id,
-          field_tag as tag,
-          field_name,
-          CASE WHEN is_mandatory = 1 THEN 1 ELSE 0 END as is_mandatory,
-          validation_logic as content_options,
-          priority as sequence,
-          created_at,
-          updated_at
+          ruleid as field_id,
+          messagetype as message_type_id,
+          fieldtag as tag,
+          fieldname as field_name,
+          CASE WHEN mandatoryfield = true THEN 1 ELSE 0 END as is_mandatory,
+          validationpattern as content_options,
+          id as sequence,
+          createddate as created_at,
+          modifieddate as updated_at
         FROM swift.ucp_message_field_rules 
-        WHERE field_tag IS NOT NULL
+        WHERE fieldtag IS NOT NULL
       `;
       
       // Add message type filter if provided
       if (messageTypeId && messageTypeId !== 'all') {
-        query += `AND message_type = '${messageTypeId}' `;
+        query += `AND messagetype = '${messageTypeId}' `;
       }
       
-      query += `ORDER BY priority, rule_id`;
+      query += `ORDER BY id, ruleid`;
       
       const result = await pool.request().query(query);
       
@@ -337,28 +337,30 @@ export class AzureDataService {
     try {
       const pool = await connectToAzureSQL();
       
-      // Query validation rules from swift.ucp_message_field_rules table
+      // Query validation rules from swift.ucp_message_field_rules with correct column names
       let query = `
-        SELECT rule_id, rule_name, rule_description, field_tag, message_type, 
-               validation_logic as validation_type, validation_logic as rule_condition, 
-               error_message, is_active, created_at, updated_at
+        SELECT ruleid as rule_id, fieldname as rule_name, conditionalrule as rule_description, 
+               fieldtag as field_tag, messagetype as message_type, 
+               validationpattern as validation_type, crossfieldvalidation as rule_condition, 
+               'Validation failed' as error_message, isactive as is_active, 
+               createddate as created_at, modifieddate as updated_at
         FROM swift.ucp_message_field_rules 
-        WHERE is_active = 1
+        WHERE isactive = true
       `;
       
       const conditions = [];
       if (messageTypeId && messageTypeId !== 'all') {
-        conditions.push(`message_type = '${messageTypeId}'`);
+        conditions.push(`messagetype = '${messageTypeId}'`);
       }
       if (fieldId && fieldId !== 'all') {
-        conditions.push(`field_tag = '${fieldId}'`);
+        conditions.push(`fieldtag = '${fieldId}'`);
       }
       
       if (conditions.length > 0) {
         query += ` AND (${conditions.join(' OR ')})`;
       }
       
-      query += ` ORDER BY rule_id`;
+      query += ` ORDER BY ruleid`;
       
       const result = await pool.request().query(query);
       
