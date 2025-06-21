@@ -681,6 +681,45 @@ async function loadFromAzureDatabase() {
     return 'Trade Finance Document';
   }
 
+  // SWIFT API endpoints for Azure database integration
+  app.get("/api/swift/message-types-azure", async (req, res) => {
+    try {
+      const messageTypes = await azureDataService.getSwiftMessageTypes();
+      console.log(`Returning ${messageTypes.length} SWIFT message types`);
+      res.json(messageTypes);
+    } catch (error) {
+      console.error('Error fetching SWIFT message types:', error);
+      res.status(500).json({ error: 'Failed to fetch message types' });
+    }
+  });
+
+  app.get("/api/swift/fields-azure", async (req, res) => {
+    try {
+      const messageTypeId = req.query.messageType as string;
+      const fields = await azureDataService.getSwiftFields(messageTypeId);
+      console.log(`Returning ${fields.length} SWIFT fields`);
+      res.json(fields);
+    } catch (error) {
+      console.error('Error fetching SWIFT fields:', error);
+      res.status(500).json({ error: 'Failed to fetch fields' });
+    }
+  });
+
+  app.get('/api/swift/validation-rules-azure', async (req, res) => {
+    try {
+      const messageTypeId = req.query.messageTypeId as string;
+      const fieldId = req.query.fieldId as string;
+      
+      // Get validation rules from Azure database
+      const rules = await azureDataService.getValidationRules(messageTypeId, fieldId);
+      console.log(`Returning ${rules.length} validation rules`);
+      res.json(rules);
+    } catch (error) {
+      console.error('Error fetching validation rules:', error);
+      res.status(500).json({ error: 'Failed to fetch validation rules' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

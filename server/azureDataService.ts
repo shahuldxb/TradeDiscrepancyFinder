@@ -306,6 +306,56 @@ export class AzureDataService {
     return fieldNames[fieldCode] || `SWIFT Field ${fieldCode}`;
   }
 
+  async getValidationRules(messageTypeId?: string, fieldId?: string) {
+    try {
+      const pool = await connectToAzureSQL();
+      
+      // Query validation rules from swift_business_rules table
+      let query = `
+        SELECT rule_id, rule_name, rule_description, field_tag, message_type, 
+               validation_type, rule_condition, error_message, is_active,
+               created_at, updated_at
+        FROM swift_business_rules 
+        WHERE is_active = 1
+      `;
+      
+      const conditions = [];
+      if (messageTypeId && messageTypeId !== 'all') {
+        conditions.push(`message_type = '${messageTypeId}'`);
+      }
+      if (fieldId && fieldId !== 'all') {
+        conditions.push(`field_tag = '${fieldId}'`);
+      }
+      
+      if (conditions.length > 0) {
+        query += ` AND (${conditions.join(' OR ')})`;
+      }
+      
+      query += ` ORDER BY rule_id`;
+      
+      const result = await pool.request().query(query);
+      
+      console.log(`Found ${result.recordset.length} validation rules`);
+      
+      return result.recordset.map((rule: any) => ({
+        rule_id: rule.rule_id,
+        rule_name: rule.rule_name,
+        rule_description: rule.rule_description,
+        field_tag: rule.field_tag,
+        message_type: rule.message_type,
+        validation_type: rule.validation_type,
+        rule_condition: rule.rule_condition,
+        error_message: rule.error_message,
+        is_active: rule.is_active,
+        created_at: rule.created_at,
+        updated_at: rule.updated_at
+      }));
+    } catch (error) {
+      console.error('Error fetching validation rules:', error);
+      throw error;
+    }
+  }
+
   async getSwiftFieldsByMessageType(messageTypeCode: string) {
     try {
       // Directly return SWIFT field data without complex Azure queries to avoid column name issues
