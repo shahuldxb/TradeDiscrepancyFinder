@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Upload, FileText, CheckCircle, Clock, Scissors, Eye, ChevronRight, ChevronDown, Download, Trash2 } from 'lucide-react';
+import { Upload, FileText, CheckCircle, Clock, Scissors, Eye, ChevronRight, ChevronDown, Download, Trash2, Database } from 'lucide-react';
+import PipelineDataView from './PipelineDataView';
 
 interface ProcessingStatus {
   upload?: 'processing' | 'completed' | 'error';
