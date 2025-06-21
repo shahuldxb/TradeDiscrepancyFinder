@@ -118,7 +118,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               console.log('Parsed analysis result:', JSON.stringify(analysisResult, null, 2));
               
               // Handle individual forms from Real Form Splitter - NO GROUPING
-              const formsData = analysisResult.detected_forms || [];
+              const formsData = analysisResult.forms || analysisResult.detected_forms || [];
               console.log(`✅ Real Form Splitter extracted ${formsData.length} individual forms (NO GROUPING)`);
               
               const detectedForms = formsData.map((form: any, index: number) => ({
