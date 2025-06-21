@@ -27,7 +27,7 @@ export class PdfSplitterService {
       const pool = await connectToAzureSQL();
       
       const query = `
-        INSERT INTO TF_ingestion_Pdf (
+        INSERT INTO TF_pipeline_Pdf (
           ingestion_id, fileName, blobStoragePath, 
           pageRange, classification, confidenceScore, metadata
         )
@@ -98,7 +98,7 @@ export class PdfSplitterService {
       const query = `
         SELECT id, fileName, blobStoragePath, pageRange, 
                classification, confidenceScore, metadata, createdDate
-        FROM TF_ingestion_Pdf 
+        FROM TF_pipeline_Pdf 
         WHERE ingestion_id = @ingestionId
         ORDER BY createdDate ASC
       `;

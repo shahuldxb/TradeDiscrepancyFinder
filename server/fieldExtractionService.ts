@@ -208,7 +208,7 @@ export class FieldExtractionService {
                f.positionCoordinates, f.dataType, f.createdDate,
                p.classification, p.pageRange
         FROM TF_ingestion_fields f
-        INNER JOIN TF_ingestion_Pdf p ON f.pdfId = p.id
+        INNER JOIN TF_pipeline_Pdf p ON f.pdfId = p.id
         WHERE p.ingestion_id = @ingestionId
         ORDER BY p.createdDate ASC, f.createdDate ASC
       `;

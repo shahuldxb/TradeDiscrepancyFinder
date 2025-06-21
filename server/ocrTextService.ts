@@ -119,7 +119,7 @@ export class OcrTextService {
                t.confidenceScore, t.textLength, t.createdDate,
                p.pageRange, p.classification as pdf_classification
         FROM TF_ingestion_TXT t
-        INNER JOIN TF_ingestion_Pdf p ON t.pdfId = p.id
+        INNER JOIN TF_pipeline_Pdf p ON t.pdfId = p.id
         WHERE p.ingestion_id = @ingestionId
         ORDER BY p.createdDate ASC
       `;
