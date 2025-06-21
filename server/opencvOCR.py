@@ -1,186 +1,198 @@
 #!/usr/bin/env python3
 """
-OpenCV-based OCR Processing for Trade Finance Documents
-Uses OpenCV preprocessing + Tesseract for reliable text extraction
+OpenCV + Tesseract OCR for Trade Finance Documents
+Enhanced OCR processing with OpenCV preprocessing for better text extraction
 """
 
 import sys
 import json
 import os
+import fitz  # PyMuPDF
 import cv2
 import numpy as np
 import pytesseract
-from PIL import Image
-import fitz  # PyMuPDF
 from datetime import datetime
+from PIL import Image
+import io
 
-class OpenCVOCRProcessor:
-    def __init__(self):
-        self.form_patterns = {
-            'SWIFT Message': ['swift', 'mt700', 'mt701', 'mt702', 'field', 'tag', 'sequence'],
-            'Commercial Invoice': ['commercial', 'invoice', 'seller', 'buyer', 'amount'],
-            'Bill of Lading': ['bill', 'lading', 'shipper', 'consignee', 'vessel'],
-            'Certificate of Origin': ['certificate', 'origin', 'country', 'exporter'],
-            'Letter of Credit': ['letter', 'credit', 'documentary', 'applicant', 'beneficiary'],
-            'Packing List': ['packing', 'list', 'package', 'weight', 'quantity'],
-            'Insurance Certificate': ['insurance', 'certificate', 'policy', 'coverage'],
-            'Bill of Exchange': ['bill', 'exchange', 'drawer', 'drawee', 'amount']
-        }
+def preprocess_image_for_ocr(image_array):
+    """
+    Preprocess image using OpenCV for better OCR results
+    """
+    # Convert to grayscale if needed
+    if len(image_array.shape) == 3:
+        gray = cv2.cvtColor(image_array, cv2.COLOR_BGR2GRAY)
+    else:
+        gray = image_array
     
-    def preprocess_image(self, image):
-        """Preprocess image for better OCR results"""
-        # Convert to grayscale
-        if len(image.shape) == 3:
-            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        else:
-            gray = image
-        
-        # Apply Gaussian blur to reduce noise
-        blur = cv2.GaussianBlur(gray, (3, 3), 0)
-        
-        # Apply threshold to get binary image
-        thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
-        
-        # Morphological operations to clean up the image
-        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
-        opening = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel, iterations=1)
-        
-        return opening
+    # Increase contrast using CLAHE (Contrast Limited Adaptive Histogram Equalization)
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
+    enhanced = clahe.apply(gray)
     
-    def extract_text_from_image(self, image):
-        """Extract text from preprocessed image using Tesseract"""
-        try:
-            # Preprocess the image
-            processed = self.preprocess_image(image)
-            
-            # Convert back to PIL Image for Tesseract
-            pil_image = Image.fromarray(processed)
-            
-            # OCR configuration for better accuracy
-            custom_config = r'--oem 3 --psm 6'
-            
-            # Extract text
-            text = pytesseract.image_to_string(pil_image, config=custom_config)
-            return text.strip()
-        except Exception as e:
-            print(f"OCR extraction error: {e}", file=sys.stderr)
-            return ""
+    # Apply binary thresholding with Otsu's method
+    _, thresh = cv2.threshold(enhanced, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     
-    def process_document(self, file_path):
-        """Process PDF document with OpenCV OCR"""
-        try:
-            doc = fitz.open(file_path)
-            detected_forms = []
-            
-            print(f"Processing {len(doc)} pages with OpenCV OCR...", file=sys.stderr)
-            
-            for page_num in range(len(doc)):
+    # Denoise using morphological operations
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
+    cleaned = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
+    
+    return cleaned
+
+def classify_document_content(text):
+    """Classify document type based on content analysis"""
+    text_lower = text.lower()
+    
+    # Enhanced classification patterns for trade finance documents
+    if any(term in text_lower for term in ['certificate', 'weight', 'batch', 'manufacturing', 'expiry', 'kanemite']):
+        return 'Certificate of Weight', 0.9
+    elif any(term in text_lower for term in ['vessel', 'voyage', 'spectrum', 'flag', 'nationality', 'carrying vessel', 'ism']):
+        return 'Vessel Certificate', 0.9
+    elif any(term in text_lower for term in ['letter of credit', 'documentary credit', 'l/c number', 'issuing bank', 'ilcae']):
+        return 'Letter of Credit', 0.9
+    elif any(term in text_lower for term in ['commercial invoice', 'invoice', 'seller', 'buyer', 'proforma']):
+        return 'Commercial Invoice', 0.8
+    elif any(term in text_lower for term in ['bill of lading', 'b/l no', 'shipper', 'consignee']):
+        return 'Bill of Lading', 0.8
+    elif any(term in text_lower for term in ['certificate of origin', 'country of origin']):
+        return 'Certificate of Origin', 0.8
+    elif any(term in text_lower for term in ['packing list', 'gross weight', 'net weight']):
+        return 'Packing List', 0.7
+    elif any(term in text_lower for term in ['insurance', 'policy', 'coverage']):
+        return 'Insurance Certificate', 0.7
+    elif any(term in text_lower for term in ['united arab emirates', 'abu dhabi', 'dubai', 'uae']):
+        return 'Trade Finance Document', 0.7
+    else:
+        return 'Trade Finance Document', 0.6
+
+def extract_text_with_opencv_ocr(page):
+    """
+    Extract text using OpenCV preprocessing + Tesseract OCR
+    """
+    try:
+        # Convert page to optimized resolution image
+        mat = fitz.Matrix(1.5, 1.5)  # Balanced scaling for speed and quality
+        pix = page.get_pixmap(matrix=mat)
+        img_data = pix.tobytes("png")
+        
+        # Convert to PIL Image then to OpenCV format
+        pil_image = Image.open(io.BytesIO(img_data))
+        opencv_image = cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGB2BGR)
+        
+        # Preprocess image for better OCR
+        processed_image = preprocess_image_for_ocr(opencv_image)
+        
+        # Extract text using Tesseract with optimized configuration
+        custom_config = r'--oem 3 --psm 6'
+        
+        text = pytesseract.image_to_string(processed_image, config=custom_config)
+        
+        return text.strip()
+        
+    except Exception as e:
+        print(f"OCR processing error: {str(e)}", file=sys.stderr)
+        return ""
+
+def extract_and_split_forms(pdf_path):
+    """Extract text from each page using OpenCV + OCR and classify as separate forms"""
+    try:
+        doc = fitz.open(pdf_path)
+        individual_forms = []
+        
+        for page_num in range(doc.page_count):
+            try:
                 page = doc[page_num]
                 
-                # Try direct text extraction first
-                direct_text = page.get_text()
+                # First try direct text extraction
+                text = page.get_text()
                 
-                if direct_text.strip():
-                    # Page has extractable text
-                    text = direct_text.strip()
-                    print(f"Page {page_num + 1}: Direct text extraction ({len(text)} chars)", file=sys.stderr)
+                # If minimal text found, use OpenCV + OCR
+                if len(text.strip()) < 50:
+                    print(f"Running OpenCV OCR on page {page_num + 1}...", file=sys.stderr)
+                    text = extract_text_with_opencv_ocr(page)
+                
+                # Clean and format the extracted text
+                if text and len(text.strip()) > 5:
+                    # Remove excessive whitespace and clean formatting
+                    lines = [line.strip() for line in text.split('\n') if line.strip()]
+                    text = '\n'.join(lines)
+                    
+                    # Add basic formatting for readability
+                    text = text.replace('  ', ' ')  # Remove double spaces
+                    
+                    # Classify this specific page based on content
+                    doc_type, confidence = classify_document_content(text)
+                    
+                    print(f"Page {page_num + 1}: Extracted {len(text)} chars, classified as {doc_type}", file=sys.stderr)
+                    
+                    # Create individual form entry
+                    form_data = {
+                        'id': f"form_{page_num + 1}_{int(datetime.now().timestamp() * 1000)}",
+                        'form_type': doc_type,
+                        'formType': doc_type,
+                        'confidence': confidence,
+                        'page_number': page_num + 1,
+                        'page_numbers': [page_num + 1],
+                        'pages': [page_num + 1],
+                        'page_range': f"Page {page_num + 1}",
+                        'extracted_text': text[:1000],  # Limit for storage
+                        'text_length': len(text),
+                        'extractedFields': {
+                            'Full Extracted Text': text,
+                            'Document Classification': doc_type,
+                            'Processing Statistics': f"{len(text)} characters extracted from page {page_num + 1}",
+                            'Page Number': str(page_num + 1)
+                        },
+                        'fullText': text,
+                        'processingMethod': 'OpenCV + Tesseract OCR',
+                        'status': 'completed'
+                    }
+                    
+                    individual_forms.append(form_data)
                 else:
-                    # Page is image-based, use OCR
-                    print(f"Page {page_num + 1}: Performing OCR...", file=sys.stderr)
+                    print(f"Page {page_num + 1}: Insufficient text extracted", file=sys.stderr)
                     
-                    # Convert page to image
-                    mat = fitz.Matrix(2, 2)  # Higher resolution for better OCR
-                    pix = page.get_pixmap(matrix=mat)
-                    img_data = pix.tobytes("png")
-                    
-                    # Convert to OpenCV format
-                    nparr = np.frombuffer(img_data, np.uint8)
-                    image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-                    
-                    # Extract text using OpenCV + Tesseract
-                    text = self.extract_text_from_image(image)
-                    
-                    if text:
-                        print(f"Page {page_num + 1}: OCR extracted {len(text)} characters", file=sys.stderr)
-                    else:
-                        text = f"Scanned page {page_num + 1} - text extraction in progress"
-                        print(f"Page {page_num + 1}: OCR failed, using placeholder", file=sys.stderr)
-                
-                # Classify document type
-                doc_type, confidence = self.classify_document(text)
-                
-                # Create form data
-                form_data = {
-                    'id': f"form_{page_num + 1}",
-                    'formType': doc_type,
-                    'form_type': doc_type,
-                    'confidence': confidence,
-                    'page_numbers': [page_num + 1],
-                    'page_range': f"Page {page_num + 1}",
-                    'extracted_text': text[:3000],  # Limit for performance
-                    'fullText': text[:3000],
-                    'extractedFields': {
-                        'Full Extracted Text': text[:3000],
-                        'Text Length': len(text),
-                        'Processing Date': datetime.now().isoformat(),
-                        'Processing Method': 'OpenCV + Tesseract OCR' if not direct_text.strip() else 'Direct PDF Text'
-                    },
-                    'processingMethod': 'OpenCV + Tesseract OCR',
-                    'status': 'completed'
-                }
-                detected_forms.append(form_data)
+            except Exception as page_error:
+                print(f"Error processing page {page_num + 1}: {str(page_error)}", file=sys.stderr)
+                continue
             
-            doc.close()
-            
+        doc.close()
+        
+        if not individual_forms:
             return {
-                'status': 'success',
-                'total_pages': len(detected_forms),
-                'detected_forms': detected_forms,
-                'processing_date': datetime.now().isoformat(),
-                'file_path': file_path
+                'error': 'No forms could be processed from the PDF',
+                'forms': [],
+                'processing_method': 'Failed OCR Processing',
+                'document_count': 0
             }
-            
-        except Exception as e:
-            print(f"Document processing error: {e}", file=sys.stderr)
-            return {
-                'status': 'error',
-                'error': str(e),
-                'detected_forms': []
-            }
-    
-    def classify_document(self, text):
-        """Classify document type based on extracted text"""
-        if not text:
-            return 'Trade Finance Document', 50
         
-        text_lower = text.lower()
-        best_match = 'Trade Finance Document'
-        best_score = 50
+        return {
+            'forms': individual_forms,
+            'processing_method': 'OpenCV Enhanced OCR Classification',
+            'document_count': len(individual_forms)
+        }
         
-        for doc_type, keywords in self.form_patterns.items():
-            score = sum(1 for keyword in keywords if keyword in text_lower)
-            confidence = min(95, max(60, (score / len(keywords)) * 100 + 20))
-            
-            if score > 0 and confidence > best_score:
-                best_score = confidence
-                best_match = doc_type
-        
-        return best_match, int(best_score)
+    except Exception as e:
+        print(f"Error processing PDF: {str(e)}", file=sys.stderr)
+        return {
+            'error': f'Error processing PDF: {str(e)}',
+            'forms': [],
+            'processing_method': 'Failed Processing',
+            'document_count': 0
+        }
 
 def main():
     if len(sys.argv) != 2:
-        print(json.dumps({'error': 'Usage: python3 opencvOCR.py <file_path>'}))
+        print(json.dumps({'error': 'Usage: python3 opencvOCR.py <pdf_file>'}))
         sys.exit(1)
     
-    file_path = sys.argv[1]
+    pdf_path = sys.argv[1]
     
-    if not os.path.exists(file_path):
-        print(json.dumps({'error': f'File not found: {file_path}'}))
+    if not os.path.exists(pdf_path):
+        print(json.dumps({'error': f'File not found: {pdf_path}'}))
         sys.exit(1)
     
-    processor = OpenCVOCRProcessor()
-    results = processor.process_document(file_path)
-    print(json.dumps(results, indent=2))
+    result = extract_and_split_forms(pdf_path)
+    print(json.dumps(result, indent=2))
 
 if __name__ == "__main__":
     main()

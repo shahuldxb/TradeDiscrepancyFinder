@@ -87,10 +87,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const docId = Date.now().toString();
       
-      // Use Quick Form Splitter for immediate processing
-      const pythonProcess = spawn('python3', ['server/quickFormSplitter.py', req.file.path], {
+      // Use OpenCV OCR for enhanced text extraction
+      const pythonProcess = spawn('python3', ['server/opencvOCR.py', req.file.path], {
         stdio: ['pipe', 'pipe', 'pipe'],
-        timeout: 15000  // Quick processing timeout
+        timeout: 35000  // Optimized timeout for OCR processing
       });
 
       let output = '';
