@@ -810,11 +810,11 @@ function DocumentHistory() {
     // Enhanced text extraction with multiple fallback sources
     let extractedText = '';
     
-    // Try multiple sources for extracted text
-    if (form.extractedFields?.['Full Extracted Text']) {
-      extractedText = form.extractedFields['Full Extracted Text'];
-    } else if (form.fullText) {
+    // Try multiple sources for extracted text - prioritize fullText from OpenCV OCR
+    if (form.fullText) {
       extractedText = form.fullText;
+    } else if (form.extractedFields?.['Full Extracted Text']) {
+      extractedText = form.extractedFields['Full Extracted Text'];
     } else if (form.extracted_text) {
       extractedText = form.extracted_text;
     } else if (Array.isArray(form.extractedFields)) {
@@ -995,6 +995,10 @@ function DocumentHistory() {
                           </div>
                           <p className="text-sm text-gray-600">
                             Document type: {form.formType || form.form_type}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Text length: {form.text_length || form.fullText?.length || 0} chars | 
+                            Method: {form.processingMethod || 'Standard Processing'}
                           </p>
                         </div>
                         

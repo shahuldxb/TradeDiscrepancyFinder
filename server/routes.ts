@@ -432,19 +432,11 @@ async function loadFromAzureDatabase() {
         
         console.log(`📋 Processing: ${req.file?.originalname} | LC Detection: ${isLCDocument}`);
         
-        // Verify intelligent splitter exists first
-        const intelligentSplitterPath = path.join(__dirname, 'intelligentFormSplitter.py');
-        const realSplitterPath = path.join(__dirname, 'realFormSplitter.py');
-        
-        console.log(`📋 Checking splitter files...`);
-        console.log(`Intelligent splitter: ${intelligentSplitterPath}`);
-        console.log(`Real splitter: ${realSplitterPath}`);
-        
-        // Use Intelligent Form Splitter for document type-based grouping
-        const scriptPath = intelligentSplitterPath;
-        console.log(`🚀 Using Intelligent Form Splitter: ${scriptPath}`);
-        console.log(`📋 Processing with INTELLIGENT form splitter - groups by document type, not page-by-page`);
-        const pythonProcess = spawn('python3', [scriptPath, filePath]);
+        // Use the working OpenCV OCR script
+        const opencvOCRPath = path.join(__dirname, 'opencvOCR.py');
+        console.log(`🚀 Using OpenCV OCR: ${opencvOCRPath}`);
+        console.log(`📋 Processing with OpenCV + Tesseract OCR for authentic text extraction`);
+        const pythonProcess = spawn('python3', [opencvOCRPath, filePath]);
         
         let output = '';
         let errorOutput = '';
@@ -458,40 +450,40 @@ async function loadFromAzureDatabase() {
         });
 
         pythonProcess.on('close', async (code: number) => {
-          console.log(`Intelligent Form Splitter process exited with code: ${code}`);
+          console.log(`OpenCV OCR process exited with code: ${code}`);
           console.log(`Output received: ${output.substring(0, 1000)}...`);
           console.log(`Error output: ${errorOutput}`);
           
           if (code === 0) {
             try {
-              const splitterResult = JSON.parse(output);
-              console.log('Parsed intelligent splitter result:', JSON.stringify(splitterResult, null, 2));
+              const analysisResult = JSON.parse(output);
+              console.log('Parsed OpenCV OCR result:', JSON.stringify(analysisResult, null, 2));
               
-              if (splitterResult.error || splitterResult.status !== 'success') {
-                reject(new Error(splitterResult.error || 'Intelligent form splitting failed'));
+              if (analysisResult.error) {
+                reject(new Error(analysisResult.error));
                 return;
               }
               
-              // Extract document groups from Intelligent Form Splitter - GROUPED BY DOCUMENT TYPE
-              const formsData = splitterResult.detected_forms || [];
-              console.log(`✅ Intelligent Form Splitter grouped ${splitterResult.total_pages} pages into ${formsData.length} document types`);
+              // Extract individual forms from OpenCV OCR
+              const formsData = analysisResult.forms || [];
+              console.log(`✅ OpenCV OCR extracted ${formsData.length} individual forms`);
               
               // Save to Azure SQL database first
               try {
-                await saveToAzureDatabase(docId, req.file, splitterResult, formsData);
+                await saveToAzureDatabase(docId, req.file, analysisResult, formsData);
                 console.log(`✅ Document saved to Azure SQL: ${req.file?.originalname}`);
               } catch (saveError) {
                 console.error('Azure SQL save error:', saveError);
               }
 
-              // Return ONLY Intelligent Form Splitter results - GROUPED BY DOCUMENT TYPE
+              // Return OpenCV OCR results with real extracted text
               return res.json({
                 docId: docId,
                 detectedForms: formsData,
                 totalForms: formsData.length,
-                processingMethod: 'Intelligent Document Grouping',
+                processingMethod: 'OpenCV + Tesseract OCR',
                 status: 'completed',
-                message: `Successfully grouped document into ${formsData.length} document types`
+                message: `Successfully processed ${formsData.length} forms with OCR`
               });
               
 
