@@ -47,27 +47,44 @@ interface PipelineDataViewProps {
 
 export default function PipelineDataView({ ingestionId }: PipelineDataViewProps) {
   const [activeTab, setActiveTab] = useState('pdfs');
+  const [selectedId, setSelectedId] = useState('');
+
+  // Auto-select the latest document if no ID provided
+  useEffect(() => {
+    if (!ingestionId || ingestionId === '') {
+      fetch('/api/form-detection/history')
+        .then(res => res.json())
+        .then(data => {
+          if (data.documents && data.documents.length > 0) {
+            setSelectedId(data.documents[0].id);
+          }
+        })
+        .catch(err => console.error('Failed to fetch latest document:', err));
+    } else {
+      setSelectedId(ingestionId);
+    }
+  }, [ingestionId]);
 
   const { data: pdfData, isLoading: pdfsLoading } = useQuery({
-    queryKey: [`/api/pipeline/pdfs/${ingestionId}`],
-    enabled: !!ingestionId
+    queryKey: [`/api/pipeline/pdfs/${selectedId}`],
+    enabled: !!selectedId
   });
 
   const { data: textData, isLoading: textsLoading } = useQuery({
-    queryKey: [`/api/pipeline/texts/${ingestionId}`],
-    enabled: !!ingestionId
+    queryKey: [`/api/pipeline/texts/${selectedId}`],
+    enabled: !!selectedId
   });
 
   const { data: fieldData, isLoading: fieldsLoading } = useQuery({
-    queryKey: [`/api/pipeline/fields/${ingestionId}`],
-    enabled: !!ingestionId
+    queryKey: [`/api/pipeline/fields/${selectedId}`],
+    enabled: !!selectedId
   });
 
   const pdfs = pdfData?.pdfs || [];
   const texts = textData?.texts || [];
   const fields = fieldData?.fields || [];
 
-  if (!ingestionId) {
+  if (!selectedId) {
     return (
       <Card>
         <CardHeader>
@@ -76,12 +93,12 @@ export default function PipelineDataView({ ingestionId }: PipelineDataViewProps)
             3-Step Pipeline Data
           </CardTitle>
           <CardDescription>
-            Select a document from the history to view pipeline processing results
+            Loading pipeline data...
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="text-center text-gray-500 py-8">
-            No document selected
+          <div className="text-center py-8 text-gray-500">
+            Loading latest document pipeline data...
           </div>
         </CardContent>
       </Card>
@@ -96,7 +113,7 @@ export default function PipelineDataView({ ingestionId }: PipelineDataViewProps)
           3-Step Pipeline Data
         </CardTitle>
         <CardDescription>
-          Document processing results for ingestion ID: {ingestionId}
+          Document processing results for ingestion ID: {selectedId}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -119,7 +136,7 @@ export default function PipelineDataView({ ingestionId }: PipelineDataViewProps)
           <TabsContent value="pdfs" className="mt-4">
             <ScrollArea className="h-96">
               {pdfsLoading ? (
-                <div className="text-center py-8">Loading PDFs...</div>
+                <div className="text-center py-8">Loading PDF data...</div>
               ) : pdfs.length > 0 ? (
                 <div className="space-y-4">
                   {pdfs.map((pdf: PipelinePdf, index: number) => (
@@ -127,23 +144,34 @@ export default function PipelineDataView({ ingestionId }: PipelineDataViewProps)
                       <CardHeader className="pb-2">
                         <div className="flex items-center justify-between">
                           <CardTitle className="text-sm">{pdf.fileName}</CardTitle>
-                          <Badge variant="outline">{pdf.classification}</Badge>
+                          <div className="flex gap-2">
+                            <Badge variant="secondary">{pdf.classification}</Badge>
+                            <Badge variant="outline">{pdf.confidenceScore}% confidence</Badge>
+                          </div>
                         </div>
                       </CardHeader>
                       <CardContent className="pt-0">
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <span className="font-medium">Page Range:</span> {pdf.pageRange}
+                        <div className="space-y-2">
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <span className="font-medium">Page Range:</span>
+                              <div className="text-gray-600">{pdf.pageRange}</div>
+                            </div>
+                            <div>
+                              <span className="font-medium">Created:</span>
+                              <div className="text-gray-600">{new Date(pdf.createdDate).toLocaleString()}</div>
+                            </div>
                           </div>
-                          <div>
-                            <span className="font-medium">Confidence:</span> {(pdf.confidenceScore * 100).toFixed(1)}%
+                          <div className="bg-gray-50 p-3 rounded border">
+                            <span className="font-medium text-sm">Storage Path:</span>
+                            <div className="mt-1 text-sm font-mono text-gray-600">{pdf.blobStoragePath}</div>
                           </div>
-                          <div>
-                            <span className="font-medium">Storage Path:</span> {pdf.blobStoragePath}
-                          </div>
-                          <div>
-                            <span className="font-medium">Created:</span> {new Date(pdf.createdDate).toLocaleString()}
-                          </div>
+                          {pdf.metadata && (
+                            <div className="bg-blue-50 p-3 rounded border">
+                              <span className="font-medium text-sm">Metadata:</span>
+                              <div className="mt-1 text-sm">{pdf.metadata}</div>
+                            </div>
+                          )}
                         </div>
                       </CardContent>
                     </Card>
@@ -160,7 +188,7 @@ export default function PipelineDataView({ ingestionId }: PipelineDataViewProps)
           <TabsContent value="texts" className="mt-4">
             <ScrollArea className="h-96">
               {textsLoading ? (
-                <div className="text-center py-8">Loading texts...</div>
+                <div className="text-center py-8">Loading text data...</div>
               ) : texts.length > 0 ? (
                 <div className="space-y-4">
                   {texts.map((text: PipelineText, index: number) => (
@@ -168,32 +196,35 @@ export default function PipelineDataView({ ingestionId }: PipelineDataViewProps)
                       <CardHeader className="pb-2">
                         <div className="flex items-center justify-between">
                           <CardTitle className="text-sm">{text.fileName}</CardTitle>
-                          <Badge variant="outline">{text.classification}</Badge>
+                          <div className="flex gap-2">
+                            <Badge variant="secondary">{text.classification}</Badge>
+                            <Badge variant="outline">{text.confidenceScore}% confidence</Badge>
+                          </div>
                         </div>
                       </CardHeader>
                       <CardContent className="pt-0">
-                        <div className="grid grid-cols-2 gap-4 text-sm mb-3">
-                          <div>
-                            <span className="font-medium">Text Length:</span> {text.textLength} characters
-                          </div>
-                          <div>
-                            <span className="font-medium">Confidence:</span> {(text.confidenceScore * 100).toFixed(1)}%
-                          </div>
-                          <div>
-                            <span className="font-medium">Page Range:</span> {text.pageRange}
-                          </div>
-                          <div>
-                            <span className="font-medium">Created:</span> {new Date(text.createdDate).toLocaleString()}
-                          </div>
-                        </div>
-                        <Separator className="my-2" />
-                        <div>
-                          <span className="font-medium text-sm">Extracted Text:</span>
-                          <ScrollArea className="h-24 mt-1">
-                            <div className="text-xs bg-gray-50 p-2 rounded border font-mono whitespace-pre-wrap">
-                              {text.textContent}
+                        <div className="space-y-2">
+                          <div className="grid grid-cols-3 gap-4 text-sm">
+                            <div>
+                              <span className="font-medium">Text Length:</span>
+                              <div className="text-gray-600">{text.textLength} chars</div>
                             </div>
-                          </ScrollArea>
+                            <div>
+                              <span className="font-medium">Page Range:</span>
+                              <div className="text-gray-600">{text.pageRange}</div>
+                            </div>
+                            <div>
+                              <span className="font-medium">Created:</span>
+                              <div className="text-gray-600">{new Date(text.createdDate).toLocaleString()}</div>
+                            </div>
+                          </div>
+                          <div className="bg-green-50 p-3 rounded border">
+                            <span className="font-medium text-sm">Extracted Text Content:</span>
+                            <div className="mt-1 text-sm max-h-32 overflow-y-auto">
+                              {text.textContent ? text.textContent.substring(0, 500) : 'No content available'}
+                              {text.textContent && text.textContent.length > 500 && '...'}
+                            </div>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
@@ -232,18 +263,20 @@ export default function PipelineDataView({ ingestionId }: PipelineDataViewProps)
                           </div>
                           <div className="grid grid-cols-2 gap-4 text-sm">
                             <div>
-                              <span className="font-medium">Confidence:</span> {(field.confidenceScore * 100).toFixed(1)}%
+                              <span className="font-medium">Confidence:</span>
+                              <div className="text-gray-600">{field.confidenceScore}%</div>
                             </div>
                             <div>
-                              <span className="font-medium">Page Range:</span> {field.pageRange}
-                            </div>
-                            <div>
-                              <span className="font-medium">Position:</span> {field.positionCoordinates || 'N/A'}
-                            </div>
-                            <div>
-                              <span className="font-medium">Created:</span> {new Date(field.createdDate).toLocaleString()}
+                              <span className="font-medium">Page Range:</span>
+                              <div className="text-gray-600">{field.pageRange}</div>
                             </div>
                           </div>
+                          {field.positionCoordinates && (
+                            <div className="bg-gray-50 p-3 rounded border">
+                              <span className="font-medium text-sm">Position:</span>
+                              <div className="mt-1 text-sm font-mono">{field.positionCoordinates}</div>
+                            </div>
+                          )}
                         </div>
                       </CardContent>
                     </Card>
