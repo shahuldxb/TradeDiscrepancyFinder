@@ -892,10 +892,45 @@ async function loadFromAzureDatabase() {
 
   app.get('/api/pipeline/texts/:ingestionId', async (req, res) => {
     try {
-      const ingestionId = parseInt(req.params.ingestionId);
-      const { ocrTextService } = await import('./ocrTextService');
+      const { ingestionId } = req.params;
       
-      const texts = await ocrTextService.getOcrTextsByIngestion(ingestionId);
+      const config = {
+        server: 'shahulmi.database.windows.net',
+        database: 'tf_genie',
+        user: 'shahul',
+        password: process.env.AZURE_SQL_PASSWORD,
+        options: { encrypt: true, trustServerCertificate: false }
+      };
+
+      const pool = new sql.ConnectionPool(config);
+      await pool.connect();
+      
+      // Get texts for this ingestion
+      const result = await pool.request()
+        .input('ingestionId', ingestionId)
+        .query(`
+          SELECT t.id, t.textContent, t.fileName, t.classification, 
+                 t.confidenceScore, t.textLength, t.createdDate, p.pageRange
+          FROM TF_ingestion_TXT t
+          INNER JOIN TF_pipeline_Pdf p ON t.pdfId = p.id
+          WHERE p.ingestion_id = @ingestionId
+          ORDER BY t.createdDate ASC
+        `);
+      
+      await pool.close();
+      
+      const texts = result.recordset.map(row => ({
+        id: row.id,
+        textContent: row.textContent,
+        fileName: row.fileName,
+        classification: row.classification,
+        confidenceScore: row.confidenceScore,
+        textLength: row.textLength,
+        pageRange: row.pageRange,
+        createdDate: row.createdDate
+      }));
+      
+      console.log(`Retrieved ${texts.length} text records for ingestion ${ingestionId}`);
       res.json({ success: true, texts });
     } catch (error) {
       console.error('Error getting pipeline texts:', error);
