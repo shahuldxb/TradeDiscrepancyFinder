@@ -795,18 +795,33 @@ function DocumentHistory() {
     }
 
     try {
-      // For fallback data, just remove from local state
-      const updatedDocuments = documents.filter(doc => doc.id !== docId);
-      setDocuments(updatedDocuments);
-      
-      toast({
-        title: "Document Removed",
-        description: `"${filename}" has been removed from the display.`,
+      // Make actual API call to delete document
+      const response = await fetch(`/api/form-detection/delete/${docId}`, {
+        method: 'DELETE'
       });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        // Remove from local state immediately
+        const updatedDocuments = documents.filter(doc => doc.id !== docId);
+        setDocuments(updatedDocuments);
+        
+        toast({
+          title: "Document Deleted",
+          description: `"${filename}" and all related pipeline data have been permanently deleted.`,
+        });
+        
+        // Refresh document history from server
+        await fetchDocumentHistory();
+      } else {
+        throw new Error(result.message || 'Delete failed');
+      }
     } catch (error) {
+      console.error('Delete error:', error);
       toast({
         title: "Delete Failed",
-        description: "Failed to remove the document. Please try again.",
+        description: "Failed to delete the document. Please try again.",
         variant: "destructive"
       });
     }

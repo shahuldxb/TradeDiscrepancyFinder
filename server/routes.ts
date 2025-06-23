@@ -278,33 +278,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { docId } = req.params;
       console.log(`Deleting document: ${docId}`);
       
-      const { connectToAzureSQL } = await import('./azureSqlConnection');
-      const pool = await connectToAzureSQL();
+      const config = {
+        server: 'shahulmi.database.windows.net',
+        database: 'tf_genie',
+        user: 'shahul',
+        password: process.env.AZURE_SQL_PASSWORD,
+        options: { encrypt: true, trustServerCertificate: false }
+      };
+
+      const pool = new sql.ConnectionPool(config);
+      await pool.connect();
       
-      // Delete from related tables first (foreign key constraints)
-      await pool.request()
-        .input('ingestionId', docId)
-        .query('DELETE FROM TF_ingestion_fields WHERE ingestion_id = @ingestionId');
+      // Delete cascade: pipeline data first, then main document
+      console.log(`Deleting document ${docId} and all related pipeline data...`);
       
-      await pool.request()
-        .input('ingestionId', docId)
-        .query('DELETE FROM TF_ingestion_TXT WHERE ingestion_id = @ingestionId');
+      // First, get all PDF IDs for this document (using ingestion_id from TF_pipeline_Pdf)
+      const pdfResult = await pool.request()
+        .input('docId', docId)
+        .query('SELECT id FROM TF_pipeline_Pdf WHERE ingestion_id = @docId');
+      
+      const pdfIds = pdfResult.recordset.map(row => row.id);
+      console.log(`Found ${pdfIds.length} PDF records to delete`);
+      
+      // Delete fields for each PDF
+      if (pdfIds.length > 0) {
+        for (const pdfId of pdfIds) {
+          await pool.request()
+            .input('pdfId', pdfId)
+            .query('DELETE FROM TF_ingestion_fields WHERE pdfId = @pdfId');
+        }
         
+        // Delete texts for each PDF  
+        for (const pdfId of pdfIds) {
+          await pool.request()
+            .input('pdfId', pdfId)
+            .query('DELETE FROM TF_ingestion_TXT WHERE pdfId = @pdfId');
+        }
+      }
+      
+      // Delete PDFs
       await pool.request()
-        .input('ingestionId', docId)
-        .query('DELETE FROM TF_ingestion_Pdf WHERE ingestion_id = @ingestionId');
+        .input('docId', docId)
+        .query('DELETE FROM TF_pipeline_Pdf WHERE ingestion_id = @docId');
       
-      // Delete main record
+      // Delete main document (using ingestion_id column)
       const result = await pool.request()
-        .input('ingestionId', docId)
-        .query('DELETE FROM TF_ingestion WHERE ingestion_id = @ingestionId');
-      
+        .input('docId', docId)
+        .query('DELETE FROM TF_ingestion WHERE ingestion_id = @docId');
+
       await pool.close();
       
       if (result.rowsAffected[0] > 0) {
-        console.log(`Successfully deleted document ${docId}`);
-        res.json({ success: true, message: 'Document deleted successfully' });
+        console.log(`✓ Document ${docId} and all pipeline data deleted successfully`);
+        res.json({ success: true, message: 'Document and pipeline data deleted successfully' });
       } else {
+        console.log(`Document ${docId} not found in database`);
         res.status(404).json({ success: false, message: 'Document not found' });
       }
       
