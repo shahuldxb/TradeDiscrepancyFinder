@@ -37,6 +37,7 @@ export default function TradeFinanceFormDetection() {
   const [activeTab, setActiveTab] = useState('upload');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedDocumentId, setSelectedDocumentId] = useState<string>('');
+  const [deletingDocId, setDeletingDocId] = useState<string | null>(null);
 
   const [processingStatus, setProcessingStatus] = useState<ProcessingStatus | null>(null);
   const [detectedForms, setDetectedForms] = useState<DetectedForm[]>([]);
@@ -790,11 +791,23 @@ function DocumentHistory() {
   };
 
   const handleDeleteDocument = async (docId: string, filename: string) => {
+    // Prevent multiple simultaneous deletions
+    if (deletingDocId) {
+      toast({
+        title: "Please wait",
+        description: "Another deletion is in progress. Please wait.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     if (!confirm(`Are you sure you want to delete "${filename}"? This action cannot be undone.`)) {
       return;
     }
 
     try {
+      setDeletingDocId(docId);
+      
       // Make actual API call to delete document
       const response = await fetch(`/api/form-detection/delete/${docId}`, {
         method: 'DELETE'
@@ -812,8 +825,10 @@ function DocumentHistory() {
           description: `"${filename}" and all related pipeline data have been permanently deleted.`,
         });
         
-        // Refresh document history from server
-        await fetchDocumentHistory();
+        // Refresh document history from server (with small delay to ensure database consistency)
+        setTimeout(() => {
+          fetchDocumentHistory();
+        }, 500);
       } else {
         throw new Error(result.message || 'Delete failed');
       }
@@ -824,6 +839,8 @@ function DocumentHistory() {
         description: "Failed to delete the document. Please try again.",
         variant: "destructive"
       });
+    } finally {
+      setDeletingDocId(null);
     }
   };
 
