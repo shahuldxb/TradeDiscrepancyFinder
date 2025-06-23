@@ -198,6 +198,26 @@ export default function PipelineDataView({ ingestionId }: PipelineDataViewProps)
                               <div className="mt-1 text-sm">{pdf.metadata}</div>
                             </div>
                           )}
+                          <div className="mt-3 flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setViewDialog({ open: true, item: pdf, type: 'pdf' })}
+                              className="flex items-center gap-2"
+                            >
+                              <Eye className="h-4 w-4" />
+                              View Details
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => exportData(pdf, 'pdf', pdf.fileName)}
+                              className="flex items-center gap-2"
+                            >
+                              <Download className="h-4 w-4" />
+                              Export
+                            </Button>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
@@ -249,6 +269,26 @@ export default function PipelineDataView({ ingestionId }: PipelineDataViewProps)
                             <div className="mt-1 text-sm max-h-32 overflow-y-auto">
                               {text.textContent ? text.textContent.substring(0, 500) : 'No content available'}
                               {text.textContent && text.textContent.length > 500 && '...'}
+                            </div>
+                            <div className="mt-2 flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setViewDialog({ open: true, item: text, type: 'text' })}
+                                className="flex items-center gap-2"
+                              >
+                                <Eye className="h-4 w-4" />
+                                View Full Text
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => exportText(text)}
+                                className="flex items-center gap-2"
+                              >
+                                <Download className="h-4 w-4" />
+                                Export Text
+                              </Button>
                             </div>
                           </div>
                         </div>
@@ -303,6 +343,26 @@ export default function PipelineDataView({ ingestionId }: PipelineDataViewProps)
                               <div className="mt-1 text-sm font-mono">{field.positionCoordinates}</div>
                             </div>
                           )}
+                          <div className="mt-3 flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setViewDialog({ open: true, item: field, type: 'field' })}
+                              className="flex items-center gap-2"
+                            >
+                              <Eye className="h-4 w-4" />
+                              View Details
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => exportData(field, 'field', field.fieldName)}
+                              className="flex items-center gap-2"
+                            >
+                              <Download className="h-4 w-4" />
+                              Export Field
+                            </Button>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
@@ -317,6 +377,79 @@ export default function PipelineDataView({ ingestionId }: PipelineDataViewProps)
           </TabsContent>
         </Tabs>
       </CardContent>
+
+      {/* View Dialog */}
+      <Dialog open={viewDialog.open} onOpenChange={(open) => setViewDialog(prev => ({ ...prev, open }))}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {viewDialog.type === 'pdf' && 'PDF Details'}
+              {viewDialog.type === 'text' && 'Full Text Content'}
+              {viewDialog.type === 'field' && 'Field Details'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {viewDialog.item && (
+              <div className="bg-gray-50 p-4 rounded-lg">
+                {viewDialog.type === 'text' ? (
+                  <div>
+                    <div className="mb-2 flex justify-between items-center">
+                      <h4 className="font-semibold">File: {viewDialog.item.fileName}</h4>
+                      <Button
+                        size="sm"
+                        onClick={() => exportText(viewDialog.item)}
+                        className="flex items-center gap-2"
+                      >
+                        <Download className="h-4 w-4" />
+                        Export Text
+                      </Button>
+                    </div>
+                    <pre className="whitespace-pre-wrap text-sm bg-white p-3 rounded border max-h-96 overflow-auto">
+                      {viewDialog.item.textContent || 'No text content available'}
+                    </pre>
+                    <div className="mt-2 text-xs text-gray-500">
+                      Length: {viewDialog.item.textLength} characters | 
+                      Classification: {viewDialog.item.classification} | 
+                      Confidence: {viewDialog.item.confidenceScore}%
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="mb-2 flex justify-between items-center">
+                      <h4 className="font-semibold">
+                        {viewDialog.type === 'pdf' ? 'PDF Information' : 'Field Information'}
+                      </h4>
+                      <Button
+                        size="sm"
+                        onClick={() => exportData(viewDialog.item, viewDialog.type, 
+                          viewDialog.item.fileName || viewDialog.item.fieldName)}
+                        className="flex items-center gap-2"
+                      >
+                        <Download className="h-4 w-4" />
+                        Export Data
+                      </Button>
+                    </div>
+                    <div className="space-y-2">
+                      {Object.entries(viewDialog.item).map(([key, value]) => (
+                        <div key={key} className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                          <span className="font-medium text-gray-600">
+                            {key.replace(/([A-Z])/g, ' $1').trim()}:
+                          </span>
+                          <span className="text-gray-900 break-all">
+                            {typeof value === 'string' && value.length > 100 
+                              ? `${value.substring(0, 100)}...` 
+                              : String(value)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
