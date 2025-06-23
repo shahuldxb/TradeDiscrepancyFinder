@@ -203,24 +203,30 @@ export class FieldExtractionService {
     try {
       const pool = await connectToAzureSQL();
       
-      // Return all fields for now since we have authentic data
-      const result = await pool.request().query(`
-        SELECT 
-          id,
-          fieldName,
-          fieldValue,
-          confidenceScore,
-          positionCoordinates,
-          dataType,
-          'extracted' as classification,
-          'Page 1' as pageRange,
-          createdDate
-        FROM TF_ingestion_fields
-        ORDER BY createdDate DESC
-      `);
+      // First try to get fields specific to this ingestion via PDF relationship
+      const result = await pool.request()
+        .input('ingestionId', ingestionId)
+        .query(`
+          SELECT DISTINCT
+            f.id,
+            f.fieldName,
+            f.fieldValue,
+            f.confidenceScore,
+            f.positionCoordinates,
+            f.dataType,
+            'extracted' as classification,
+            'Page 1' as pageRange,
+            f.createdDate
+          FROM TF_ingestion_fields f
+          INNER JOIN TF_pipeline_Pdf p ON f.pdfId = p.id
+          WHERE p.ingestion_id = @ingestionId
+          ORDER BY f.createdDate DESC
+        `);
       
       await pool.close();
-      console.log(`Field extraction service returned ${result.recordset.length} fields`);
+      console.log(`Field extraction service returned ${result.recordset.length} fields for ingestion ${ingestionId}`);
+      
+      // If no specific fields found for this document, return empty array
       return result.recordset || [];
     } catch (error) {
       console.error('Error getting fields by ingestion:', error);
