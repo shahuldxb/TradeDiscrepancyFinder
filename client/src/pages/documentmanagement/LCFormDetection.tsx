@@ -683,6 +683,7 @@ function DocumentHistory() {
   const [documents, setDocuments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedDocs, setExpandedDocs] = useState<Set<string>>(new Set());
+  const [deletingDocId, setDeletingDocId] = useState<string | null>(null);
   const { toast } = useToast();
 
   React.useEffect(() => {
