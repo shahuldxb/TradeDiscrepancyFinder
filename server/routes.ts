@@ -141,8 +141,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
               
               // Save to Azure SQL database
               saveToAzureDatabase(docId, req.file, analysisResult, formsData)
-                .then(() => {
+                .then(async () => {
                   console.log(`✓ Document ${docId} saved to Azure SQL database`);
+                  
+                  // Trigger automatic pipeline execution
+                  console.log(`🔄 Starting automatic pipeline execution for document ${docId}`);
+                  try {
+                    await executeAutomaticPipeline(docId, formsData, analysisResult.detected_forms);
+                    console.log(`✅ Automatic pipeline completed for document ${docId}`);
+                  } catch (pipelineError) {
+                    console.error(`Pipeline execution failed for ${docId}:`, pipelineError.message);
+                  }
+                  
                   resolve({
                     docId,
                     detectedForms,
