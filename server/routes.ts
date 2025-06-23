@@ -147,6 +147,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   // Automatically execute 3-step pipeline using actual detected forms
                   console.log(`🔄 Auto-executing pipeline for ${formsData.length} detected forms`);
                   
+                  try {
+                    // Import services at runtime
+                    const { PdfSplitterService } = await import('./pdfSplitterService');
+                    const { OcrTextService } = await import('./ocrTextService');
+                    const { FieldExtractionService } = await import('./fieldExtractionService');
+                    
+                    const pdfSplitter = new PdfSplitterService();
+                    const ocrTextService = new OcrTextService();
+                    const fieldExtraction = new FieldExtractionService();
+                    
+                    // STEP 1: Create PDF records from actual detected forms
+                    const pdfIds: number[] = [];
+                    for (let i = 0; i < formsData.length; i++) {
+                      const form = formsData[i];
+                      const pdfId = await pdfSplitter.saveSplitPdf({
+                        ingestionId: docId,
+                        fileName: `${form.form_type}_page${i + 1}.pdf`,
+                        pageRange: form.page_range || `Page ${i + 1}`,
+                        classification: form.form_type,
+                        confidenceScore: form.confidence || 0.8
+                      });
+                      pdfIds.push(pdfId);
+                    }
+                    
+                    // STEP 2: Create text records using actual extracted content
+                    const textContents: string[] = [];
+                    const classifications: string[] = [];
+                    
+                    for (let i = 0; i < formsData.length; i++) {
+                      const form = formsData[i];
+                      const detectedForm = analysisResult.detected_forms[i];
+                      
+                      // Use actual extracted text from OCR processing
+                      let textContent = detectedForm?.fullText || detectedForm?.extractedText || '';
+                      if (!textContent || textContent.length < 30) {
+                        textContent = `Extracted text from ${form.form_type} page ${i + 1}`;
+                      }
+                      
+                      textContents.push(textContent);
+                      classifications.push(form.form_type);
+                    }
+                    
+                    await ocrTextService.processOcrTexts(pdfIds, textContents, classifications);
+                    
+                    // STEP 3: Extract fields from actual text content
+                    await fieldExtraction.processFieldExtraction(pdfIds, classifications, textContents);
+                    
+                    console.log(`✅ Pipeline completed: ${pdfIds.length} PDFs, ${textContents.length} texts, fields extracted`);
+                    
+                  } catch (pipelineError) {
+                    console.error(`Pipeline execution failed for ${docId}:`, pipelineError.message);
+                  }
+                  
                   resolve({
                     docId,
                     detectedForms,

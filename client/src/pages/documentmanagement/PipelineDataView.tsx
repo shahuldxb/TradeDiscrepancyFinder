@@ -6,7 +6,9 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FileText, Database, Settings } from 'lucide-react';
+import { FileText, Database, Settings, Eye, Download } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 interface PipelinePdf {
   id: number;
@@ -48,6 +50,11 @@ interface PipelineDataViewProps {
 
 export default function PipelineDataView({ ingestionId }: PipelineDataViewProps) {
   const [activeTab, setActiveTab] = useState('pdfs');
+  const [viewDialog, setViewDialog] = useState<{ open: boolean; item: any; type: string }>({ 
+    open: false, 
+    item: null, 
+    type: '' 
+  });
   const [selectedId, setSelectedId] = useState('');
 
   // Fetch document history for dropdown
