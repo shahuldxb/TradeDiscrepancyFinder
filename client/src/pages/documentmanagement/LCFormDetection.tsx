@@ -1009,9 +1009,10 @@ function DocumentHistory() {
                 variant="outline" 
                 onClick={() => handleDeleteDocument(doc.id, doc.filename)}
                 className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                disabled={deletingDocId === doc.id}
               >
                 <Trash2 className="h-4 w-4 mr-1" />
-                Delete
+                {deletingDocId === doc.id ? 'Deleting...' : 'Delete'}
               </Button>
               
               {doc.detectedForms && doc.detectedForms.length > 1 && (
