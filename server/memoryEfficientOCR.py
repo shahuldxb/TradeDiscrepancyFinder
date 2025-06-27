@@ -80,13 +80,13 @@ def classify_document_type(text: str) -> str:
     """Enhanced document classification"""
     text_lower = text.lower()
     
-    # Certificate patterns
+    # Certificate patterns with more specific matching
     if any(word in text_lower for word in ['certificate', 'certify', 'certified']):
         if any(word in text_lower for word in ['weight', 'gross', 'net']):
             return 'Certificate of Weight'
-        elif any(word in text_lower for word in ['origin', 'country']):
+        elif any(word in text_lower for word in ['origin', 'country', 'chamber of commerce']):
             return 'Certificate of Origin'
-        elif any(word in text_lower for word in ['vessel', 'ship', 'maritime']):
+        elif any(word in text_lower for word in ['vessel', 'ship', 'maritime', 'imo']):
             return 'Vessel Certificate'
         else:
             return 'Certificate'
