@@ -28,14 +28,13 @@ export class OcrTextService {
       
       console.log(`Saving OCR text: ${textLength} chars, classification: ${data.classification}`);
       
+      // Use a simplified approach matching existing table structure
       const result = await pool.request()
         .input('ingestion_id', data.pdfId)
-        .input('content', actualTextContent) // Store the actual full text
-        .input('confidence', data.confidenceScore || 0.85)
-        .input('language', 'en')
+        .input('textContent', actualTextContent) // Store the actual full text
         .query(`
-          INSERT INTO TF_ingestion_TXT (ingestion_id, content, confidence, language, created_date)
-          VALUES (@ingestion_id, @content, @confidence, @language, GETDATE())
+          INSERT INTO TF_ingestion_TXT (ingestion_id, textContent)
+          VALUES (@ingestion_id, @textContent)
         `);
       
       console.log(`✅ Saved OCR text to TF_ingestion_TXT with ID: ${data.pdfId}, length: ${textLength} chars`);
