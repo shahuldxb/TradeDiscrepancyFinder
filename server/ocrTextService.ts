@@ -22,33 +22,24 @@ export class OcrTextService {
     try {
       const pool = await connectToAzureSQL();
       
-      const textLength = data.textContent ? data.textContent.length : 0;
+      // Use the actual text content length
+      const actualTextContent = data.textContent || '';
+      const textLength = actualTextContent.length;
       
-      const query = `
-        INSERT INTO TF_ingestion_TXT (
-          pdfId, textContent, fileName, 
-          classification, confidenceScore, textLength
-        )
-        VALUES (
-          @pdfId, @textContent, @fileName,
-          @classification, @confidenceScore, @textLength
-        );
-        SELECT SCOPE_IDENTITY() as id;
-      `;
+      console.log(`Saving OCR text: ${textLength} chars, classification: ${data.classification}`);
       
       const result = await pool.request()
-        .input('pdfId', data.pdfId)
-        .input('textContent', data.textContent)
-        .input('fileName', data.fileName || null)
-        .input('classification', data.classification || null)
-        .input('confidenceScore', data.confidenceScore || null)
-        .input('textLength', textLength)
-        .query(query);
+        .input('ingestion_id', data.pdfId)
+        .input('content', actualTextContent) // Store the actual full text
+        .input('confidence', data.confidenceScore || 0.85)
+        .input('language', 'en')
+        .query(`
+          INSERT INTO TF_ingestion_TXT (ingestion_id, content, confidence, language, created_date)
+          VALUES (@ingestion_id, @content, @confidence, @language, GETDATE())
+        `);
       
-      const textId = result.recordset[0].id;
-      console.log(`✅ Saved OCR text to TF_ingestion_TXT with ID: ${textId}, length: ${textLength} chars`);
-      
-      return textId;
+      console.log(`✅ Saved OCR text to TF_ingestion_TXT with ID: ${data.pdfId}, length: ${textLength} chars`);
+      return data.pdfId;
     } catch (error) {
       console.error('Error saving OCR text:', error);
       throw error;
@@ -65,13 +56,16 @@ export class OcrTextService {
       const pdfId = pdfIds[i];
       const actualText = extractedTexts[i] || '';
       
-      // Use intelligent form classification based on actual content
-      const formType = this.classifyFormType(actualText);
-      const confidence = this.calculateConfidence(formType, actualText);
+      // Use the actual extracted text directly without modification
+      const realText = actualText || '';
+      const formType = this.classifyFormType(realText);
+      const confidence = this.calculateConfidence(formType, realText);
+      
+      console.log(`Processing form ${i + 1}: ${realText.length} chars, classified as ${formType}`);
       
       const ocrTextData: OcrTextData = {
         pdfId: pdfId,
-        textContent: actualText, // Use actual extracted text, not placeholder
+        textContent: realText, // Use actual extracted text content
         fileName: `${formType.toLowerCase().replace(/\s+/g, '_')}_${i + 1}.txt`,
         classification: formType,
         confidenceScore: confidence / 100 // Convert to decimal

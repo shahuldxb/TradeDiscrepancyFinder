@@ -659,23 +659,23 @@ async function loadFromAzureDatabase() {
                 // Debug: Log the actual form data structure
                 console.log('Form data structure:', JSON.stringify(formsData[0], null, 2));
                 
-                // Prepare extracted texts from forms - use actual OCR content
+                // Extract the actual OCR text content from forms data
                 const extractedTexts = formsData.map((form: any, index: number) => {
-                  // Try multiple property names for extracted text
+                  // The OCR processor stores text in 'extracted_text' and 'text_content'
                   const text = form.extracted_text || 
                               form.text_content || 
                               form.textContent ||
                               form.fullText || 
                               form.content ||
-                              form.extractedFields?.['Full Extracted Text'] || 
                               '';
                   
                   console.log(`Form ${index + 1} (${form.classification || 'unknown'}): ${text.length} chars`);
                   
-                  // Debug missing text issue
-                  if (!text || text.length === 0) {
-                    console.log(`⚠️ Missing text for form ${index + 1}. Available properties:`, Object.keys(form));
-                    console.log(`Form values:`, JSON.stringify(form, null, 2));
+                  // Ensure we're getting the real text content
+                  if (text && text.length > 0) {
+                    console.log(`✅ Form ${index + 1} has authentic text content (${text.length} chars)`);
+                  } else {
+                    console.log(`⚠️ Form ${index + 1} missing text. Properties:`, Object.keys(form));
                   }
                   
                   return text;
