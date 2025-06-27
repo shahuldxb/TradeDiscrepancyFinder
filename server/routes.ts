@@ -1127,32 +1127,176 @@ async function loadFromAzureDatabase() {
     return fields;
   }
 
-  // Document Pipeline API endpoints - 3-step processing
+  // Document Pipeline API endpoints - Memory-efficient 3-step processing
   app.post('/api/document-pipeline/execute', async (req, res) => {
     try {
-      const { ingestionId, detectedForms, extractedTexts } = req.body;
+      const { ingestionId } = req.body;
       
-      if (!ingestionId || !detectedForms || !extractedTexts) {
-        return res.status(400).json({ 
-          error: 'Missing required fields: ingestionId, detectedForms, extractedTexts' 
-        });
+      if (!ingestionId) {
+        return res.status(400).json({ error: 'Ingestion ID is required' });
       }
       
-      const { documentPipelineService } = await import('./documentPipelineService');
-      const result = await documentPipelineService.executeFullPipeline(
-        ingestionId, 
-        detectedForms, 
-        extractedTexts
-      );
+      console.log(`🚀 Starting memory-efficient pipeline for ingestion: ${ingestionId}`);
       
-      res.json({
-        success: true,
-        result,
-        message: `Pipeline completed: ${result.summary.totalPdfs} PDFs, ${result.summary.totalTextRecords} texts, ${result.summary.totalFields} fields`
+      // Get document info from database
+      const config = {
+        server: 'shahulmi.database.windows.net',
+        database: 'tf_genie',
+        user: 'shahul',
+        password: process.env.AZURE_SQL_PASSWORD,
+        options: { encrypt: true, trustServerCertificate: false }
+      };
+
+      const pool = new sql.ConnectionPool(config);
+      await pool.connect();
+      
+      const docResult = await pool.request()
+        .input('ingestionId', ingestionId)
+        .query('SELECT original_filename, file_path FROM TF_ingestion WHERE ingestion_id = @ingestionId');
+      
+      if (docResult.recordset.length === 0) {
+        await pool.close();
+        return res.status(404).json({ error: 'Document not found' });
+      }
+      
+      const document = docResult.recordset[0];
+      const filePath = `uploads/${document.original_filename}`;
+      
+      console.log(`📄 Processing large document: ${document.original_filename}`);
+      
+      // Use memory-efficient OCR processor for large documents
+      const spawn = require('child_process').spawn;
+      
+      const pythonProcess = spawn('python3', [
+        'server/memoryEfficientOCR.py',
+        filePath
+      ], {
+        stdio: ['pipe', 'pipe', 'pipe'],
+        timeout: 600000 // 10 minutes timeout for large docs
       });
+      
+      let stdout = '';
+      let stderr = '';
+      
+      pythonProcess.stdout.on('data', (data) => {
+        stdout += data.toString();
+      });
+      
+      pythonProcess.stderr.on('data', (data) => {
+        stderr += data.toString();
+        console.log('OCR Progress:', data.toString().trim());
+      });
+      
+      pythonProcess.on('close', async (code) => {
+        try {
+          if (code !== 0) {
+            console.error('OCR process failed:', stderr);
+            await pool.close();
+            return res.status(500).json({ 
+              error: 'OCR processing failed',
+              details: stderr 
+            });
+          }
+          
+          const ocrResult = JSON.parse(stdout);
+          console.log(`✅ OCR completed: ${ocrResult.document_count} documents detected`);
+          
+          // Save pipeline results to database
+          let savedPdfs = 0;
+          let savedTexts = 0;
+          let savedFields = 0;
+          
+          for (const [index, detectedDoc] of ocrResult.detected_forms.entries()) {
+            // Step 1: Save PDF info
+            const pdfResult = await pool.request()
+              .input('ingestionId', ingestionId)
+              .input('fileName', `${document.original_filename}_part_${index + 1}.pdf`)
+              .input('pageRange', detectedDoc.page_range)
+              .input('classification', detectedDoc.classification)
+              .query(`
+                INSERT INTO TF_pipeline_Pdf (ingestion_id, fileName, pageRange, classification, createdDate)
+                OUTPUT INSERTED.id
+                VALUES (@ingestionId, @fileName, @pageRange, @classification, GETDATE())
+              `);
+            
+            const pdfId = pdfResult.recordset[0].id;
+            savedPdfs++;
+            
+            // Step 2: Save text content
+            await pool.request()
+              .input('pdfId', pdfId)
+              .input('textContent', detectedDoc.text_content)
+              .input('fileName', `${document.original_filename}_part_${index + 1}.txt`)
+              .input('classification', detectedDoc.classification)
+              .input('confidenceScore', detectedDoc.confidence_score)
+              .input('textLength', detectedDoc.total_chars)
+              .query(`
+                INSERT INTO TF_ingestion_TXT (pdfId, textContent, fileName, classification, confidenceScore, textLength, createdDate)
+                VALUES (@pdfId, @textContent, @fileName, @classification, @confidenceScore, @textLength, GETDATE())
+              `);
+            
+            savedTexts++;
+            
+            // Step 3: Extract and save fields
+            const fieldPatterns = [
+              { name: 'LongNumber', pattern: /([0-9]{8,})/g },
+              { name: 'Number', pattern: /([0-9]{5,7})/g },
+              { name: 'Code', pattern: /([A-Z]{4,})/g },
+              { name: 'Reference', pattern: /([A-Z]{2,}[0-9]{2,})/g }
+            ];
+            
+            for (const pattern of fieldPatterns) {
+              const matches = detectedDoc.text_content.match(pattern.pattern) || [];
+              for (const [matchIndex, match] of matches.slice(0, 3).entries()) {
+                if (match && match.length > 2 && match.length < 50) {
+                  await pool.request()
+                    .input('pdfId', pdfId)
+                    .input('fieldName', `${pattern.name}_${matchIndex + 1}`)
+                    .input('fieldValue', match.trim())
+                    .input('confidenceScore', 85)
+                    .input('dataType', pattern.name.includes('Number') ? 'reference' : 'text')
+                    .query(`
+                      INSERT INTO TF_ingestion_fields (pdfId, fieldName, fieldValue, confidenceScore, dataType, createdDate)
+                      VALUES (@pdfId, @fieldName, @fieldValue, @confidenceScore, @dataType, GETDATE())
+                    `);
+                  
+                  savedFields++;
+                }
+              }
+            }
+          }
+          
+          await pool.close();
+          
+          console.log(`✅ Pipeline completed: ${savedPdfs} PDFs, ${savedTexts} texts, ${savedFields} fields saved`);
+          
+          res.json({
+            success: true,
+            result: {
+              message: 'Memory-efficient pipeline completed successfully',
+              documentsProcessed: ocrResult.document_count,
+              pagesProcessed: ocrResult.pages_processed,
+              totalPages: ocrResult.total_pages,
+              savedPdfs,
+              savedTexts,
+              savedFields,
+              processingMethod: 'Memory-Efficient OCR'
+            }
+          });
+          
+        } catch (processError) {
+          console.error('Pipeline processing error:', processError);
+          await pool.close();
+          res.status(500).json({ 
+            error: 'Pipeline processing failed',
+            details: processError.message 
+          });
+        }
+      });
+      
     } catch (error) {
       console.error('Pipeline execution error:', error);
-      res.status(500).json({ error: 'Failed to execute pipeline' });
+      res.status(500).json({ error: 'Pipeline execution failed' });
     }
   });
 
