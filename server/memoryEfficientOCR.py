@@ -64,9 +64,11 @@ def process_page_batch(doc, start_page: int, end_page: int, max_memory_mb: int =
                 'text_length': 25
             })
         
-        # Force garbage collection every 5 pages
-        if (page_num + 1) % 5 == 0:
+        # Force garbage collection after each page for large documents
+        if total_pages > 30:
             gc.collect()
+            import time
+            time.sleep(0.05)  # Micro-pause for memory cleanup
     
     return batch_results
 
