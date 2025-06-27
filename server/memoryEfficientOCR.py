@@ -65,9 +65,8 @@ def process_page_batch(doc, start_page: int, end_page: int, max_memory_mb: int =
             })
         
         # Force garbage collection after each page for large documents
-        if total_pages > 30:
-            gc.collect()
-            import time
+        gc.collect()
+        if doc.page_count > 30:
             time.sleep(0.05)  # Micro-pause for memory cleanup
     
     return batch_results
@@ -165,21 +164,50 @@ def main():
         
         print(f"Document has {total_pages} pages", file=sys.stderr)
         
-        # Process in batches to prevent memory overflow
-        batch_size = 5 if total_pages > 30 else 10
+        # Ultra-conservative memory management for large documents
+        batch_size = 2 if total_pages > 30 else 3  # Smaller batches for large documents
         all_pages_data = []
         
         for batch_start in range(0, total_pages, batch_size):
             batch_end = min(batch_start + batch_size, total_pages)
-            print(f"Processing batch: pages {batch_start + 1}-{batch_end}", file=sys.stderr)
             
-            batch_data = process_page_batch(doc, batch_start, batch_end)
-            all_pages_data.extend(batch_data)
-            
-            # Clean up between batches
+            # Aggressive memory cleanup before each batch
             gc.collect()
+            
+            # Memory monitoring with emergency stop
+            if psutil:
+                try:
+                    process = psutil.Process(os.getpid())
+                    memory_mb = process.memory_info().rss / 1024 / 1024
+                    print(f"Processing batch: pages {batch_start + 1}-{batch_end} (Memory: {memory_mb:.1f}MB)", file=sys.stderr)
+                    
+                    # Emergency memory check - stop if memory usage too high
+                    if memory_mb > 800:  # 800MB limit
+                        print(f"Memory limit reached ({memory_mb:.1f}MB), processing partial document", file=sys.stderr)
+                        break
+                except Exception as mem_err:
+                    print(f"Processing batch: pages {batch_start + 1}-{batch_end} (Memory monitoring failed: {str(mem_err)})", file=sys.stderr)
+            else:
+                print(f"Processing batch: pages {batch_start + 1}-{batch_end}", file=sys.stderr)
+            
+            try:
+                batch_data = process_page_batch(doc, batch_start, batch_end)
+                all_pages_data.extend(batch_data)
+            except Exception as e:
+                print(f"Batch processing failed: {str(e)}, continuing with partial data", file=sys.stderr)
+                break
+            
+            # Force cleanup and brief pause for large documents
+            if total_pages > 30:
+                gc.collect()
+                time.sleep(0.1)  # Brief pause for memory recovery
         
-        doc.close()
+        try:
+            doc.close()
+        except:
+            pass
+        doc = None
+        gc.collect()
         
         # Identify document boundaries
         documents = identify_document_boundaries(all_pages_data)
