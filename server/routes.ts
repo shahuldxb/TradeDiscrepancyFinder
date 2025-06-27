@@ -651,10 +651,18 @@ async function loadFromAzureDatabase() {
                 // Import pipeline service dynamically  
                 const { documentPipelineService } = await import('./documentPipelineService');
                 
-                // Prepare extracted texts from forms
-                const extractedTexts = formsData.map((form: any) => 
-                  form.extracted_text || form.fullText || form.extractedFields?.['Full Extracted Text'] || form.text_content || ''
-                );
+                // Prepare extracted texts from forms - use actual OCR content
+                const extractedTexts = formsData.map((form: any) => {
+                  const text = form.extracted_text || 
+                              form.text_content || 
+                              form.textContent ||
+                              form.fullText || 
+                              form.extractedFields?.['Full Extracted Text'] || 
+                              '';
+                  
+                  console.log(`Form ${form.classification || 'unknown'}: ${text.length} chars extracted`);
+                  return text;
+                });
                 
                 console.log(`Pipeline input: ${formsData.length} forms, ${extractedTexts.length} texts`);
                 
