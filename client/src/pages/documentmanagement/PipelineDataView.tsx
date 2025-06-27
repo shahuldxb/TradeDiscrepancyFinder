@@ -94,6 +94,41 @@ export default function PipelineDataView({ ingestionId }: PipelineDataViewProps)
   const texts = textData?.texts || [];
   const fields = fieldData?.fields || [];
 
+  // Export functions
+  const exportText = (textItem: any) => {
+    try {
+      const content = textItem.textContent || 'No text content available';
+      const blob = new Blob([content], { type: 'text/plain' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `text_${textItem.fileName || textItem.id || 'export'}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Export text failed:', error);
+    }
+  };
+
+  const exportData = (item: any, type: string, filename: string) => {
+    try {
+      const content = JSON.stringify(item, null, 2);
+      const blob = new Blob([content], { type: 'application/json' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${type}_${filename.replace(/[^a-zA-Z0-9]/g, '_')}.json`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Export data failed:', error);
+    }
+  };
+
   if (!selectedId) {
     return (
       <Card>
