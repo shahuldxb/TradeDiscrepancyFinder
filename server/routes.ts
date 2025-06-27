@@ -87,10 +87,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const docId = Date.now().toString();
       
-      // Use OpenCV OCR for enhanced text extraction
-      const pythonProcess = spawn('python3', ['server/opencvOCR.py', req.file.path], {
+      // Use Memory-Efficient OCR for large document processing
+      const pythonProcess = spawn('python3', ['server/memoryEfficientOCR.py', req.file.path], {
         stdio: ['pipe', 'pipe', 'pipe'],
-        timeout: 35000  // Optimized timeout for OCR processing
+        timeout: 600000  // 10 minutes for large documents
       });
 
       let output = '';
@@ -574,10 +574,17 @@ async function loadFromAzureDatabase() {
         
         console.log(`📋 Processing: ${req.file?.originalname} | LC Detection: ${isLCDocument}`);
         
-        // Use memory-efficient OCR script to prevent page 27 crashes
+        // FORCE memory-efficient OCR for ALL documents to prevent crashes
         const memoryOCRPath = path.join(__dirname, 'memoryEfficientOCR.py');
-        console.log(`🚀 Using Memory-Efficient OCR: ${memoryOCRPath}`);
-        console.log(`📋 Processing with Memory-Efficient OCR for large documents`);
+        console.log(`🚀 FORCED Memory-Efficient OCR: ${memoryOCRPath}`);
+        console.log(`📋 Processing with Memory-Efficient OCR (NO OpenCV fallback)`);
+        
+        // Verify the script exists
+        if (!require('fs').existsSync(memoryOCRPath)) {
+          console.error(`❌ Memory-efficient OCR script not found: ${memoryOCRPath}`);
+          return reject(new Error('Memory-efficient OCR script missing'));
+        }
+        
         const pythonProcess = spawn('python3', [memoryOCRPath, filePath], {
           stdio: ['pipe', 'pipe', 'pipe'],
           timeout: 600000 // 10 minutes for large documents
@@ -705,8 +712,8 @@ async function loadFromAzureDatabase() {
               reject(parseError);
             }
           } else {
-            console.error(`❌ OCR processing failed with code ${code}: ${errorOutput}`);
-            reject(new Error(`OCR processing failed: ${errorOutput}`));
+            console.error(`❌ Memory-Efficient OCR failed with code ${code}: ${errorOutput}`);
+            reject(new Error(`Memory-Efficient OCR processing failed: ${errorOutput}`));
           }
         });
       });
