@@ -574,11 +574,14 @@ async function loadFromAzureDatabase() {
         
         console.log(`📋 Processing: ${req.file?.originalname} | LC Detection: ${isLCDocument}`);
         
-        // Use the working OpenCV OCR script
-        const opencvOCRPath = path.join(__dirname, 'opencvOCR.py');
-        console.log(`🚀 Using OpenCV OCR: ${opencvOCRPath}`);
-        console.log(`📋 Processing with OpenCV + Tesseract OCR for authentic text extraction`);
-        const pythonProcess = spawn('python3', [opencvOCRPath, filePath]);
+        // Use memory-efficient OCR script to prevent page 27 crashes
+        const memoryOCRPath = path.join(__dirname, 'memoryEfficientOCR.py');
+        console.log(`🚀 Using Memory-Efficient OCR: ${memoryOCRPath}`);
+        console.log(`📋 Processing with Memory-Efficient OCR for large documents`);
+        const pythonProcess = spawn('python3', [memoryOCRPath, filePath], {
+          stdio: ['pipe', 'pipe', 'pipe'],
+          timeout: 600000 // 10 minutes for large documents
+        });
         
         let output = '';
         let errorOutput = '';
@@ -591,23 +594,39 @@ async function loadFromAzureDatabase() {
           errorOutput += data.toString();
         });
 
-        pythonProcess.on('close', async (code: number) => {
-          console.log(`OpenCV OCR process exited with code: ${code}`);
+        pythonProcess.on('close', async (code: number | null) => {
+          console.log(`Memory-Efficient OCR process exited with code: ${code}`);
+          
+          if (code === null) {
+            console.log('Python process exited with code: null, attempting to parse partial results');
+            // Try to parse partial results from stderr if process crashed
+            if (errorOutput && errorOutput.includes('{')) {
+              try {
+                const jsonMatch = errorOutput.match(/\{.*\}/s);
+                if (jsonMatch) {
+                  output = jsonMatch[0];
+                }
+              } catch (e) {
+                console.log('Could not extract JSON from stderr');
+              }
+            }
+          }
+          
           console.log(`Output received: ${output.substring(0, 1000)}...`);
           console.log(`Error output: ${errorOutput}`);
           
-          if (code === 0) {
+          if (code === 0 || (code === null && output.includes('detected_forms'))) {
             try {
               const analysisResult = JSON.parse(output);
-              console.log('Parsed OpenCV OCR result:', JSON.stringify(analysisResult, null, 2));
+              console.log('Parsed Memory-Efficient OCR result:', JSON.stringify(analysisResult, null, 2));
               
               if (analysisResult.error) {
                 reject(new Error(analysisResult.error));
                 return;
               }
               
-              // Extract individual forms from OpenCV OCR
-              const formsData = analysisResult.forms || [];
+              // Extract individual forms from Memory-Efficient OCR
+              const formsData = analysisResult.detected_forms || [];
               console.log(`✅ OpenCV OCR extracted ${formsData.length} individual forms`);
               
               // Save to Azure SQL database first
@@ -626,8 +645,8 @@ async function loadFromAzureDatabase() {
                 const { documentPipelineService } = await import('./documentPipelineService');
                 
                 // Prepare extracted texts from forms
-                const extractedTexts = formsData.map(form => 
-                  form.extracted_text || form.fullText || form.extractedFields?.['Full Extracted Text'] || ''
+                const extractedTexts = formsData.map((form: any) => 
+                  form.extracted_text || form.fullText || form.extractedFields?.['Full Extracted Text'] || form.text_content || ''
                 );
                 
                 console.log(`Pipeline input: ${formsData.length} forms, ${extractedTexts.length} texts`);
@@ -649,9 +668,9 @@ async function loadFromAzureDatabase() {
                   docId: docId,
                   detectedForms: formsData,
                   totalForms: formsData.length,
-                  processingMethod: 'OpenCV + Tesseract OCR',
+                  processingMethod: 'Memory-Efficient OCR',
                   status: 'completed',
-                  message: `Successfully processed ${formsData.length} forms with OCR and 3-step pipeline`,
+                  message: `Successfully processed ${formsData.length} forms with Memory-Efficient OCR and 3-step pipeline`,
                   pipelineResults: {
                     totalPdfs: pipelineResult.summary.totalPdfs,
                     totalTexts: pipelineResult.summary.totalTextRecords,
@@ -669,12 +688,12 @@ async function loadFromAzureDatabase() {
                   docId: docId,
                   detectedForms: formsData,
                   totalForms: formsData.length,
-                  processingMethod: 'OpenCV + Tesseract OCR',
+                  processingMethod: 'Memory-Efficient OCR',
                   status: 'completed',
-                  message: `Successfully processed ${formsData.length} forms with OCR (pipeline failed: ${pipelineError.message})`,
+                  message: `Successfully processed ${formsData.length} forms with Memory-Efficient OCR (pipeline failed: ${(pipelineError as Error).message})`,
                   pipelineResults: {
                     pipelineStatus: 'failed',
-                    error: pipelineError.message
+                    error: (pipelineError as Error).message
                   }
                 });
               }

@@ -126,6 +126,7 @@ def identify_document_boundaries(pages_data: List[Dict]) -> List[Dict]:
                 'pages': [page['page_number']],
                 'page_range': f"Page {page['page_number']}",
                 'text_content': text,
+                'extracted_text': text,  # For compatibility
                 'confidence_score': 85,
                 'total_chars': page['text_length']
             }
@@ -135,6 +136,7 @@ def identify_document_boundaries(pages_data: List[Dict]) -> List[Dict]:
                 current_doc['pages'].append(page['page_number'])
                 current_doc['page_range'] = f"Pages {current_doc['pages'][0]}-{current_doc['pages'][-1]}"
                 current_doc['text_content'] += "\n\n" + text
+                current_doc['extracted_text'] = current_doc['text_content']  # For compatibility
                 current_doc['total_chars'] += page['text_length']
     
     # Add final document
@@ -184,6 +186,7 @@ def main():
             'total_pages': total_pages,
             'pages_processed': len(all_pages_data),
             'detected_forms': documents,
+            'forms': documents,  # For compatibility with existing code
             'document_count': len(documents),
             'processing_method': 'Memory-Efficient OCR',
             'success': True
