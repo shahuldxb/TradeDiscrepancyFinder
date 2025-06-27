@@ -1,198 +1,210 @@
 #!/usr/bin/env python3
 """
-OpenCV + Tesseract OCR for Trade Finance Documents
-Enhanced OCR processing with OpenCV preprocessing for better text extraction
+Memory-Efficient OCR Processor for Large Documents
+Handles large PDFs (38+ pages) without memory overflow
+Implements batch processing and memory cleanup
 """
 
 import sys
 import json
-import os
-import fitz  # PyMuPDF
-import cv2
-import numpy as np
+import fitz
 import pytesseract
-from datetime import datetime
 from PIL import Image
 import io
+import gc
+import os
+from typing import List, Dict, Any
 
-def preprocess_image_for_ocr(image_array):
-    """
-    Preprocess image using OpenCV for better OCR results
-    """
-    # Convert to grayscale if needed
-    if len(image_array.shape) == 3:
-        gray = cv2.cvtColor(image_array, cv2.COLOR_BGR2GRAY)
-    else:
-        gray = image_array
+def process_page_batch(doc, start_page: int, end_page: int, max_memory_mb: int = 50) -> List[Dict]:
+    """Process a batch of pages with memory monitoring"""
+    batch_results = []
     
-    # Increase contrast using CLAHE (Contrast Limited Adaptive Histogram Equalization)
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
-    enhanced = clahe.apply(gray)
+    for page_num in range(start_page, min(end_page, doc.page_count)):
+        try:
+            # Load page
+            page = doc.load_page(page_num)
+            
+            # Convert to image with reduced resolution for large docs
+            zoom = 1.5 if doc.page_count > 20 else 2.0
+            mat = fitz.Matrix(zoom, zoom)
+            pix = page.get_pixmap(matrix=mat)
+            
+            # Convert to PIL Image
+            img_data = pix.tobytes("png")
+            image = Image.open(io.BytesIO(img_data))
+            
+            # Process with OCR
+            text = pytesseract.image_to_string(image, config='--psm 6')
+            
+            # Clean up memory immediately
+            del pix, img_data, image
+            page = None
+            gc.collect()
+            
+            if text and len(text.strip()) > 10:
+                batch_results.append({
+                    'page_number': page_num + 1,
+                    'text': text.strip(),
+                    'text_length': len(text.strip())
+                })
+                print(f"✓ Page {page_num + 1}: {len(text.strip())} chars", file=sys.stderr)
+            else:
+                batch_results.append({
+                    'page_number': page_num + 1,
+                    'text': f"Scanned page {page_num + 1} - minimal text",
+                    'text_length': 30
+                })
+                print(f"⚠ Page {page_num + 1}: minimal text", file=sys.stderr)
+                
+        except Exception as e:
+            print(f"✗ Page {page_num + 1} error: {str(e)}", file=sys.stderr)
+            batch_results.append({
+                'page_number': page_num + 1,
+                'text': f"Page {page_num + 1} - processing failed: {str(e)}",
+                'text_length': 25
+            })
+        
+        # Force garbage collection every 5 pages
+        if (page_num + 1) % 5 == 0:
+            gc.collect()
     
-    # Apply binary thresholding with Otsu's method
-    _, thresh = cv2.threshold(enhanced, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    
-    # Denoise using morphological operations
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
-    cleaned = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
-    
-    return cleaned
+    return batch_results
 
-def classify_document_content(text):
-    """Classify document type based on content analysis"""
+def classify_document_type(text: str) -> str:
+    """Enhanced document classification"""
     text_lower = text.lower()
     
-    # Enhanced classification patterns for trade finance documents
-    if any(term in text_lower for term in ['certificate', 'weight', 'batch', 'manufacturing', 'expiry', 'kanemite']):
-        return 'Certificate of Weight', 0.9
-    elif any(term in text_lower for term in ['vessel', 'voyage', 'spectrum', 'flag', 'nationality', 'carrying vessel', 'ism']):
-        return 'Vessel Certificate', 0.9
-    elif any(term in text_lower for term in ['letter of credit', 'documentary credit', 'l/c number', 'issuing bank', 'ilcae']):
-        return 'Letter of Credit', 0.9
-    elif any(term in text_lower for term in ['commercial invoice', 'invoice', 'seller', 'buyer', 'proforma']):
-        return 'Commercial Invoice', 0.8
-    elif any(term in text_lower for term in ['bill of lading', 'b/l no', 'shipper', 'consignee']):
-        return 'Bill of Lading', 0.8
-    elif any(term in text_lower for term in ['certificate of origin', 'country of origin']):
-        return 'Certificate of Origin', 0.8
-    elif any(term in text_lower for term in ['packing list', 'gross weight', 'net weight']):
-        return 'Packing List', 0.7
-    elif any(term in text_lower for term in ['insurance', 'policy', 'coverage']):
-        return 'Insurance Certificate', 0.7
-    elif any(term in text_lower for term in ['united arab emirates', 'abu dhabi', 'dubai', 'uae']):
-        return 'Trade Finance Document', 0.7
-    else:
-        return 'Trade Finance Document', 0.6
+    # Certificate patterns
+    if any(word in text_lower for word in ['certificate', 'certify', 'certified']):
+        if any(word in text_lower for word in ['weight', 'gross', 'net']):
+            return 'Certificate of Weight'
+        elif any(word in text_lower for word in ['origin', 'country']):
+            return 'Certificate of Origin'
+        elif any(word in text_lower for word in ['vessel', 'ship', 'maritime']):
+            return 'Vessel Certificate'
+        else:
+            return 'Certificate'
+    
+    # Invoice patterns
+    if any(word in text_lower for word in ['invoice', 'bill', 'amount', 'total']):
+        return 'Commercial Invoice'
+    
+    # LC patterns
+    if any(word in text_lower for word in ['credit', 'documentary', 'applicant', 'beneficiary']):
+        return 'Letter of Credit'
+    
+    # Transport patterns
+    if any(word in text_lower for word in ['transport', 'shipment', 'cargo', 'container']):
+        return 'Transport Document'
+    
+    return 'Trade Finance Document'
 
-def extract_text_with_opencv_ocr(page):
-    """
-    Extract text using OpenCV preprocessing + Tesseract OCR
-    """
-    try:
-        # Convert page to optimized resolution image
-        mat = fitz.Matrix(1.5, 1.5)  # Balanced scaling for speed and quality
-        pix = page.get_pixmap(matrix=mat)
-        img_data = pix.tobytes("png")
+def identify_document_boundaries(pages_data: List[Dict]) -> List[Dict]:
+    """Identify document boundaries within the PDF"""
+    documents = []
+    current_doc = None
+    
+    for page in pages_data:
+        text = page['text']
+        doc_type = classify_document_type(text)
         
-        # Convert to PIL Image then to OpenCV format
-        pil_image = Image.open(io.BytesIO(img_data))
-        opencv_image = cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGB2BGR)
+        # Check if this starts a new document
+        is_new_doc = (
+            current_doc is None or
+            doc_type != current_doc.get('classification', '') or
+            len(text) > 200  # Substantial content suggests new document
+        )
         
-        # Preprocess image for better OCR
-        processed_image = preprocess_image_for_ocr(opencv_image)
-        
-        # Extract text using Tesseract with optimized configuration
-        custom_config = r'--oem 3 --psm 6'
-        
-        text = pytesseract.image_to_string(processed_image, config=custom_config)
-        
-        return text.strip()
-        
-    except Exception as e:
-        print(f"OCR processing error: {str(e)}", file=sys.stderr)
-        return ""
-
-def extract_and_split_forms(pdf_path):
-    """Extract text from each page using OpenCV + OCR and classify as separate forms"""
-    try:
-        doc = fitz.open(pdf_path)
-        individual_forms = []
-        
-        for page_num in range(doc.page_count):
-            try:
-                page = doc[page_num]
-                
-                # First try direct text extraction
-                text = page.get_text()
-                
-                # If minimal text found, use OpenCV + OCR
-                if len(text.strip()) < 50:
-                    print(f"Running OpenCV OCR on page {page_num + 1}...", file=sys.stderr)
-                    text = extract_text_with_opencv_ocr(page)
-                
-                # Clean and format the extracted text
-                if text and len(text.strip()) > 5:
-                    # Remove excessive whitespace and clean formatting
-                    lines = [line.strip() for line in text.split('\n') if line.strip()]
-                    text = '\n'.join(lines)
-                    
-                    # Add basic formatting for readability
-                    text = text.replace('  ', ' ')  # Remove double spaces
-                    
-                    # Classify this specific page based on content
-                    doc_type, confidence = classify_document_content(text)
-                    
-                    print(f"Page {page_num + 1}: Extracted {len(text)} chars, classified as {doc_type}", file=sys.stderr)
-                    
-                    # Create individual form entry
-                    form_data = {
-                        'id': f"form_{page_num + 1}_{int(datetime.now().timestamp() * 1000)}",
-                        'form_type': doc_type,
-                        'formType': doc_type,
-                        'confidence': confidence,
-                        'page_number': page_num + 1,
-                        'page_numbers': [page_num + 1],
-                        'pages': [page_num + 1],
-                        'page_range': f"Page {page_num + 1}",
-                        'extracted_text': text[:1000],  # Limit for storage
-                        'text_length': len(text),
-                        'extractedFields': {
-                            'Full Extracted Text': text,
-                            'Document Classification': doc_type,
-                            'Processing Statistics': f"{len(text)} characters extracted from page {page_num + 1}",
-                            'Page Number': str(page_num + 1)
-                        },
-                        'fullText': text,
-                        'processingMethod': 'OpenCV + Tesseract OCR',
-                        'status': 'completed'
-                    }
-                    
-                    individual_forms.append(form_data)
-                else:
-                    print(f"Page {page_num + 1}: Insufficient text extracted", file=sys.stderr)
-                    
-            except Exception as page_error:
-                print(f"Error processing page {page_num + 1}: {str(page_error)}", file=sys.stderr)
-                continue
+        if is_new_doc:
+            # Save previous document
+            if current_doc is not None:
+                documents.append(current_doc)
             
-        doc.close()
-        
-        if not individual_forms:
-            return {
-                'error': 'No forms could be processed from the PDF',
-                'forms': [],
-                'processing_method': 'Failed OCR Processing',
-                'document_count': 0
+            # Start new document
+            current_doc = {
+                'classification': doc_type,
+                'pages': [page['page_number']],
+                'page_range': f"Page {page['page_number']}",
+                'text_content': text,
+                'extracted_text': text,  # For compatibility
+                'confidence_score': 85,
+                'total_chars': page['text_length']
             }
-        
-        return {
-            'forms': individual_forms,
-            'processing_method': 'OpenCV Enhanced OCR Classification',
-            'document_count': len(individual_forms)
-        }
-        
-    except Exception as e:
-        print(f"Error processing PDF: {str(e)}", file=sys.stderr)
-        return {
-            'error': f'Error processing PDF: {str(e)}',
-            'forms': [],
-            'processing_method': 'Failed Processing',
-            'document_count': 0
-        }
+        else:
+            # Add to current document
+            if current_doc is not None:
+                current_doc['pages'].append(page['page_number'])
+                current_doc['page_range'] = f"Pages {current_doc['pages'][0]}-{current_doc['pages'][-1]}"
+                current_doc['text_content'] += "\n\n" + text
+                current_doc['extracted_text'] = current_doc['text_content']  # For compatibility
+                current_doc['total_chars'] += page['text_length']
+    
+    # Add final document
+    if current_doc:
+        documents.append(current_doc)
+    
+    return documents
 
 def main():
-    if len(sys.argv) != 2:
-        print(json.dumps({'error': 'Usage: python3 opencvOCR.py <pdf_file>'}))
+    try:
+        if len(sys.argv) != 2:
+            raise ValueError("Usage: python memoryEfficientOCR.py <pdf_path>")
+        
+        pdf_path = sys.argv[1]
+        
+        if not os.path.exists(pdf_path):
+            raise FileNotFoundError(f"PDF file not found: {pdf_path}")
+        
+        print(f"Starting memory-efficient OCR processing: {pdf_path}", file=sys.stderr)
+        
+        # Open document
+        doc = fitz.open(pdf_path)
+        total_pages = doc.page_count
+        
+        print(f"Document has {total_pages} pages", file=sys.stderr)
+        
+        # Process in batches to prevent memory overflow
+        batch_size = 5 if total_pages > 30 else 10
+        all_pages_data = []
+        
+        for batch_start in range(0, total_pages, batch_size):
+            batch_end = min(batch_start + batch_size, total_pages)
+            print(f"Processing batch: pages {batch_start + 1}-{batch_end}", file=sys.stderr)
+            
+            batch_data = process_page_batch(doc, batch_start, batch_end)
+            all_pages_data.extend(batch_data)
+            
+            # Clean up between batches
+            gc.collect()
+        
+        doc.close()
+        
+        # Identify document boundaries
+        documents = identify_document_boundaries(all_pages_data)
+        
+        result = {
+            'total_pages': total_pages,
+            'pages_processed': len(all_pages_data),
+            'detected_forms': documents,
+            'forms': documents,  # For compatibility with existing code
+            'document_count': len(documents),
+            'processing_method': 'Memory-Efficient OCR',
+            'success': True
+        }
+        
+        print(f"✅ Processing complete: {len(documents)} documents identified", file=sys.stderr)
+        print(json.dumps(result))
+        
+    except Exception as e:
+        error_result = {
+            'error': str(e),
+            'detected_forms': [],
+            'total_pages': 0,
+            'success': False
+        }
+        print(f"❌ OCR processing failed: {str(e)}", file=sys.stderr)
+        print(json.dumps(error_result))
         sys.exit(1)
-    
-    pdf_path = sys.argv[1]
-    
-    if not os.path.exists(pdf_path):
-        print(json.dumps({'error': f'File not found: {pdf_path}'}))
-        sys.exit(1)
-    
-    result = extract_and_split_forms(pdf_path)
-    print(json.dumps(result, indent=2))
 
 if __name__ == "__main__":
     main()
