@@ -28,13 +28,16 @@ export class OcrTextService {
       
       console.log(`Saving OCR text: ${textLength} chars, classification: ${data.classification}`);
       
-      // Use a simplified approach matching existing table structure
+      // Use correct column names for existing TF_ingestion_TXT table
       const result = await pool.request()
-        .input('ingestion_id', data.pdfId)
+        .input('pdfId', data.pdfId)
         .input('textContent', actualTextContent) // Store the actual full text
+        .input('classification', data.classification || 'Trade Finance Document')
+        .input('confidenceScore', data.confidenceScore || 0.85)
+        .input('textLength', textLength)
         .query(`
-          INSERT INTO TF_ingestion_TXT (ingestion_id, textContent)
-          VALUES (@ingestion_id, @textContent)
+          INSERT INTO TF_ingestion_TXT (pdfId, textContent, classification, confidenceScore, textLength)
+          VALUES (@pdfId, @textContent, @classification, @confidenceScore, @textLength)
         `);
       
       console.log(`✅ Saved OCR text to TF_ingestion_TXT with ID: ${data.pdfId}, length: ${textLength} chars`);
@@ -60,7 +63,8 @@ export class OcrTextService {
       const formType = this.classifyFormType(realText);
       const confidence = this.calculateConfidence(formType, realText);
       
-      console.log(`Processing form ${i + 1}: ${realText.length} chars, classified as ${formType}`);
+      console.log(`✅ Processing form ${i + 1}: ${realText.length} chars, classified as ${formType}`);
+      console.log(`   Text preview: ${realText.substring(0, 100)}...`);
       
       const ocrTextData: OcrTextData = {
         pdfId: pdfId,

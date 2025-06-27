@@ -661,7 +661,7 @@ async function loadFromAzureDatabase() {
                 
                 // Extract the actual OCR text content from forms data
                 const extractedTexts = formsData.map((form: any, index: number) => {
-                  // The OCR processor stores text in 'extracted_text' and 'text_content'
+                  // The Memory-Efficient OCR stores text in 'extracted_text' and 'text_content'
                   const text = form.extracted_text || 
                               form.text_content || 
                               form.textContent ||
@@ -669,14 +669,8 @@ async function loadFromAzureDatabase() {
                               form.content ||
                               '';
                   
-                  console.log(`Form ${index + 1} (${form.classification || 'unknown'}): ${text.length} chars`);
-                  
-                  // Ensure we're getting the real text content
-                  if (text && text.length > 0) {
-                    console.log(`✅ Form ${index + 1} has authentic text content (${text.length} chars)`);
-                  } else {
-                    console.log(`⚠️ Form ${index + 1} missing text. Properties:`, Object.keys(form));
-                  }
+                  console.log(`✅ Extracting form ${index + 1}: ${text.length} chars from ${form.classification || 'unknown'}`);
+                  console.log(`   Text preview: ${text.substring(0, 100)}...`);
                   
                   return text;
                 });
