@@ -13,6 +13,11 @@ from PIL import Image
 import io
 import gc
 import os
+import time
+try:
+    import psutil
+except ImportError:
+    psutil = None
 from typing import List, Dict, Any
 
 def process_page_batch(doc, start_page: int, end_page: int, max_memory_mb: int = 50) -> List[Dict]:
