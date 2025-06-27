@@ -656,23 +656,27 @@ async function loadFromAzureDatabase() {
                 // Import pipeline service dynamically  
                 const { documentPipelineService } = await import('./documentPipelineService');
                 
-                // Debug: Log the actual form data structure
-                console.log('Form data structure:', JSON.stringify(formsData[0], null, 2));
-                
                 // Extract the actual OCR text content from forms data
                 const extractedTexts = formsData.map((form: any, index: number) => {
-                  // The Memory-Efficient OCR stores text in 'extracted_text' and 'text_content'
-                  const text = form.extracted_text || 
-                              form.text_content || 
-                              form.textContent ||
-                              form.fullText || 
-                              form.content ||
-                              '';
+                  // Access the authentic text from the correct property
+                  const realText = form.extractedFields?.['Full Extracted Text'] || 
+                                 form.fullText || 
+                                 form.extracted_text || 
+                                 form.text_content || 
+                                 form.textContent ||
+                                 form.content ||
+                                 '';
                   
-                  console.log(`✅ Extracting form ${index + 1}: ${text.length} chars from ${form.classification || 'unknown'}`);
-                  console.log(`   Text preview: ${text.substring(0, 100)}...`);
+                  console.log(`✅ Extracting form ${index + 1}: ${realText.length} chars`);
+                  console.log(`   Preview: ${realText.substring(0, 50)}...`);
                   
-                  return text;
+                  // If we still get placeholder text, log the form structure to debug
+                  if (realText.includes('Extracted text from undefined page')) {
+                    console.log(`⚠️ Still getting placeholder. Form keys:`, Object.keys(form));
+                    console.log(`   extractedFields keys:`, Object.keys(form.extractedFields || {}));
+                  }
+                  
+                  return realText;
                 });
                 
                 console.log(`Pipeline input: ${formsData.length} forms, ${extractedTexts.length} texts`);
